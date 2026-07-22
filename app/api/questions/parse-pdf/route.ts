@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import pdfParse from 'pdf-parse';
 
 export async function POST(request: NextRequest) {
   try {
+    const pdfModule = await import('pdf-parse');
+    const pdfParse = (pdfModule as any).default || pdfModule;
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
