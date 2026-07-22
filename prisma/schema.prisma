@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  password_hash String    @db.VarChar(255)
+  role          String    @default("student") @db.VarChar(50)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @db.Timestamp(6)
+  
+  student       Student?
+  admin         Admin?
+  questions     Question[]
+  templates     TestTemplate[]
+
+  @@map("users")
+}
+
+model Student {
+  id                    String    @id @default(uuid()) @db.Uuid
+  user_id               String    @unique @db.Uuid
+  full_name             String?   @db.VarChar(255)
+  phone                 String?   @db.VarChar(20)
+  college               String?   @db.VarChar(255)
+  usn                   String?   @unique @db.VarChar(50)
+  branch_id             String?   @db.Uuid
+  profile_completed     Boolean   @default(false)
+  camera_permission     Boolean   @default(false)
+  microphone_permission Boolean   @default(false)
+  created_at            DateTime  @default(now()) @db.Timestamp(6)
+  updated_at            DateTime  @default(now()) @db.Timestamp(6)
+
+  user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  branch                Branch?   @relation(fields: [branch_id], references: [id])
+  tests                 Test[]
+
+  @@map("students")
+}
+
+model Branch {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(100)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @default(now()) @db.Timestamp(6)
+
+  students    Student[]
+  questions   Question[]
+  templates   TestTemplate[]
+
+  @@map("branches")
+}
+
+model Admin {
+  id          String    @id @default(uuid()) @db.Uuid
+  user_id     String    @unique @db.Uuid
+  full_name   String?   @db.VarChar(255)
+  department  String?   @db.VarChar(255)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @default(now()) @db.Timestamp(6)
+
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+model Question {
+  id                 String    @id @default(uuid()) @db.Uuid
+  question_text      String
+  type               String    @default("mcq") @db.VarChar(50)
+  category           String?   @db.VarChar(100)
+  branch_id          String?   @db.Uuid
+  options_json       Json?
+  correct_answer     String?
+  explanation        String?
+  time_limit_seconds Int?      @default(60)
+  points             Int?      @default(10)
+  is_published       Boolean   @default(false)
+  created_by         String    @db.Uuid
+  created_at         DateTime  @default(now()) @db.Timestamp(6)
+  updated_at         DateTime  @default(now()) @db.Timestamp(6)
+
+  creator            User      @relation(fields: [created_by], references: [id])
+  branch             Branch?   @relation(fields: [branch_id], references: [id])
+  test_questions     TestQuestion[]
+  test_responses     TestResponse[]
+
+  @@map("questions")
+}
+
+model Test {
+  id               String    @id @default(uuid()) @db.Uuid
+  student_id       String    @db.Uuid
+  start_time       DateTime? @db.Timestamp(6)
+  end_time         DateTime? @db.Timestamp(6)
+  status           String?   @default("not_started") @db.VarChar(50)
+  total_duration   Int
+  current_duration Int?      @default(0)
+  violations_count Int?      @default(0)
+  score            Decimal?  @db.Decimal(5, 2)
+  is_completed     Boolean?  @default(false)
+  results_published Boolean  @default(false)
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @db.Timestamp(6)
+
+  student          Student   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  test_questions   TestQuestion[]
+  test_responses   TestResponse[]
+  violations       Violation[]
+  analytics        TestAnalytics?
+
+  @@map("tests")
+}
+
+model TestQuestion {
+  id              String    @id @default(uuid()) @db.Uuid
+  test_id         String    @db.Uuid
+  question_id     String    @db.Uuid
+  sequence_number Int
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+
+  test            Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  question        Question  @relation(fields: [question_id], references: [id])
+
+  @@unique([test_id, question_id])
+  @@map("test_questions")
+}
+
+model TestResponse {
+  id             String    @id @default(uuid()) @db.Uuid
+  test_id        String    @db.Uuid
+  question_id    String    @db.Uuid
+  student_answer String?
+  is_correct     Boolean?
+  points_earned  Decimal?  @default(0) @db.Decimal(5, 2)
+  auto_saved_at  DateTime? @db.Timestamp(6)
+  submitted_at   DateTime? @db.Timestamp(6)
+  created_at     DateTime  @default(now()) @db.Timestamp(6)
+  updated_at     DateTime  @default(now()) @db.Timestamp(6)
+
+  test           Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  question       Question  @relation(fields: [question_id], references: [id])
+
+  @@map("test_responses")
+}
+
+model Violation {
+  id             String    @id @default(uuid()) @db.Uuid
+  test_id        String    @db.Uuid
+  violation_type String    @db.VarChar(100)
+  description    String?
+  severity       String?   @default("warning") @db.VarChar(50)
+  timestamp      DateTime? @default(now()) @db.Timestamp(6)
+  created_at     DateTime  @default(now()) @db.Timestamp(6)
+
+  test           Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
+
+  @@map("violations")
+}
+
+model TestTemplate {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(255)
+  description     String?
+  total_questions Int
+  total_duration  Int
+  branch_id       String?   @db.Uuid
+  created_by      String    @db.Uuid
+  is_active       Boolean?  @default(true)
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  updated_at      DateTime  @default(now()) @db.Timestamp(6)
+
+  creator         User      @relation(fields: [created_by], references: [id])
+  branch          Branch?   @relation(fields: [branch_id], references: [id])
+
+  @@map("test_templates")
+}
+
+model TestAnalytics {
+  id                String    @id @default(uuid()) @db.Uuid
+  test_id           String    @unique @db.Uuid
+  total_questions   Int?
+  correct_answers   Int?
+  incorrect_answers Int?
+  unanswered        Int?
+  total_score       Decimal?  @db.Decimal(5, 2)
+  time_taken        Int?
+  violations_count  Int?      @default(0)
+  percentile        Decimal?  @db.Decimal(5, 2)
+  created_at        DateTime  @default(now()) @db.Timestamp(6)
+
+  test              Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
+
+  @@map("test_analytics")
+}

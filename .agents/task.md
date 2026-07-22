@@ -1,0 +1,19 @@
+- [x] Remove camera & microphone permission checkboxes from Student Profile page UI: `components/student/profile-form.tsx`
+- [x] Update Student Dashboard UI: `components/student/dashboard.tsx` (Remove "Evaluation Pending", show "Submitted", display friendly test name `Campus Recruitment Assessment - [Branch] 2027`)
+- [x] Refactor test interface: `components/test/test-interface.tsx`
+  - Add mandatory instructions modal before test starts
+  - Request camera and mic access when student confirms instructions in modal
+  - Display test name: `Campus Recruitment Assessment - [Branch] 2027`
+- [x] Remove Time Duration from Question Bank forms:
+  - `app/admin/questions/create/page.tsx`
+  - `app/admin/questions/edit/[id]/page.tsx`
+  - `components/admin/questions-manager.tsx` (remove from table columns)
+- [x] Add configurable overall test duration setting in Test Management:
+  - `app/admin/tests/page.tsx` (Add Overall Duration input field)
+  - `app/api/tests/assign/route.ts` (Use custom overall duration from payload)
+- [x] Update theme values in globals.css
+- [ ] Redesign Landing page (app/page.tsx)
+- [x] Redesign Admin Students Viewer page: `components/admin/students-viewer.tsx`
+  - Add "All Students" and "All Test Attempts" views
+  - Add detail history view/modal for each student
+- [x] Verification
