@@ -28,8 +28,6 @@ export default function TestManagementPage() {
   // Filters State for Questions
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [categories, setCategories] = useState<string[]>([]);
 
   // Action states
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
@@ -50,13 +48,6 @@ export default function TestManagementPage() {
       });
       const fetchedQuestions = questionsRes.data.questions || [];
       setQuestions(fetchedQuestions);
-      
-      const cats: string[] = Array.from(
-        new Set(fetchedQuestions.map((q: any) => q.category).filter(Boolean))
-      ) as string[];
-      setCategories(cats);
-
-      // Load branches
       const branchesRes = await axios.get('/api/branches');
       setBranches(branchesRes.data.branches || []);
 
@@ -141,13 +132,10 @@ export default function TestManagementPage() {
     }
   };
 
-  // Local filtering logic for questions
   const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          q.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === 'all' || q.type === selectedType;
-    const matchesCategory = selectedCategory === 'all' || q.category === selectedCategory;
-    return matchesSearch && matchesType && matchesCategory;
+    return matchesSearch && matchesType;
   });
 
   // Calculate estimated total duration
@@ -230,17 +218,6 @@ export default function TestManagementPage() {
                     <option value="mcq">MCQ</option>
                     <option value="coding">Coding</option>
                   </select>
-
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 focus:bg-white"
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
                 </div>
 
                 {/* Questions List */}
@@ -259,7 +236,6 @@ export default function TestManagementPage() {
                         </TableHead>
                         <TableHead>Question Content</TableHead>
                         <TableHead className="w-24">Type</TableHead>
-                        <TableHead className="w-28">Category</TableHead>
                         <TableHead className="w-20 text-center">Marks</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -294,9 +270,6 @@ export default function TestManagementPage() {
                             </TableCell>
                             <TableCell className="text-xs uppercase font-semibold text-slate-500">
                               {q.type}
-                            </TableCell>
-                            <TableCell className="text-xs text-slate-600">
-                              {q.category || 'General'}
                             </TableCell>
                             <TableCell className="text-center font-bold text-slate-700">
                               {q.points || 10}

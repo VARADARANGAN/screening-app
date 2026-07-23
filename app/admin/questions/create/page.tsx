@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { LatexEditor } from '@/components/ui/latex-editor';
 
 export default function CreateQuestionPage() {
   const router = useRouter();
@@ -137,15 +137,14 @@ export default function CreateQuestionPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                {type === 'coding' ? 'Problem Statement' : 'Question Prompt'}
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                {type === 'coding' ? 'Problem Statement (Supports Markdown & LaTeX)' : 'Question Prompt (Supports Markdown & LaTeX)'}
               </label>
-              <Textarea 
+              <LatexEditor 
                 value={questionText} 
-                onChange={(e) => setQuestionText(e.target.value)} 
-                placeholder={type === 'coding' ? 'Write the coding problem statement here...' : 'Write your question here...'}
-                rows={4}
-                className="w-full bg-slate-50 border-slate-200"
+                onChange={setQuestionText} 
+                placeholder={type === 'coding' ? 'Write the coding problem statement here...' : 'Write your question here using Markdown or LaTeX ($...$)...'}
+                rows={6}
               />
             </div>
 

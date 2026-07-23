@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 
 interface Question {
   id: string;
@@ -394,9 +395,9 @@ export function TestInterface({ testId }: { testId: string }) {
               <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : 'MCQ'}
               </div>
-              <h2 className="text-xl font-black text-slate-900 leading-tight">
-                {currentQuestion.questionText}
-              </h2>
+              <div className="text-xl font-black text-slate-900 leading-tight">
+                <MarkdownRenderer content={currentQuestion.questionText} />
+              </div>
               <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
                 Points: {currentQuestion.points || 10}
               </div>
