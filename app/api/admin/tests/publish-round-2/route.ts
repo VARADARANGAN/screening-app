@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           data: selectedQuestions.map((q, index) => ({
             test_id: test.id,
             question_id: q.id,
-            order_num: index + 1
+            sequence_number: index + 1
           }))
         });
       });
