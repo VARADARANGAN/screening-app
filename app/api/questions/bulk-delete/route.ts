@@ -23,8 +23,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     if (body.deleteAll) {
-      // Delete all questions
-      const result = await prisma.question.deleteMany({});
+      // Delete all questions and related records via transaction
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.testQuestion.deleteMany({});
+        await tx.testResponse.deleteMany({});
+        return await tx.question.deleteMany({});
+      });
       return NextResponse.json({
         message: 'All questions deleted successfully',
         count: result.count
@@ -32,13 +36,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.ids && Array.isArray(body.ids)) {
-      // Delete selected questions
-      const result = await prisma.question.deleteMany({
-        where: {
-          id: {
-            in: body.ids
-          }
-        }
+      // Delete selected questions and related records via transaction
+      const result = await prisma.$transaction(async (tx) => {
+        await tx.testQuestion.deleteMany({
+          where: { question_id: { in: body.ids } }
+        });
+        await tx.testResponse.deleteMany({
+          where: { question_id: { in: body.ids } }
+        });
+        return await tx.question.deleteMany({
+          where: { id: { in: body.ids } }
+        });
       });
       return NextResponse.json({
         message: `${result.count} questions deleted successfully`,
