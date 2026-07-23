@@ -54,6 +54,16 @@ export function TestInterface({ testId }: { testId: string }) {
     }
   }, [timeRemaining, test, showInstructions]);
 
+  // Save state to local storage when time or index changes
+  useEffect(() => {
+    if (test && test.status === 'in_progress') {
+      localStorage.setItem(`testState_${testId}`, JSON.stringify({
+        timeRemaining,
+        currentQuestionIndex
+      }));
+    }
+  }, [timeRemaining, currentQuestionIndex, test, testId]);
+
   // Monitor for cheating attempts
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -96,7 +106,35 @@ export function TestInterface({ testId }: { testId: string }) {
       });
       const t = response.data.test;
       setTest(t);
-      setTimeRemaining(t.total_duration * 60);
+      
+      const savedStateStr = localStorage.getItem(`testState_${testId}`);
+      if (t.status === 'in_progress' && savedStateStr) {
+        try {
+          const savedState = JSON.parse(savedStateStr);
+          if (savedState.timeRemaining > 0) {
+            setTimeRemaining(savedState.timeRemaining);
+          } else {
+            setTimeRemaining(t.total_duration * 60);
+          }
+          if (savedState.currentQuestionIndex !== undefined) {
+            setCurrentQuestionIndex(savedState.currentQuestionIndex);
+          }
+        } catch (e) {
+          setTimeRemaining(t.total_duration * 60);
+        }
+      } else {
+        setTimeRemaining(t.total_duration * 60);
+      }
+
+      if (t.responses) {
+        const initialAnswers: Record<string, string> = {};
+        t.responses.forEach((r: any) => {
+          if (r.student_answer) {
+            initialAnswers[r.question_id] = r.student_answer;
+          }
+        });
+        setAnswers(initialAnswers);
+      }
 
       if (t.status !== 'not_started') {
         setShowInstructions(false);
@@ -142,6 +180,21 @@ export function TestInterface({ testId }: { testId: string }) {
     axios.post(
       `/api/tests/${testId}/auto-save`,
       { questionId, answer },
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch((error) => console.error('[Auto-save Error]', error));
+  }, [testId]);
+
+  const handleClearAnswer = useCallback((questionId: string) => {
+    setAnswers((prev) => {
+      const newAnswers = { ...prev };
+      delete newAnswers[questionId];
+      return newAnswers;
+    });
+
+    const token = localStorage.getItem('token');
+    axios.post(
+      `/api/tests/${testId}/auto-save`,
+      { questionId, answer: '' },
       { headers: { Authorization: `Bearer ${token}` } }
     ).catch((error) => console.error('[Auto-save Error]', error));
   }, [testId]);
@@ -353,6 +406,17 @@ export function TestInterface({ testId }: { testId: string }) {
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
               {currentQuestion.type === 'mcq' && currentQuestion.optionsJson && (
                 <div className="space-y-2.5">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm font-semibold text-slate-600">Select one option:</span>
+                    {answers[currentQuestion.id] && (
+                      <button
+                        onClick={() => handleClearAnswer(currentQuestion.id)}
+                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
+                      >
+                        Clear Selection
+                      </button>
+                    )}
+                  </div>
                   {currentQuestion.optionsJson.map((option: any, idx: number) => {
                     const optionVal = typeof option === 'object' && option !== null && 'text' in option ? option.text : String(option);
                     const isSelected = answers[currentQuestion.id] === optionVal;
@@ -380,17 +444,30 @@ export function TestInterface({ testId }: { testId: string }) {
 
               {currentQuestion.type === 'true_false' && (
                 <div className="space-y-3">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm font-semibold text-slate-600">Select one option:</span>
+                    {answers[currentQuestion.id] && (
+                      <button
+                        onClick={() => handleClearAnswer(currentQuestion.id)}
+                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
+                      >
+                        Clear Selection
+                      </button>
+                    )}
+                  </div>
                   {['True', 'False'].map((option) => (
-                    <label key={option} className="flex items-center p-3 border rounded-lg hover:bg-blue-50">
+                    <label key={option} className={`flex items-center p-3 border rounded-lg transition cursor-pointer ${
+                      answers[currentQuestion.id] === option ? 'border-blue-600 bg-blue-50/20' : 'hover:bg-slate-50 border-slate-200'
+                    }`}>
                       <input
                         type="radio"
                         name={`question-${currentQuestion.id}`}
                         value={option}
                         checked={answers[currentQuestion.id] === option}
                         onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                        className="mr-3"
+                        className="mr-3 text-blue-600 focus:ring-blue-500"
                       />
-                      <span>{option}</span>
+                      <span className="text-sm font-semibold text-slate-700">{option}</span>
                     </label>
                   ))}
                 </div>

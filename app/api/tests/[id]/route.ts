@@ -46,7 +46,8 @@ export async function GET(
             orderBy: {
               created_at: 'asc'
             }
-          }
+          },
+          test_responses: true
         }
       });
     } else {
