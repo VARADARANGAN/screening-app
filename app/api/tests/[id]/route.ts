@@ -82,6 +82,37 @@ export async function GET(
       return NextResponse.json({ message: 'Test not found' }, { status: 404 });
     }
 
+    // 3-Minute Resume Timeout Logic
+    if (isStudent && test.status === 'in_progress') {
+      const lastPingTime = new Date(test.updated_at).getTime();
+      const diffMs = Date.now() - lastPingTime;
+      // 3 minutes = 180000 ms
+      if (diffMs > 180000) {
+        // Mark as auto-submitted on the backend
+        test = await prisma.test.update({
+          where: { id: test.id },
+          data: {
+            status: 'auto_submitted',
+            is_completed: true,
+            end_time: new Date(),
+            updated_at: new Date()
+          },
+          include: {
+            test_questions: {
+              include: {
+                question: true
+              },
+              orderBy: {
+                created_at: 'asc'
+              }
+            },
+            test_responses: true
+          }
+        });
+        console.log(`[Resume Timeout] Test ${test.id} auto-submitted due to >3min inactivity`);
+      }
+    }
+
     const showResults = !isStudent || test.results_published;
 
     // Format the response to match what the frontend expects

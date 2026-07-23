@@ -65,6 +65,21 @@ export function TestInterface({ testId }: { testId: string }) {
     }
   }, [timeRemaining, currentQuestionIndex, test, testId]);
 
+  // Ping heartbeat every 30 seconds to update updated_at on backend
+  useEffect(() => {
+    if (test && test.status === 'in_progress' && !showInstructions) {
+      const interval = setInterval(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+          axios.post(`/api/tests/${testId}/ping`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(err => console.error('[Heartbeat Error]', err));
+        }
+      }, 30000); // 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [test?.status, showInstructions, testId]);
+
   // Monitor for cheating attempts
   useEffect(() => {
     const handleVisibilityChange = () => {
