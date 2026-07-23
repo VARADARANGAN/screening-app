@@ -19,6 +19,9 @@ export function QuestionsManager() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Selection State
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(new Set());
+  
   // Filtering and Searching
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -57,6 +60,47 @@ export function QuestionsManager() {
       loadQuestions();
     } catch (e: any) {
       alert(e.response?.data?.message || 'Failed to delete question');
+    }
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelection = new Set(selectedQuestionIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedQuestionIds(newSelection);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestionIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedQuestionIds.size} selected question(s)?`)) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/questions/bulk-delete', 
+        { ids: Array.from(selectedQuestionIds) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSelectedQuestionIds(new Set());
+      loadQuestions();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Failed to delete questions');
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!confirm('WARNING: Are you sure you want to delete ALL questions in the universal bank? This action cannot be undone!')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/questions/bulk-delete', 
+        { deleteAll: true },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSelectedQuestionIds(new Set());
+      loadQuestions();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Failed to delete all questions');
     }
   };
 
@@ -152,6 +196,14 @@ export function QuestionsManager() {
     return matchesSearch && matchesType;
   });
 
+  const toggleAll = () => {
+    if (selectedQuestionIds.size === filteredQuestions.length && filteredQuestions.length > 0) {
+      setSelectedQuestionIds(new Set());
+    } else {
+      setSelectedQuestionIds(new Set(filteredQuestions.map(q => q.id)));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Top Navbar */}
@@ -169,6 +221,9 @@ export function QuestionsManager() {
             </span>
           </div>
           <div>
+            <Link href="/admin/tests" className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold px-4 py-2 rounded-lg transition mr-2">
+              Go to Test Management
+            </Link>
             <Link href="/admin/dashboard" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition">
               ← Dashboard
             </Link>
@@ -199,7 +254,19 @@ export function QuestionsManager() {
               <option value="coding">Coding Challenge</option>
             </select>
         </div>
-          <div className="flex gap-3 shrink-0 mt-3 md:mt-0">
+          <div className="flex gap-3 shrink-0 mt-3 md:mt-0 items-center">
+            {selectedQuestionIds.size > 0 && (
+              <Button 
+                variant="destructive" 
+                className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
+                onClick={handleBulkDelete}
+              >
+                Delete Selected ({selectedQuestionIds.size})
+              </Button>
+            )}
+            <Button variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer" onClick={handleDeleteAll}>
+              Delete All
+            </Button>
             <Button variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer" onClick={() => setIsUploadOpen(true)}>
               Import Questions
             </Button>
@@ -215,6 +282,14 @@ export function QuestionsManager() {
             <Table>
               <TableHeader className="bg-slate-50/70 border-b border-slate-100">
                 <TableRow>
+                  <TableHead className="w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      checked={filteredQuestions.length > 0 && selectedQuestionIds.size === filteredQuestions.length}
+                      onChange={toggleAll}
+                    />
+                  </TableHead>
                   <TableHead className="font-semibold text-slate-700">Question Content</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-44">Type</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-28 text-center">Marks</TableHead>
@@ -224,15 +299,23 @@ export function QuestionsManager() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-slate-400">Loading questions...</TableCell>
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-400">Loading questions...</TableCell>
                   </TableRow>
                 ) : filteredQuestions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-slate-400">No questions found matching the filters</TableCell>
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-400">No questions found matching the filters</TableCell>
                   </TableRow>
                 ) : (
                   filteredQuestions.map(q => (
                     <TableRow key={q.id} className="hover:bg-slate-50/50 transition border-b border-slate-100 last:border-b-0">
+                      <TableCell className="text-center">
+                        <input 
+                          type="checkbox" 
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          checked={selectedQuestionIds.has(q.id)}
+                          onChange={() => toggleSelection(q.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-slate-800 max-w-lg">
                         <div className="truncate" title={q.question_text}>{q.question_text}</div>
                       </TableCell>
@@ -254,14 +337,6 @@ export function QuestionsManager() {
                           onClick={() => router.push(`/admin/questions/edit/${q.id}`)}
                         >
                           Edit
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 hover:border-rose-200"
-                          onClick={() => handleDelete(q.id)}
-                        >
-                          Delete
                         </Button>
                       </TableCell>
                     </TableRow>

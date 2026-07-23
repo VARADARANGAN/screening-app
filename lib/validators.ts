@@ -33,6 +33,7 @@ export const StudentProfileSchema = z.object({
 });
 
 export const AdminProfileSchema = z.object({
+  email: z.string().email('Invalid email format').optional(),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   department: z.string().min(2, 'Department is required'),
 });

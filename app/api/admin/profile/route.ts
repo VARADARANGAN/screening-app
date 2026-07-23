@@ -29,6 +29,18 @@ export async function POST(request: NextRequest) {
     const validatedData = AdminProfileSchema.parse(data);
 
     const pool = await getPool();
+
+    // 1. Update User Email if provided
+    if (validatedData.email) {
+      // Check if email belongs to someone else
+      const existingUser = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [validatedData.email, decoded.userId]);
+      if (existingUser.rows.length > 0) {
+        return NextResponse.json({ message: 'Email is already in use by another account' }, { status: 400 });
+      }
+      await pool.query('UPDATE users SET email = $1 WHERE id = $2', [validatedData.email, decoded.userId]);
+    }
+
+    // 2. Update Admin details
     const result = await pool.query(
       `INSERT INTO admins (user_id, full_name, department)
        VALUES ($1, $2, $3)
@@ -74,20 +86,27 @@ export async function GET(request: NextRequest) {
     }
 
     const pool = await getPool();
+    // We need to fetch email from users table and everything else from admins table
     const result = await pool.query(
-      'SELECT * FROM admins WHERE user_id = $1',
+      `SELECT a.*, u.email 
+       FROM users u 
+       LEFT JOIN admins a ON u.id = a.user_id 
+       WHERE u.id = $1`,
       [decoded.userId]
     );
 
     if (result.rows.length === 0) {
-      return NextResponse.json({ message: 'Admin profile not found' }, { status: 404 });
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
+
+    const row = result.rows[0];
 
     return NextResponse.json({
       message: 'Admin profile retrieved',
       admin: {
-        fullName: result.rows[0].full_name,
-        department: result.rows[0].department,
+        email: row.email,
+        fullName: row.full_name || '',
+        department: row.department || '',
       },
     });
   } catch (error: any) {

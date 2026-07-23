@@ -52,6 +52,7 @@ export function AdminProfileForm() {
         reset({
           fullName: response.data.admin.fullName,
           department: response.data.admin.department,
+          email: response.data.admin.email,
         });
       }
     } catch (error) {
@@ -148,10 +149,6 @@ export function AdminProfileForm() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Email Address</p>
                   <p className="text-sm font-medium text-slate-900 truncate" title={user?.email}>{user?.email || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Employee ID</p>
-                  <p className="text-sm font-medium text-slate-900 font-mono truncate" title={user?.userId}>{user?.userId || 'N/A'}</p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -179,6 +176,19 @@ export function AdminProfileForm() {
                 </div>
               )}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Email Address
+                  </label>
+                  <input
+                    {...register('email')}
+                    type="email"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+                    placeholder="admin@example.com"
+                  />
+                  {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
