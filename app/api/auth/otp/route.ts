@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
         return createResponse(errorResponse('INTERNAL_ERROR', 'Failed to send OTP email completely.'), HTTP_STATUS.INTERNAL_SERVER_ERROR);
       }
     }
+  } catch (error: any) {
+    console.error('[OTP Global Error]', error);
+    return createResponse(errorResponse('INTERNAL_ERROR', 'Failed to process request.'), HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
 }
 
 export function getCachedOTP(email: string): string | null {
