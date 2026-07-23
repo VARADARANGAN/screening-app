@@ -4,11 +4,17 @@
  */
 
 import { NextResponse } from 'next/server';
-import { healthCheck } from '@/lib/db';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const isHealthy = await healthCheck();
+    let isHealthy = false;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      isHealthy = true;
+    } catch (e) {
+      isHealthy = false;
+    }
 
     if (isHealthy) {
       return NextResponse.json(

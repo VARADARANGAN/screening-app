@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
@@ -100,29 +100,28 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { studentId, questionIds, totalDuration } = data;
 
-    const pool = await getPool();
-    
-    // Create test
-    const testResult = await pool.query(
-      `INSERT INTO tests (student_id, total_duration, status, violations_count)
-       VALUES ($1, $2, 'not_started', 0)
-       RETURNING *`,
-      [studentId, totalDuration]
-    );
-
-    const testId = testResult.rows[0].id;
-
-    // Add questions to test
-    for (const questionId of questionIds) {
-      await pool.query(
-        `INSERT INTO test_questions (test_id, question_id)
-         VALUES ($1, $2)`,
-        [testId, questionId]
-      );
-    }
+    const test = await prisma.$transaction(async (tx) => {
+      const newTest = await tx.test.create({
+        data: {
+          student_id: studentId,
+          total_duration: totalDuration,
+          status: 'not_started',
+          violations_count: 0
+        }
+      });
+      
+      await tx.testQuestion.createMany({
+        data: questionIds.map((qId: string, idx: number) => ({
+          test_id: newTest.id,
+          question_id: qId,
+          sequence_number: idx + 1
+        }))
+      });
+      return newTest;
+    });
 
     return NextResponse.json(
-      { message: 'Test created', test: testResult.rows[0] },
+      { message: 'Test created', test },
       { status: 201 }
     );
   } catch (error: any) {

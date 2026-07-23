@@ -109,7 +109,7 @@ export async function GET(
             test_responses: true
           }
         });
-        console.log(`[Resume Timeout] Test ${test.id} auto-submitted due to >3min inactivity`);
+
       }
     }
 

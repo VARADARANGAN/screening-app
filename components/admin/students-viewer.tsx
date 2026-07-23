@@ -57,6 +57,13 @@ export function StudentsViewer() {
   const [selectedStudentHistory, setSelectedStudentHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  // Round 2 Publish Modal State
+  const [isRound2ModalOpen, setIsRound2ModalOpen] = useState(false);
+  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [selectedRound2QuestionIds, setSelectedRound2QuestionIds] = useState<Set<string>>(new Set());
+  const [round2Duration, setRound2Duration] = useState(60);
+  const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
+  const [questionSearchQuery, setQuestionSearchQuery] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
 
   // Coding answers viewer state
@@ -155,17 +162,68 @@ export function StudentsViewer() {
     setSelectedStudentIds(newSelection);
   };
 
-  const handlePublishRound2 = async () => {
+  const openRound2Modal = async () => {
     if (selectedStudentIds.size === 0) return;
-    if (!confirm(`Are you sure you want to publish the Round 2 Test for ${selectedStudentIds.size} selected student(s)?`)) return;
+    setIsRound2ModalOpen(true);
+    setIsQuestionsLoading(true);
+    setSelectedRound2QuestionIds(new Set());
+    setRound2Duration(60);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('/api/questions?limit=1000', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAvailableQuestions(res.data.questions || []);
+    } catch (e) {
+      console.error('Failed to load questions', e);
+      alert('Failed to load available questions.');
+    } finally {
+      setIsQuestionsLoading(false);
+    }
+  };
+
+  const toggleRound2Question = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSelection = new Set(selectedRound2QuestionIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedRound2QuestionIds(newSelection);
+  };
+
+  const toggleAllRound2Questions = () => {
+    if (selectedRound2QuestionIds.size === filteredQuestions.length && filteredQuestions.length > 0) {
+      setSelectedRound2QuestionIds(new Set());
+    } else {
+      setSelectedRound2QuestionIds(new Set(filteredQuestions.map(q => q.id)));
+    }
+  };
+
+  const submitRound2Publish = async () => {
+    if (selectedRound2QuestionIds.size === 0) {
+      alert('Please select at least one question for the test.');
+      return;
+    }
+    if (round2Duration <= 0) {
+      alert('Please enter a valid test duration.');
+      return;
+    }
+    if (!confirm(`Publish Round 2 Test for ${selectedStudentIds.size} student(s) with ${selectedRound2QuestionIds.size} question(s)?`)) return;
+    
     setIsPublishing(true);
     try {
       const token = localStorage.getItem('token');
       await axios.post('/api/admin/tests/publish-round-2', 
-        { studentIds: Array.from(selectedStudentIds) },
+        { 
+          studentIds: Array.from(selectedStudentIds),
+          questionIds: Array.from(selectedRound2QuestionIds),
+          totalDuration: round2Duration
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Round 2 tests successfully generated for the selected students.');
+      alert('Round 2 tests successfully generated!');
+      setIsRound2ModalOpen(false);
       setSelectedStudentIds(new Set());
       loadData();
     } catch (error: any) {
@@ -191,6 +249,10 @@ export function StudentsViewer() {
     const matchesBranch = selectedBranch === 'all' || a.branch === selectedBranch;
     return matchesSearch && matchesBranch;
   });
+
+  const filteredQuestions = availableQuestions.filter(q => 
+    q.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -263,10 +325,9 @@ export function StudentsViewer() {
             {activeTab === 'students' && selectedStudentIds.size > 0 && (
               <Button 
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
-                onClick={handlePublishRound2}
-                disabled={isPublishing}
+                onClick={openRound2Modal}
               >
-                {isPublishing ? 'Publishing...' : `Publish Round 2 Test (${selectedStudentIds.size})`}
+                Configure Round 2 Test ({selectedStudentIds.size})
               </Button>
             )}
             <Button variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={loadData}>
@@ -588,6 +649,119 @@ export function StudentsViewer() {
                   );
                 })
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Round 2 Question Selection Modal */}
+      {isRound2ModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Configure Round 2 Test</h2>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Publishing to <strong className="text-indigo-600">{selectedStudentIds.size} student(s)</strong>
+                  </p>
+                </div>
+                <Button variant="outline" className="border-slate-200" onClick={() => setIsRound2ModalOpen(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-5 flex gap-4 bg-slate-50 border-b border-slate-100">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Search Questions</label>
+                <Input
+                  placeholder="Search by question text..."
+                  value={questionSearchQuery}
+                  onChange={(e) => setQuestionSearchQuery(e.target.value)}
+                  className="bg-white border-slate-200"
+                />
+              </div>
+              <div className="w-32">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Duration (mins)</label>
+                <Input
+                  type="number"
+                  min="5"
+                  value={round2Duration}
+                  onChange={(e) => setRound2Duration(parseInt(e.target.value) || 60)}
+                  className="bg-white border-slate-200 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-0 bg-white">
+              <Table>
+                <TableHeader className="bg-slate-50/70 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
+                  <TableRow>
+                    <TableHead className="w-12 text-center">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        checked={filteredQuestions.length > 0 && selectedRound2QuestionIds.size === filteredQuestions.length}
+                        onChange={toggleAllRound2Questions}
+                      />
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">Question Content</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32">Type</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-24 text-center">Marks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isQuestionsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-12 text-slate-400">Loading question bank...</TableCell>
+                    </TableRow>
+                  ) : filteredQuestions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-12 text-slate-400">No questions found</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredQuestions.map(q => (
+                      <TableRow key={q.id} className="hover:bg-slate-50/70 transition border-b border-slate-100">
+                        <TableCell className="text-center">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            checked={selectedRound2QuestionIds.has(q.id)}
+                            onChange={(e) => toggleRound2Question(q.id, e)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-800 max-w-lg">
+                          <div className="truncate text-xs" title={q.question_text}>{q.question_text}</div>
+                        </TableCell>
+                        <TableCell className="w-32">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                            q.type === 'mcq' ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'
+                          }`}>
+                            {q.type === 'mcq' ? 'MCQ' : 'Coding'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="w-24 text-center text-slate-600 font-semibold text-xs">
+                          {q.points || 10}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div className="text-xs font-bold text-slate-600">
+                Selected <span className="text-indigo-600">{selectedRound2QuestionIds.size}</span> questions
+              </div>
+              <Button 
+                onClick={submitRound2Publish}
+                disabled={isPublishing || selectedRound2QuestionIds.size === 0}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-8"
+              >
+                {isPublishing ? 'Publishing...' : 'Publish Test Now'}
+              </Button>
             </div>
           </div>
         </div>

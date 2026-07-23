@@ -12,41 +12,30 @@ export async function POST(request: NextRequest) {
     const token = authHeader.slice(7);
     const decoded = verifyToken(token);
 
-    if (!decoded || decoded.role !== 'admin') {
+    if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'super_admin')) {
       return NextResponse.json({ message: 'Only admins can publish tests' }, { status: 403 });
     }
 
     const body = await request.json();
-    const { studentIds } = body;
+    const { studentIds, questionIds, totalDuration } = body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json({ message: 'No students selected' }, { status: 400 });
     }
 
-    // 1. Get Master Config
-    let config = await prisma.testTemplate.findFirst({
-      where: { name: 'MASTER_TEST_CONFIG' }
-    });
+    if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
+      return NextResponse.json({ message: 'No questions selected for Round 2' }, { status: 400 });
+    }
 
-    const totalDuration = config?.total_duration || 60;
-    const totalQuestions = config?.total_questions || 30;
-
-    // 2. Fetch active questions
-    const allQuestions = await prisma.question.findMany({
-      where: { is_published: true },
-    });
-
-    if (allQuestions.length === 0) {
-      return NextResponse.json({ message: 'No active questions available in the question bank' }, { status: 400 });
+    if (!totalDuration || typeof totalDuration !== 'number' || totalDuration <= 0) {
+      return NextResponse.json({ message: 'Invalid test duration' }, { status: 400 });
     }
 
     let publishedCount = 0;
 
     for (const studentId of studentIds) {
-      // Create a fresh test for each student
-      // Shuffle for each student to prevent cheating
-      const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-      const selectedQuestions = shuffled.slice(0, totalQuestions);
+      // Shuffle the selected questions for each student to prevent cheating
+      const shuffled = [...questionIds].sort(() => 0.5 - Math.random());
 
       await prisma.$transaction(async (tx) => {
         const test = await tx.test.create({
@@ -59,9 +48,9 @@ export async function POST(request: NextRequest) {
 
         // Link questions
         await tx.testQuestion.createMany({
-          data: selectedQuestions.map((q, index) => ({
+          data: shuffled.map((qId, index) => ({
             test_id: test.id,
-            question_id: q.id,
+            question_id: qId,
             sequence_number: index + 1
           }))
         });

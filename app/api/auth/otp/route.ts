@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         html: emailHtml,
       });
 
-      console.log(`[OTP Success] OTP email successfully delivered to ${email}`);
+
       return createResponse(successResponse(null, 'OTP sent successfully to your email address.'), HTTP_STATUS.OK);
       
     } catch (emailError: any) {

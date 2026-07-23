@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LoginSchema } from '@/lib/validators';
 import { comparePassword, generateToken, setAuthCookie } from '@/lib/auth';
-import { queryOne } from '@/lib/db';
+import prisma from '@/lib/prisma';
 import {
   successResponse,
   errorResponse,
@@ -32,12 +32,10 @@ export async function POST(request: NextRequest) {
     const { email, password } = validation.data;
 
     // Find user by email
-    const user = await queryOne(
-      `SELECT id, email, password_hash, role, is_active
-       FROM users
-       WHERE email = $1`,
-      [email.toLowerCase()]
-    );
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { id: true, email: true, password_hash: true, role: true, is_active: true }
+    });
 
     if (!user || !user.is_active) {
       const [response, status] = [

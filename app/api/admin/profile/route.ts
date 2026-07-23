@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { AdminProfileSchema } from '@/lib/validators';
 
@@ -28,31 +28,38 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const validatedData = AdminProfileSchema.parse(data);
 
-    const pool = await getPool();
-
     // 1. Update User Email if provided
     if (validatedData.email) {
       // Check if email belongs to someone else
-      const existingUser = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [validatedData.email, decoded.userId]);
-      if (existingUser.rows.length > 0) {
+      const existingUser = await prisma.user.findFirst({
+        where: { email: validatedData.email, id: { not: decoded.userId } }
+      });
+      if (existingUser) {
         return NextResponse.json({ message: 'Email is already in use by another account' }, { status: 400 });
       }
-      await pool.query('UPDATE users SET email = $1 WHERE id = $2', [validatedData.email, decoded.userId]);
+      await prisma.user.update({
+        where: { id: decoded.userId },
+        data: { email: validatedData.email }
+      });
     }
 
     // 2. Update Admin details
-    const result = await pool.query(
-      `INSERT INTO admins (user_id, full_name, department)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (user_id) DO UPDATE SET
-       full_name = $2, department = $3
-       RETURNING *`,
-      [decoded.userId, validatedData.fullName, validatedData.department]
-    );
+    const admin = await prisma.admin.upsert({
+      where: { user_id: decoded.userId },
+      update: {
+        full_name: validatedData.fullName,
+        department: validatedData.department
+      },
+      create: {
+        user_id: decoded.userId,
+        full_name: validatedData.fullName,
+        department: validatedData.department
+      }
+    });
 
     return NextResponse.json({
       message: 'Profile updated successfully',
-      admin: result.rows[0],
+      admin,
     });
   } catch (error: any) {
     console.error('[Admin Profile Error]', error);
@@ -85,28 +92,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Only admins can view this profile' }, { status: 403 });
     }
 
-    const pool = await getPool();
-    // We need to fetch email from users table and everything else from admins table
-    const result = await pool.query(
-      `SELECT a.*, u.email 
-       FROM users u 
-       LEFT JOIN admins a ON u.id = a.user_id 
-       WHERE u.id = $1`,
-      [decoded.userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: { admin: true }
+    });
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
-
-    const row = result.rows[0];
 
     return NextResponse.json({
       message: 'Admin profile retrieved',
       admin: {
-        email: row.email,
-        fullName: row.full_name || '',
-        department: row.department || '',
+        email: user.email,
+        fullName: user.admin?.full_name || '',
+        department: user.admin?.department || '',
       },
     });
   } catch (error: any) {
