@@ -221,9 +221,7 @@ export function QuestionsManager() {
             </span>
           </div>
           <div>
-            <Link href="/admin/tests" className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold px-4 py-2 rounded-lg transition mr-2">
-              Go to Test Management
-            </Link>
+
             <Link href="/admin/dashboard" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition">
               ← Dashboard
             </Link>

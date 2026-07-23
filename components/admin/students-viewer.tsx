@@ -56,6 +56,8 @@ export function StudentsViewer() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedStudentHistory, setSelectedStudentHistory] = useState<any[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Coding answers viewer state
   const [activeTestDetail, setActiveTestDetail] = useState<any>(null);
@@ -142,6 +144,38 @@ export function StudentsViewer() {
     router.push('/auth/login');
   };
 
+  const toggleStudentSelection = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSelection = new Set(selectedStudentIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedStudentIds(newSelection);
+  };
+
+  const handlePublishRound2 = async () => {
+    if (selectedStudentIds.size === 0) return;
+    if (!confirm(`Are you sure you want to publish the Round 2 Test for ${selectedStudentIds.size} selected student(s)?`)) return;
+    setIsPublishing(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/admin/tests/publish-round-2', 
+        { studentIds: Array.from(selectedStudentIds) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('Round 2 tests successfully generated for the selected students.');
+      setSelectedStudentIds(new Set());
+      loadData();
+    } catch (error: any) {
+      console.error('[Publish Round 2 Error]', error);
+      alert(error.response?.data?.message || 'Failed to publish Round 2 tests');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   // Local filtering & search logic for students
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -225,10 +259,20 @@ export function StudentsViewer() {
               ))}
             </select>
           </div>
-          
-          <Button variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={loadData}>
-            Refresh Feed
-          </Button>
+          <div className="flex gap-3 shrink-0 mt-3 md:mt-0 items-center">
+            {activeTab === 'students' && selectedStudentIds.size > 0 && (
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
+                onClick={handlePublishRound2}
+                disabled={isPublishing}
+              >
+                {isPublishing ? 'Publishing...' : `Publish Round 2 Test (${selectedStudentIds.size})`}
+              </Button>
+            )}
+            <Button variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={loadData}>
+              Refresh Feed
+            </Button>
+          </div>
         </div>
 
         {/* Dynamic Views */}
@@ -238,13 +282,14 @@ export function StudentsViewer() {
               <Table>
                 <TableHeader className="bg-slate-50/70 border-b border-slate-100">
                   <TableRow>
+                    <TableHead className="w-12 text-center"></TableHead>
                     <TableHead className="font-semibold text-slate-700">Student Name</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-36">USN</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-40">Branch</TableHead>
                     <TableHead className="font-semibold text-slate-700">Email</TableHead>
                     <TableHead className="font-semibold text-slate-700">College</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-24 text-center">Tests Taken</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-28 text-center">Avg Score</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-28 text-center">Latest Score</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -263,6 +308,14 @@ export function StudentsViewer() {
                         onClick={() => handleOpenHistory(student)}
                         className="hover:bg-slate-50/70 transition border-b border-slate-100 last:border-b-0 cursor-pointer"
                       >
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            checked={selectedStudentIds.has(student.id)}
+                            onChange={(e) => toggleStudentSelection(student.id, e as any)}
+                          />
+                        </TableCell>
                         <TableCell className="font-bold text-slate-800">{student.fullName}</TableCell>
                         <TableCell className="w-36 font-mono text-xs text-slate-600">{student.usn}</TableCell>
                         <TableCell className="w-40 text-slate-600 font-medium">{student.branch}</TableCell>
@@ -270,7 +323,7 @@ export function StudentsViewer() {
                         <TableCell className="text-slate-600 truncate max-w-[150px]">{student.college}</TableCell>
                         <TableCell className="w-24 text-center font-semibold text-slate-700">{student.test_count}</TableCell>
                         <TableCell className="w-28 text-center font-bold text-emerald-600">
-                          {student.avg_score ? `${Math.round(student.avg_score * 10) / 10}` : 'N/A'}
+                          {student.avg_score !== null && student.avg_score !== undefined ? `${Math.round(student.avg_score * 10) / 10}` : 'N/A'}
                         </TableCell>
                       </TableRow>
                     ))

@@ -164,7 +164,7 @@ export function StudentDashboard() {
           <div className="pt-4">
             {tests.length > 0 && ['submitted', 'evaluated', 'auto_submitted'].includes(tests[0].status) ? (
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-sm">
-                ✅ You have successfully completed this assessment
+                ✅ You have successfully completed this assessment.<br />No Active Assessment Available.
               </div>
             ) : (
               <button
@@ -172,8 +172,14 @@ export function StudentDashboard() {
                   try {
                     setIsLoading(true);
                     const token = localStorage.getItem('token');
-                    const res = await axios.get('/api/tests/active', { headers: { Authorization: `Bearer ${token}` }});
-                    window.location.href = `/student/test/${res.data.testId}`;
+                    // Find if there is an active test assigned (Round 2 or 1)
+                    if (tests.length > 0 && ['not_started', 'in_progress'].includes(tests[0].status)) {
+                      window.location.href = `/student/test/${tests[0].id}`;
+                    } else {
+                      // Autogenerate Round 1
+                      const res = await axios.get('/api/tests/active', { headers: { Authorization: `Bearer ${token}` }});
+                      window.location.href = `/student/test/${res.data.testId}`;
+                    }
                   } catch (e) {
                     setIsLoading(false);
                     alert('Failed to start test. Please try again.');
@@ -181,7 +187,9 @@ export function StudentDashboard() {
                 }}
                 className="bg-blue-900 hover:bg-blue-800 text-white text-base font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-900/10 transition cursor-pointer"
               >
-                {tests.length > 0 && tests[0].status === 'in_progress' ? 'Resume Aptitude Test' : 'Take Aptitude Test'}
+                {tests.length > 0 && tests[0].status === 'in_progress' 
+                  ? `Resume Round ${tests.length} Test` 
+                  : `Take Round ${tests.length > 0 && ['not_started', 'in_progress'].includes(tests[0].status) ? tests.length : (tests.length + 1)} Test`}
               </button>
             )}
           </div>

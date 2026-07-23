@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
           select: { name: true }
         },
         tests: {
-          select: { score: true }
+          select: { score: true, created_at: true },
+          orderBy: { created_at: 'desc' }
         }
       },
       take: limit,
@@ -54,10 +55,8 @@ export async function GET(request: NextRequest) {
     const formattedStudents = students.map(s => {
       const tests = s.tests || [];
       const test_count = tests.length;
-      const validScores = tests.filter(t => t.score !== null).map(t => Number(t.score));
-      const avg_score = validScores.length > 0
-        ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length
-        : 0;
+      const validTests = tests.filter(t => t.score !== null);
+      const avg_score = validTests.length > 0 ? Number(validTests[0].score) : 0;
 
       return {
         id: s.id,
