@@ -268,8 +268,7 @@ export function TestInterface({ testId }: { testId: string }) {
         setShowAutoSubmitModal(true);
       } else {
         setShowConfirmModal(false);
-        alert('Your test has been submitted successfully. Results will be announced by the administrator.');
-        router.push('/student/dashboard');
+        router.push('/student/success');
       }
     } catch (error) {
       console.error('[Submit Test Error]', error);
@@ -593,8 +592,8 @@ export function TestInterface({ testId }: { testId: string }) {
               <p>Unanswered: <strong className="text-rose-600">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
             </div>
             <div className="pt-2">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold" onClick={() => router.push('/student/dashboard')}>
-                Return to Dashboard
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold" onClick={() => router.push('/student/success')}>
+                Continue
               </Button>
             </div>
           </div>

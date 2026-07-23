@@ -37,9 +37,7 @@ export async function POST(request: NextRequest) {
     try {
       // Initialize SMTP Transporter
       const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: false, // true for 465, false for other ports
+        service: 'gmail',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASSWORD,
@@ -85,7 +83,7 @@ export async function POST(request: NextRequest) {
       globalForOTP.otpCache.delete(email.toLowerCase());
 
       return createResponse(
-        errorResponse('INTERNAL_ERROR', 'Failed to deliver OTP email. Please check the email server configuration.'), 
+        errorResponse('INTERNAL_ERROR', 'Failed to deliver OTP email: ' + (emailError.message || 'Unknown error')), 
         HTTP_STATUS.INTERNAL_SERVER_ERROR
       );
     }

@@ -19,7 +19,7 @@ interface Student {
   id: string;
   fullName: string;
   usn: string;
-  branch: string;
+  branchName: string;
   college: string;
 }
 
@@ -134,7 +134,7 @@ export function StudentDashboard() {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Branch</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{student?.branch}</p>
+              <p className="text-sm font-semibold text-slate-800 mt-0.5">{student?.branchName}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">College</p>
@@ -148,82 +148,43 @@ export function StudentDashboard() {
         </div>
 
         {/* Available Tests Grid */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <span>📝</span> Available Drive Assessments
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-3xl mx-auto shadow-sm shadow-indigo-100">
+            🎯
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">
+              Campus Recruitment Aptitude Test
             </h2>
+            <p className="text-sm text-slate-500 font-medium max-w-lg mx-auto">
+              This is a standardized assessment covering problem solving, technical knowledge, and logic. Ensure you have a stable internet connection before beginning.
+            </p>
           </div>
 
-          {tests.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <span className="text-3xl">☕</span>
-              <p className="text-xs text-slate-400 font-semibold">No recruitment drives assigned to your branch currently</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {tests.map((test) => {
-                const isCompleted = test.status === 'submitted' || test.status === 'evaluated' || test.status === 'auto_submitted';
-                return (
-                  <div
-                    key={test.id}
-                    className="py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:bg-slate-50/30 transition px-2 rounded-xl"
-                  >
-                    <div className="text-left space-y-1">
-                      <h3 className="text-sm font-bold text-slate-850">
-                        Campus Recruitment Assessment – {student?.branch || 'General'} 2027
-                      </h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
-                        <span>Duration: <strong className="text-slate-650">{test.totalDuration} mins</strong></span>
-                        <span>•</span>
-                        <span>Assigned: <strong className="text-slate-650 font-mono text-[10px]">{new Date(test.createdAt).toLocaleDateString()}</strong></span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 justify-end">
-                      <span
-                        className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          isCompleted
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : test.status === 'in_progress'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                              : 'bg-slate-50 text-slate-500 border border-slate-200'
-                        }`}
-                      >
-                        {test.status === 'not_started' ? 'Not Started' : isCompleted ? 'Submitted' : 'In Progress'}
-                      </span>
-                      {test.results_published && test.score !== undefined && test.score !== null && (
-                        <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg font-mono">
-                          Score: {test.totalQuestions ? `${test.score} / ${test.totalQuestions}` : `${test.score}`}
-                        </span>
-                      )}
-                      {test.status === 'not_started' ? (
-                        <Link
-                          href={`/student/test/${test.id}`}
-                          className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition"
-                        >
-                          Start Test
-                        </Link>
-                      ) : test.status === 'in_progress' ? (
-                        <Link
-                          href={`/student/test/${test.id}`}
-                          className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition"
-                        >
-                          Resume Test
-                        </Link>
-                      ) : test.results_published ? (
-                        <Link
-                          href={`/student/test/${test.id}/results`}
-                          className="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg shadow-sm transition"
-                        >
-                          View Results
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="pt-4">
+            {tests.length > 0 && ['submitted', 'evaluated', 'auto_submitted'].includes(tests[0].status) ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-sm">
+                ✅ You have successfully completed this assessment
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    const token = localStorage.getItem('token');
+                    const res = await axios.get('/api/tests/active', { headers: { Authorization: `Bearer ${token}` }});
+                    window.location.href = `/student/test/${res.data.testId}`;
+                  } catch (e) {
+                    setIsLoading(false);
+                    alert('Failed to start test. Please try again.');
+                  }
+                }}
+                className="bg-blue-900 hover:bg-blue-800 text-white text-base font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-900/10 transition cursor-pointer"
+              >
+                {tests.length > 0 && tests[0].status === 'in_progress' ? 'Resume Aptitude Test' : 'Take Aptitude Test'}
+              </button>
+            )}
+          </div>
         </div>
       </main>
     </div>

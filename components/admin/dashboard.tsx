@@ -148,29 +148,15 @@ export function AdminDashboard() {
               </Card>
             </Link>
 
-            <Link href="/admin/tests">
+            <Link href="/admin/test-settings">
               <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
                 <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-teal-700 group-hover:text-white transition">
-                    ⚡
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-800 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-purple-700 group-hover:text-white transition">
+                    ⚙️
                   </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">Test Publisher</CardTitle>
+                  <CardTitle className="text-base font-extrabold text-slate-900">Test Settings</CardTitle>
                   <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Assemble questions, configure duration and target branches, and assign drive assessments.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-
-            <Link href="/admin/branches">
-              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
-                <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-150 text-slate-800 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-slate-800 group-hover:text-white transition">
-                    🏫
-                  </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">Branch Manager</CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Configure available college branches and list registration stats.
+                    Configure the master aptitude test duration and limits.
                   </CardDescription>
                 </CardHeader>
               </Card>

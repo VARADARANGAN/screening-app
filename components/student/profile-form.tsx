@@ -34,18 +34,8 @@ export function ProfileForm() {
   // Check camera and microphone permissions and fetch existing profile
   useEffect(() => {
     checkMediaPermissions();
-    fetchBranches();
     fetchExistingProfile();
   }, []);
-
-  const fetchBranches = async () => {
-    try {
-      const response = await axios.get('/api/branches');
-      setBranches(response.data.branches || []);
-    } catch (error) {
-      console.error('Failed to load branches', error);
-    }
-  };
 
   const fetchExistingProfile = async () => {
     try {
@@ -60,7 +50,7 @@ export function ProfileForm() {
           phone: response.data.student.phone,
           college: response.data.student.college,
           usn: response.data.student.usn,
-          branchId: response.data.student.branchId || '',
+          branchName: response.data.student.branchName || '',
           cameraPermission: true,
           microphonePermission: true,
         });
@@ -174,16 +164,13 @@ export function ProfileForm() {
 
         <div className="space-y-1.5">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Academic Branch</label>
-          <select
-            {...register('branchId')}
+          <input
+            {...register('branchName')}
+            type="text"
             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-semibold text-slate-700 transition"
-          >
-            <option value="">Select your branch</option>
-            {branches.map(branch => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
-          {errors.branchId && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.branchId.message}</p>}
+            placeholder="Computer Science, Mechanical, etc."
+          />
+          {errors.branchName && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.branchName.message}</p>}
         </div>
 
         <Button

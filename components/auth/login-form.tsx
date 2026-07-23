@@ -42,7 +42,7 @@ export function LoginForm() {
           body: JSON.stringify({ email: resetEmail })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+        if (!res.ok) throw new Error(data.message || data.error?.message || 'Failed to send OTP');
         setResetSuccess('OTP sent to your email!');
         setResetStep(2);
       } else if (resetStep === 2) {
@@ -57,7 +57,7 @@ export function LoginForm() {
           body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword: resetNewPassword })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Reset failed');
+        if (!res.ok) throw new Error(data.message || data.error?.message || 'Reset failed');
         setResetSuccess('Password reset successful! You can now login.');
         setTimeout(() => {
           setIsForgotPassword(false);
