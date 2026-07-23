@@ -59,6 +59,9 @@ export function AdminDashboard() {
             <span className="text-xs text-slate-400 font-bold font-mono uppercase bg-slate-50 border border-slate-150 px-2.5 py-1 rounded-lg">
               Admin Mode
             </span>
+            <Link href="/admin/profile" className="text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+              Profile
+            </Link>
             <button
               onClick={handleLogout}
               className="bg-rose-50 text-rose-700 hover:bg-rose-100/70 border border-rose-100 text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"

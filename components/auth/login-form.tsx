@@ -33,14 +33,19 @@ export function LoginForm() {
     try {
       if (resetStep === 1) {
         if (!resetEmail) throw new Error('Email is required');
-        // Mock OTP send
-        setResetSuccess('OTP sent to email! (Use 123456 for demo)');
+        const res = await fetch('/api/auth/otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: resetEmail })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+        setResetSuccess('OTP sent to your email!');
         setResetStep(2);
       } else if (resetStep === 2) {
         if (!resetOtp) throw new Error('OTP is required');
-        if (resetOtp !== '123456') throw new Error('Invalid OTP');
         setResetStep(3);
-        setResetSuccess('OTP Verified. Enter new password.');
+        setResetSuccess('OTP Received. Enter new password.');
       } else if (resetStep === 3) {
         if (!resetNewPassword) throw new Error('New password is required');
         const res = await fetch('/api/auth/reset-password', {

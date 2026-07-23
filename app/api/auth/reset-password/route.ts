@@ -40,9 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Mock OTP validation (assuming '123456' is valid for demo purposes)
-    if (otp !== '123456') {
+    const { getCachedOTP, clearCachedOTP } = require('../otp/route');
+    const validOtp = getCachedOTP(email);
+    
+    if (!validOtp || validOtp !== otp) {
       return createResponse(
-        errorResponse('INVALID_OTP', 'Invalid OTP provided'),
+        errorResponse('INVALID_OTP', 'Invalid or expired OTP provided'),
         HTTP_STATUS.BAD_REQUEST
       );
     }
@@ -65,6 +68,9 @@ export async function POST(request: NextRequest) {
       where: { email: email.toLowerCase() },
       data: { password_hash: passwordHash },
     });
+
+    // Clear OTP after successful reset
+    clearCachedOTP(email);
 
     return createResponse(
       successResponse(null, 'Password reset successfully'),
