@@ -25,6 +25,9 @@ export function LoginForm() {
   const [resetError, setResetError] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
 
+  const [mounted, setMounted] = useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
@@ -96,6 +99,8 @@ export function LoginForm() {
       setIsSubmitting(false);
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-100 space-y-6">
