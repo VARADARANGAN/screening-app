@@ -14,6 +14,40 @@ export function AdminProfileForm() {
   const [isEditing, setIsEditing] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetPassError, setResetPassError] = useState('');
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetPassError('');
+    setResetMessage('');
+    if (resetPassword !== resetConfirmPassword) {
+      setResetPassError('Passwords do not match');
+      return;
+    }
+    if (resetPassword.length < 6) {
+      setResetPassError('Password must be at least 6 characters');
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/auth/reset-password', { newPassword: resetPassword }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setResetMessage('Password updated successfully');
+      setResetPassword('');
+      setResetConfirmPassword('');
+    } catch (error: any) {
+      setResetPassError(error.response?.data?.message || 'Failed to update password');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -102,6 +136,51 @@ export function AdminProfileForm() {
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md"
         >
           {isSubmitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Save Profile')}
+        </Button>
+      </form>
+
+      <hr className="my-8 border-gray-200" />
+
+      <h3 className="text-xl font-bold mb-4 text-gray-900">Change Password</h3>
+      
+      {resetPassError && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {resetPassError}
+        </div>
+      )}
+      {resetMessage && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {resetMessage}
+        </div>
+      )}
+
+      <form onSubmit={handleResetPassword} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">New Password</label>
+          <input
+            type="password"
+            value={resetPassword}
+            onChange={(e) => setResetPassword(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="••••••••"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+          <input
+            type="password"
+            value={resetConfirmPassword}
+            onChange={(e) => setResetConfirmPassword(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="••••••••"
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={isResetting}
+          className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-md"
+        >
+          {isResetting ? 'Updating...' : 'Update Password'}
         </Button>
       </form>
     </div>

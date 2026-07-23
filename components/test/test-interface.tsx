@@ -477,6 +477,14 @@ export function TestInterface({ testId }: { testId: string }) {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Solution Editor</span>
+                    {answers[currentQuestion.id] && (
+                      <button
+                        onClick={() => handleClearAnswer(currentQuestion.id)}
+                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
+                      >
+                        Clear Code
+                      </button>
+                    )}
                   </div>
 
                   <textarea
