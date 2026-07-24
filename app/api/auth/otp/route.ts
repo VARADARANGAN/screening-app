@@ -12,6 +12,7 @@ if (!globalForOTP.otpCache) {
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
+    console.log(`[OTP Request] Generating OTP for ${email}`);
     if (!email) {
       return createResponse(errorResponse('BAD_REQUEST', 'Email is required'), HTTP_STATUS.BAD_REQUEST);
     }
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       });
 
 
+      console.log(`[OTP Success] OTP email successfully delivered to ${email}`);
       return createResponse(successResponse(null, 'OTP sent successfully to your email address.'), HTTP_STATUS.OK);
       
     } catch (emailError: any) {

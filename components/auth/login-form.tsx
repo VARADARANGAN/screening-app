@@ -36,6 +36,7 @@ export function LoginForm() {
     try {
       if (resetStep === 1) {
         if (!resetEmail) throw new Error('Email is required');
+        console.log(`[Frontend] Requesting OTP for forgot password: ${resetEmail}`);
         const res = await fetch('/api/auth/otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -43,14 +44,17 @@ export function LoginForm() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || data.error?.message || 'Failed to send OTP');
+        console.log(`[Frontend] OTP successfully sent to: ${resetEmail}`);
         setResetSuccess('OTP sent to your email!');
         setResetStep(2);
       } else if (resetStep === 2) {
         if (!resetOtp) throw new Error('OTP is required');
+        console.log(`[Frontend] User entered OTP: ${resetOtp}`);
         setResetStep(3);
         setResetSuccess('OTP Received. Enter new password.');
       } else if (resetStep === 3) {
         if (!resetNewPassword) throw new Error('New password is required');
+        console.log(`[Frontend] Submitting new password reset request for: ${resetEmail}`);
         const res = await fetch('/api/auth/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -58,6 +62,7 @@ export function LoginForm() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || data.error?.message || 'Reset failed');
+        console.log(`[Frontend] Password reset successfully completed for: ${resetEmail}`);
         setResetSuccess('Password reset successful! You can now login.');
         setTimeout(() => {
           setIsForgotPassword(false);
