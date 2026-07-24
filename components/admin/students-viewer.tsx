@@ -327,7 +327,7 @@ export function StudentsViewer() {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
                 onClick={openRound2Modal}
               >
-                Configure Round 2 Test ({selectedStudentIds.size})
+                Configure Round 2 Test
               </Button>
             )}
             <Button variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={loadData}>
@@ -421,7 +421,7 @@ export function StudentsViewer() {
                     </TableRow>
                   ) : (
                     filteredAttempts.map(attempt => {
-                      const testName = `Campus Recruitment Assessment – ${attempt.branch || 'General'} 2027`;
+                      const testName = "TEST";
                       
                       let timeTakenText = 'N/A';
                       if (attempt.submittedAt) {
@@ -443,9 +443,7 @@ export function StudentsViewer() {
                           <TableCell className="font-semibold text-slate-700">{testName}</TableCell>
                           <TableCell className="w-32 text-center font-extrabold text-slate-800">
                             {attempt.score !== null 
-                              ? (attempt.totalQuestions 
-                                  ? `${attempt.score} / ${attempt.totalQuestions}` 
-                                  : `${attempt.score}`) 
+                              ? `${attempt.score} Pts` 
                               : 'N/A'}
                           </TableCell>
                           <TableCell className="w-36 text-slate-500 font-mono">
@@ -533,9 +531,7 @@ export function StudentsViewer() {
                             </TableCell>
                             <TableCell className="w-28 text-center font-bold text-indigo-600 font-mono text-xs">
                               {history.score !== null 
-                                ? (history.totalQuestions 
-                                    ? `${history.score} / ${history.totalQuestions}` 
-                                    : `${history.score}`) 
+                                ? `${history.score} Pts` 
                                 : 'Pending'}
                             </TableCell>
                             <TableCell className="w-32 text-center">

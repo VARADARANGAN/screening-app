@@ -85,6 +85,7 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
           where: { id: existingResponse.id },
           data: {
             points_earned: pointsEarnedToSave,
+            is_correct: pointsEarnedToSave === pts,
             ai_evaluation_json: aiEvaluationJson
           }
         });

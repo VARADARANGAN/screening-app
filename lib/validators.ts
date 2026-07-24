@@ -49,7 +49,6 @@ export const QuestionSchema = z.object({
   // Conditional validation based on type
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),
-  explanation: z.string().optional(),
 }).refine((data) => {
   // MCQ requires options and correct answer
   if (data.type === 'mcq') {

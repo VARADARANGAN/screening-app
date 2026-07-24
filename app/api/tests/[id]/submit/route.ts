@@ -114,7 +114,7 @@ export async function POST(
       // Upsert the response so we don't violate unique constraints
       const dbData = {
         student_answer: studentAnswer ? String(studentAnswer) : null,
-        is_correct: isCorrect,
+        is_correct: question.type === 'coding' ? false : isCorrect,
         points_earned: pointsEarnedToSave,
         ai_evaluation_json: aiEvaluationJson,
         submitted_at: new Date()

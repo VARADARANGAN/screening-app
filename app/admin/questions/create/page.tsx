@@ -13,7 +13,6 @@ export default function CreateQuestionPage() {
   const [type, setType] = useState('mcq');
   const [questionText, setQuestionText] = useState('');
   const [points, setPoints] = useState(10);
-  const [explanation, setExplanation] = useState('');
 
   // MCQ Specific State
   const [options, setOptions] = useState([{ text: '' }, { text: '' }]);
@@ -86,7 +85,6 @@ export default function CreateQuestionPage() {
         type,
         points: Number(points),
         timeLimitSeconds: 60,
-        explanation,
         optionsJson: optionsJsonPayload,
         correctAnswer: finalCorrectAnswer,
         isPublished: true
@@ -186,16 +184,6 @@ export default function CreateQuestionPage() {
                   max="100"
                   value={points} 
                   onChange={(e) => setPoints(parseInt(e.target.value) || 0)} 
-                  className="w-full bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Explanation (Optional)</label>
-                <Input 
-                  value={explanation} 
-                  onChange={(e) => setExplanation(e.target.value)} 
-                  placeholder="Explain correct answer..."
                   className="w-full bg-slate-50 border-slate-200"
                 />
               </div>

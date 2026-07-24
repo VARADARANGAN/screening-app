@@ -214,7 +214,7 @@ export async function PATCH(
             where: { id: response.id },
             data: {
               points_earned: Number(pointsEarned),
-              is_correct: Number(pointsEarned) > 0,
+              is_correct: Number(pointsEarned) === Number(question.points),
               student_answer: finalAnswer
             }
           });

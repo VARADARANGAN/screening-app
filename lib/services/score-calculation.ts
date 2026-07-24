@@ -34,17 +34,13 @@ export async function recalculateTestScore(testId: string): Promise<number> {
     }
   }
 
-  const percentageScore = totalPossiblePoints > 0 
-    ? (totalEarnedPoints / totalPossiblePoints) * 100 
-    : 0;
-
-  // Persist the recalculated score
+  // Persist the recalculated absolute score
   await prisma.test.update({
     where: { id: testId },
     data: {
-      score: percentageScore
+      score: totalEarnedPoints
     }
   });
 
-  return percentageScore;
+  return totalEarnedPoints;
 }

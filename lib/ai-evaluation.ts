@@ -51,7 +51,11 @@ Analyze the code and respond strictly in valid JSON format matching this schema 
   "deductionReason": "string" // leave empty or describe reasons if points were deducted
 }
 
-Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
+Focus on logical correctness. 
+IMPORTANT SCORING RULES:
+1. Complete & correct logic: Award full marks.
+2. Minor syntax errors but correct logic: Award partial marks (e.g. deduct 1-2 points).
+3. Incomplete solutions, completely wrong logic, or uncompilable snippets: Award 0 marks. Do NOT give partial marks for writing boilerplate code or completely wrong logic.`;
 
     let lastErrorMsg = '';
     let apiSuccess = false;

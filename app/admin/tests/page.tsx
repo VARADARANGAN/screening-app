@@ -383,7 +383,7 @@ export default function TestManagementPage() {
                     </TableRow>
                   ) : (
                     assignedTests.map(t => {
-                      const testName = `Campus Recruitment Assessment – ${t.branch || 'General'} 2027`;
+                      const testName = "TEST";
                       const durationMinutes = t.totalDuration || Math.round(t.total_duration / 60) || 60;
                       return (
                         <TableRow key={t.id} className="hover:bg-slate-50/30 border-b border-slate-100 last:border-b-0 text-xs">

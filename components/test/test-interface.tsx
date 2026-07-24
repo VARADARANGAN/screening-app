@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
+import Editor from '@monaco-editor/react';
 
 interface Question {
   id: string;
@@ -95,9 +96,9 @@ export function TestInterface({ testId }: { testId: string }) {
     };
 
     const handleCopy = (e: ClipboardEvent) => {
-      // Allow copy/paste generally unless they are focusing inside textarea for coding
+      // Allow copy/paste generally unless they are focusing inside Monaco editor (handled by Monaco)
       const activeEl = document.activeElement;
-      if (activeEl && activeEl.tagName === 'TEXTAREA' && activeEl.classList.contains('coding-textarea')) {
+      if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.classList.contains('monaco-editor'))) {
         e.preventDefault();
         recordViolation('Copy attempted in editor');
       }
@@ -502,15 +503,23 @@ export function TestInterface({ testId }: { testId: string }) {
                     )}
                   </div>
 
-                  <textarea
-                    value={answers[currentQuestion.id] || ''}
-                    onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                    onCopy={(e) => { e.preventDefault(); alert('Copying code is disabled.'); }}
-                    onCut={(e) => { e.preventDefault(); alert('Cutting code is disabled.'); }}
-                    onPaste={(e) => { e.preventDefault(); alert('Pasting code is disabled.'); }}
-                    className="coding-textarea w-full h-80 p-4 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono text-sm bg-slate-950 text-slate-100 shadow-inner"
-                    placeholder="// Write your solution code here..."
-                  />
+                  <div className="h-80 border border-slate-200 rounded-xl overflow-hidden shadow-inner">
+                    <Editor
+                      height="100%"
+                      defaultLanguage="javascript"
+                      theme="vs-dark"
+                      value={answers[currentQuestion.id] || ''}
+                      onChange={(value) => handleAnswerChange(currentQuestion.id, value || '')}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        wordWrap: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        tabSize: 2,
+                      }}
+                    />
+                  </div>
                 </div>
               )}
 
