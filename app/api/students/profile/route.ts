@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         phone: validatedData.phone,
         college: validatedData.college,
         usn: validatedData.usn,
+        branch_name: validatedData.branchName,
         profile_completed: true,
       },
       create: {
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
         phone: validatedData.phone,
         college: validatedData.college,
         usn: validatedData.usn,
+        branch_name: validatedData.branchName,
         profile_completed: true,
       }
     });
@@ -97,6 +99,7 @@ export async function GET(request: NextRequest) {
         phone: student.phone,
         college: student.college,
         usn: student.usn,
+        branchName: student.branch_name || '',
         profileCompleted: student.profile_completed,
       },
     });

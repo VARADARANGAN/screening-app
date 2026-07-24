@@ -126,7 +126,8 @@ export async function GET(
       student: test.student ? {
         fullName: test.student.full_name,
         usn: test.student.usn,
-        email: test.student.user?.email || ''
+        email: test.student.user?.email || '',
+        branchName: test.student.branch_name || 'General'
       } : undefined,
       responses: test.test_responses ? test.test_responses.map((tr: any) => ({
         id: tr.id,

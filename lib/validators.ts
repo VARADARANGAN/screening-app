@@ -27,6 +27,7 @@ export const StudentProfileSchema = z.object({
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   college: z.string().min(2, 'College name is required'),
   usn: z.string().min(1, 'USN is required'),
+  branchName: z.string().min(1, 'Branch name is required'),
   cameraPermission: z.boolean().default(false),
   microphonePermission: z.boolean().default(false),
 });

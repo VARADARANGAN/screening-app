@@ -30,6 +30,7 @@ model Student {
   phone                 String?   @db.VarChar(20)
   college               String?   @db.VarChar(255)
   usn                   String?   @unique @db.VarChar(50)
+  branch_name           String?   @db.VarChar(255)
   profile_completed     Boolean   @default(false)
   camera_permission     Boolean   @default(false)
   microphone_permission Boolean   @default(false)
