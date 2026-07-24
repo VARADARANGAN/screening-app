@@ -45,18 +45,8 @@ export function EvaluationManager() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
-    fetchBranches();
     loadEvaluationData();
   }, []);
-
-  const fetchBranches = async () => {
-    try {
-      const { data } = await axios.get('/api/branches');
-      setBranches(data.branches || []);
-    } catch (e) {
-      console.error('Failed to fetch branches', e);
-    }
-  };
 
   const loadEvaluationData = async () => {
     setIsLoading(true);

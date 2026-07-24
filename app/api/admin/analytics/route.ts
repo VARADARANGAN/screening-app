@@ -33,24 +33,7 @@ export async function GET(request: NextRequest) {
     });
     const avgScore = avgScoreAgg._avg.score?.toNumber() || 0;
 
-    // Tests by branch
-    // Because Prisma's groupBy is limited with relations, we can fetch tests and include branch
-    // Or just group by branch_id if we want.
-    const branchGroups = await prisma.student.groupBy({
-      by: ['branch_id'],
-      _count: {
-        _all: true,
-      },
-    });
-
-    // To get names, fetch branches
-    const branches = await prisma.branch.findMany();
-    const branchMap = new Map(branches.map(b => [b.id, b.name]));
-
-    const testsByBranch = branchGroups.map(g => ({
-      branch: g.branch_id ? branchMap.get(g.branch_id) : 'Other',
-      count: g._count._all,
-    }));
+    const testsByBranch: any[] = [];
 
     // Violations
     const violationCount = await prisma.violation.count();

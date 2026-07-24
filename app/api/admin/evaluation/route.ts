@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
       include: {
         student: {
           include: {
-            user: { select: { email: true } },
-            branch: { select: { name: true } }
+            user: { select: { email: true } }
           }
         },
         _count: {
@@ -49,29 +48,12 @@ export async function GET(request: NextRequest) {
         testId: t.id,
         fullName: t.student.full_name,
         usn: t.student.usn,
-        branch: t.student.branch?.name || 'General',
         score: t.score !== null ? Number(t.score) : 0,
         violations: t.violations_count || 0,
         submittedAt: t.end_time || t.updated_at
       }));
 
-    // Branch wise stats
-    const branchStatsMap = new Map<string, { count: number; totalScore: number }>();
-    submittedTests.forEach(t => {
-      const branchName = t.student.branch?.name || 'General';
-      const score = t.score !== null ? Number(t.score) : 0;
-      const current = branchStatsMap.get(branchName) || { count: 0, totalScore: 0 };
-      branchStatsMap.set(branchName, {
-        count: current.count + 1,
-        totalScore: current.totalScore + score
-      });
-    });
-
-    const branchStats = Array.from(branchStatsMap.entries()).map(([branch, stats]) => ({
-      branch,
-      count: stats.count,
-      avgScore: stats.count > 0 ? Math.round(stats.totalScore / stats.count) : 0
-    }));
+    const branchStats: any[] = [];
 
     return NextResponse.json({
       message: 'Evaluations retrieved',
@@ -79,7 +61,6 @@ export async function GET(request: NextRequest) {
         id: t.id,
         fullName: t.student.full_name,
         usn: t.student.usn,
-        branch: t.student.branch?.name || 'General',
         email: t.student.user?.email || '',
         status: t.status,
         score: t.score !== null ? Number(t.score) : null,
@@ -128,13 +109,6 @@ export async function POST(request: NextRequest) {
     if (publishAll) {
       whereClause = {
         status: { in: ['submitted', 'evaluated'] }
-      };
-    } else if (branchId) {
-      whereClause = {
-        status: { in: ['submitted', 'evaluated'] },
-        student: {
-          branch_id: branchId
-        }
       };
     } else if (testIds && testIds.length > 0) {
       whereClause = {
