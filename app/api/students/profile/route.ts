@@ -28,6 +28,15 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const validatedData = StudentProfileSchema.parse(data);
 
+    // Check USN Uniqueness
+    const existingStudent = await prisma.student.findUnique({
+      where: { usn: validatedData.usn }
+    });
+    
+    if (existingStudent && existingStudent.user_id !== decoded.userId) {
+      return NextResponse.json({ message: 'This USN is already registered.' }, { status: 400 });
+    }
+
     const student = await prisma.student.upsert({
       where: { user_id: decoded.userId },
       update: {

@@ -131,6 +131,8 @@ export function ProfileForm() {
             <input
               {...register('phone')}
               type="tel"
+              maxLength={10}
+              onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
               placeholder="9876543210"
             />
