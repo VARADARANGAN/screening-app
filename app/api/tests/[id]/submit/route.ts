@@ -118,7 +118,7 @@ Focus on logical correctness. Give partial marks for logically correct solutions
             throw new Error('GEMINI_API_KEY is not configured on the server.');
           }
 
-          const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+          const models = ['gemini-1.5-pro', 'gemini-1.5-flash'];
           let lastErrorMsg = '';
           let apiSuccess = false;
           let textContent = '';
