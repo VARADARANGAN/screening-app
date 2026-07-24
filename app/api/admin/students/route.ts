@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
         id: s.id,
         fullName: s.full_name,
         usn: s.usn,
+        branch: s.branch_name || '',
         college: s.college,
         email: s.user?.email || '',
         test_count,

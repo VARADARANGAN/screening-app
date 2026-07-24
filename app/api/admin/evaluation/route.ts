@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         testId: t.id,
         fullName: t.student.full_name,
         usn: t.student.usn,
+        branch: t.student.branch_name || '',
         score: t.score !== null ? Number(t.score) : 0,
         violations: t.violations_count || 0,
         submittedAt: t.end_time || t.updated_at
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
         id: t.id,
         fullName: t.student.full_name,
         usn: t.student.usn,
+        branch: t.student.branch_name || '',
         email: t.student.user?.email || '',
         status: t.status,
         score: t.score !== null ? Number(t.score) : null,

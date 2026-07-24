@@ -46,7 +46,17 @@ export function EvaluationManager() {
 
   useEffect(() => {
     loadEvaluationData();
+    fetchBranches();
   }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get('/api/branches');
+      setBranches(response.data.branches || []);
+    } catch (error) {
+      console.error('[Load Branches Error]', error);
+    }
+  };
 
   const loadEvaluationData = async () => {
     setIsLoading(true);
