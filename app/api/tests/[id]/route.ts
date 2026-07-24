@@ -134,7 +134,7 @@ export async function GET(
         question_id: tr.question_id,
         student_answer: tr.student_answer,
         is_correct: tr.is_correct,
-        points_earned: tr.points_earned !== null ? Number(tr.points_earned) : 0,
+        points_earned: tr.points_earned !== null ? Number(tr.points_earned) : null,
         ai_evaluation_json: tr.ai_evaluation_json,
       })) : undefined,
       questions: test.test_questions.map((tq: any) => ({

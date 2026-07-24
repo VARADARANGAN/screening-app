@@ -628,7 +628,9 @@ export function StudentsViewer() {
                         </h4>
                         <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
                           <span>Max Points: {q.points || 10}</span>
-                          <span className="text-indigo-600 font-bold">Earned Points: {response?.points_earned || 0}</span>
+                          <span className={`font-bold ${response?.points_earned !== undefined && response?.points_earned !== null ? 'text-indigo-600' : 'text-amber-600'}`}>
+                            Earned Points: {response?.points_earned !== undefined && response?.points_earned !== null ? response.points_earned : (response?.ai_evaluation_json?.evaluation_status === 'FAILED' ? 'Evaluation Failed' : '0')}
+                          </span>
                         </div>
                       </div>
 
@@ -638,6 +640,70 @@ export function StudentsViewer() {
                           {cleanCode || 'No answer submitted.'}
                         </pre>
                       </div>
+
+                      {response?.ai_evaluation_json && (response.ai_evaluation_json.evaluation_status === 'FAILED' || response.ai_evaluation_json.evaluationStatus === 'failed') && (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
+                          <h5 className="font-bold text-xs text-red-800 uppercase tracking-wider flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            AI Evaluation Failed
+                          </h5>
+                          <p className="text-red-700 text-xs">Automated evaluation failed. Error details below:</p>
+                          <div className="p-2.5 bg-red-100/80 rounded text-xs font-mono text-red-900 overflow-x-auto">
+                            {response.ai_evaluation_json.error || 'Unknown API failure'}
+                          </div>
+                        </div>
+                      )}
+
+                      {response?.ai_evaluation_json && response.ai_evaluation_json.evaluation_status !== 'FAILED' && response.ai_evaluation_json.evaluationStatus !== 'failed' && (
+                        <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3 text-left">
+                          <h5 className="font-bold text-xs text-blue-800 uppercase tracking-wider flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            AI Evaluation Breakdown
+                          </h5>
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div>
+                              <span className="font-semibold text-blue-900">Detected Language:</span>{' '}
+                              <span className="text-blue-800 font-mono">
+                                {response.ai_evaluation_json.detected_language || response.ai_evaluation_json.detectedLanguage || 'N/A'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-blue-900">Marks Awarded:</span>{' '}
+                              <span className="text-blue-800 font-bold">
+                                {response.ai_evaluation_json.marks_awarded !== undefined ? response.ai_evaluation_json.marks_awarded : (response.ai_evaluation_json.marksAwarded || 0)} / {response.ai_evaluation_json.total_marks || q.points || 10}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-blue-900">Status:</span>{' '}
+                              <span className={`font-bold ${response.points_earned !== null && Number(response.points_earned) > 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                                {response.points_earned !== null && Number(response.points_earned) > 0 ? 'Correct' : 'Incorrect'}
+                              </span>
+                            </div>
+                            {(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt) && (
+                              <div>
+                                <span className="font-semibold text-blue-900">Evaluated At:</span>{' '}
+                                <span className="text-blue-800 font-mono text-[11px]">
+                                  {new Date(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-blue-900 text-xs block">AI Feedback:</span>
+                            <p className="text-blue-800 text-xs mt-0.5">
+                              {response.ai_evaluation_json.ai_feedback || response.ai_evaluation_json.feedback || 'No feedback provided.'}
+                            </p>
+                          </div>
+                          {(response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions) && (
+                            <div>
+                              <span className="font-semibold text-rose-700 text-xs block">Deduction Reason:</span>
+                              <p className="text-rose-600 text-xs mt-0.5">
+                                {response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {parsedRemarks && (
                         <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900">
