@@ -660,7 +660,8 @@ export function EvaluationManager() {
                               </pre>
                             </div>
 
-                            {q.type === 'coding' && response?.ai_evaluation_json && response.ai_evaluation_json.evaluationStatus === 'failed' && (
+                            {q.type === 'coding' && response?.ai_evaluation_json && 
+                             (response.ai_evaluation_json.evaluation_status === 'FAILED' || response.ai_evaluation_json.evaluationStatus === 'failed') && (
                               <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3 text-left">
                                 <h5 className="font-bold text-xs text-red-800 uppercase tracking-wider flex items-center gap-2">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
@@ -668,29 +669,58 @@ export function EvaluationManager() {
                                 </h5>
                                 <p className="text-red-700 text-sm">The AI system was unable to evaluate this submission automatically. Please manually grade it below.</p>
                                 <div className="p-3 bg-red-100 rounded text-xs font-mono text-red-900 overflow-x-auto">
-                                  <strong>Error Details:</strong> {response.ai_evaluation_json.error}
+                                  <strong>Error Details:</strong> {response.ai_evaluation_json.error || 'Unknown API failure.'}
                                 </div>
                               </div>
                             )}
 
-                            {q.type === 'coding' && response?.ai_evaluation_json && response.ai_evaluation_json.evaluationStatus !== 'failed' && (
+                            {q.type === 'coding' && response?.ai_evaluation_json && 
+                             response.ai_evaluation_json.evaluation_status !== 'FAILED' && response.ai_evaluation_json.evaluationStatus !== 'failed' && (
                               <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3 text-left">
                                 <h5 className="font-bold text-xs text-blue-800 uppercase tracking-wider flex items-center gap-2">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                   AI Evaluation Insights
                                 </h5>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
-                                  <div><span className="font-semibold text-blue-900">Detected Language:</span> <span className="text-blue-800">{response.ai_evaluation_json.detectedLanguage || 'N/A'}</span></div>
-                                  <div><span className="font-semibold text-blue-900">AI Suggested Marks:</span> <span className="text-blue-800 font-bold">{response.ai_evaluation_json.marksAwarded || 0} / {q.points}</span></div>
+                                  <div>
+                                    <span className="font-semibold text-blue-900">Detected Language:</span>{' '}
+                                    <span className="text-blue-800">
+                                      {response.ai_evaluation_json.detected_language || response.ai_evaluation_json.detectedLanguage || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-blue-900">AI Suggested Marks:</span>{' '}
+                                    <span className="text-blue-800 font-bold">
+                                      {response.ai_evaluation_json.marks_awarded !== undefined ? response.ai_evaluation_json.marks_awarded : (response.ai_evaluation_json.marksAwarded || 0)} / {response.ai_evaluation_json.total_marks || q.points}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="font-semibold text-blue-900">Correct Status:</span>{' '}
+                                    <span className="text-blue-800 font-bold">
+                                      {response.points_earned !== null && Number(response.points_earned) > 0 ? 'Correct' : 'Incorrect'}
+                                    </span>
+                                  </div>
+                                  {(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt) && (
+                                    <div>
+                                      <span className="font-semibold text-blue-900">Evaluation Time:</span>{' '}
+                                      <span className="text-blue-800 text-xs font-mono">
+                                        {new Date(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div>
                                   <span className="font-semibold text-blue-900 text-sm">AI Feedback:</span>
-                                  <p className="text-blue-800 text-sm mt-1">{response.ai_evaluation_json.feedback || 'No feedback provided.'}</p>
+                                  <p className="text-blue-800 text-sm mt-1">
+                                    {response.ai_evaluation_json.ai_feedback || response.ai_evaluation_json.feedback || 'No feedback provided.'}
+                                  </p>
                                 </div>
-                                {response.ai_evaluation_json.deductions && (
+                                {(response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions) && (
                                   <div>
                                     <span className="font-semibold text-red-700 text-sm">Reason for Deductions:</span>
-                                    <p className="text-red-600 text-sm mt-1">{response.ai_evaluation_json.deductions}</p>
+                                    <p className="text-red-600 text-sm mt-1">
+                                      {response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions}
+                                    </p>
                                   </div>
                                 )}
                               </div>

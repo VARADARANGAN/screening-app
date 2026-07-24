@@ -76,12 +76,12 @@ export async function POST(
 
       let isCorrect = false;
       let pointsEarned = 0;
-
       let aiEvaluationJson = null;
+      let pointsEarnedToSave: number | null = 0;
 
       if (question.type === 'coding') {
         try {
-          console.log(`[AI Evaluation] Starting evaluation for question ${questionId}`);
+          console.log(`[AI Evaluation] [Test: ${id}] [Question: ${questionId}] [Student: ${student.id}] Starting evaluation.`);
           
           const prompt = `You are an expert programming examiner. Evaluate the following student's code submission for a coding test.
 
@@ -95,86 +95,127 @@ ${studentAnswer}
 
 Analyze the code and respond strictly in valid JSON format matching this schema without any markdown formatting or extra text:
 {
-  "detectedLanguage": "string",
+  "language": "string", // name of detected programming language
   "marksAwarded": number, // integer or decimal
-  "isCorrect": boolean,
   "feedback": "string",
-  "deductions": "string" // leave empty if full marks
+  "deductionReason": "string" // leave empty or describe reasons if points were deducted
 }
 
 Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
 
-          console.log(`[AI Evaluation] Payload to Gemini prepared.`);
+          const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: "application/json",
+            }
+          };
+
+          console.log(`[AI Evaluation] [Test: ${id}] Request Payload prepared:`, JSON.stringify(payload));
 
           const apiKey = process.env.GEMINI_API_KEY;
-          if (apiKey) {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                  temperature: 0.2,
-                  responseMimeType: "application/json",
-                }
-              })
-            });
+          if (!apiKey) {
+            throw new Error('GEMINI_API_KEY is not configured on the server.');
+          }
 
-            if (res.ok) {
-              const data = await res.json();
-              const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-              
-              if (textContent) {
-                console.log(`[AI Evaluation] Raw response from Gemini:`, textContent);
-                // Strip markdown formatting if the LLM wraps it in ```json ... ```
-                let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-                
-                try {
-                  const aiResult = JSON.parse(cleanedText);
-                  console.log(`[AI Evaluation] Successfully parsed AI response.`);
-                  
-                  aiEvaluationJson = {
-                    ...aiResult,
-                    evaluationStatus: 'success',
-                    evaluatedAt: new Date().toISOString()
-                  };
-                  pointsEarned = Number(aiResult.marksAwarded) || 0;
-                  isCorrect = Boolean(aiResult.isCorrect);
-                } catch (parseError: any) {
-                  console.error('[AI Evaluation] Failed to parse JSON:', cleanedText);
-                  pointsEarned = 0;
-                  isCorrect = false;
-                  aiEvaluationJson = {
-                    evaluationStatus: 'failed',
-                    error: `JSON Parse Error: ${parseError.message}`,
-                    rawResponse: textContent
-                  };
+          const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+          let lastErrorMsg = '';
+          let apiSuccess = false;
+          let textContent = '';
+
+          for (const model of models) {
+            let attempt = 1;
+            const maxAttempts = 2; // 2 attempts per model
+
+            while (attempt <= maxAttempts && !apiSuccess) {
+              try {
+                console.log(`[AI Evaluation] [Test: ${id}] Calling model ${model} (Attempt ${attempt}/${maxAttempts})`);
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                  const resData = await res.json();
+                  textContent = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  console.log(`[AI Evaluation] [Test: ${id}] HTTP 200 Raw Response from ${model}:`, textContent);
+                  apiSuccess = true;
+                  break;
+                } else {
+                  const errorText = await res.text();
+                  lastErrorMsg = `HTTP ${res.status} error from model ${model}: ${errorText}`;
+                  console.error(`[AI Evaluation Error] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
                 }
-              } else {
-                console.error('[AI Evaluation] Empty response from Gemini.');
-                pointsEarned = 0;
-                isCorrect = false;
-                aiEvaluationJson = { evaluationStatus: 'failed', error: 'Empty response from AI.' };
+              } catch (fetchErr: any) {
+                lastErrorMsg = `Fetch exception: ${fetchErr.message || fetchErr}`;
+                console.error(`[AI Evaluation Exception] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
               }
-            } else {
-              const errorText = await res.text();
-              console.error('[AI Evaluation Error] HTTP Error from Gemini API:', errorText);
+              attempt++;
+            }
+
+            if (apiSuccess) break;
+          }
+
+          if (apiSuccess && textContent) {
+            let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+            try {
+              const aiResult = JSON.parse(cleanedText);
+              console.log(`[AI Evaluation] [Test: ${id}] Successfully parsed JSON result.`);
+              
+              const marksAwarded = Number(aiResult.marksAwarded) || 0;
+              
+              aiEvaluationJson = {
+                detected_language: aiResult.language || aiResult.detectedLanguage || 'N/A',
+                marks_awarded: marksAwarded,
+                total_marks: pts,
+                evaluation_status: 'success',
+                ai_feedback: aiResult.feedback || 'No feedback provided.',
+                deduction_reason: aiResult.deductionReason || aiResult.deductions || '',
+                ai_evaluation_json: aiResult,
+                evaluated_at: new Date().toISOString()
+              };
+              pointsEarned = marksAwarded;
+              isCorrect = marksAwarded >= pts * 0.5; // Correct if >= 50% marks
+            } catch (parseError: any) {
+              const parseErrMsg = `JSON Parse Error: ${parseError.message}. Content: ${cleanedText}`;
+              console.error(`[AI Evaluation Parsing Error] [Test: ${id}]`, parseErrMsg);
               pointsEarned = 0;
               isCorrect = false;
-              aiEvaluationJson = { evaluationStatus: 'failed', error: `API Error: ${errorText}` };
+              aiEvaluationJson = {
+                evaluation_status: 'FAILED',
+                error: parseErrMsg,
+                evaluated_at: new Date().toISOString()
+              };
             }
           } else {
-            console.warn('[AI Evaluation] GEMINI_API_KEY is not set. Skipping AI evaluation.');
+            console.error(`[AI Evaluation Failed] [Test: ${id}] All models/retries failed. Last error:`, lastErrorMsg);
             pointsEarned = 0;
             isCorrect = false;
-            aiEvaluationJson = { evaluationStatus: 'failed', error: 'GEMINI_API_KEY not configured on server.' };
+            aiEvaluationJson = {
+              evaluation_status: 'FAILED',
+              error: lastErrorMsg || 'Unknown API failure after retries.',
+              evaluated_at: new Date().toISOString()
+            };
           }
         } catch (e: any) {
-          console.error('[AI Evaluation Catch Error]', e);
+          console.error(`[AI Evaluation System Error] [Test: ${id}]`, e);
           pointsEarned = 0;
           isCorrect = false;
-          aiEvaluationJson = { evaluationStatus: 'failed', error: `Exception: ${e.message || 'Unknown error'}` };
+          aiEvaluationJson = {
+            evaluation_status: 'FAILED',
+            error: `System Exception: ${e.message || e}`,
+            evaluated_at: new Date().toISOString()
+          };
         }
+
+        // If evaluation failed, we save points_earned as null
+        const isFailed = aiEvaluationJson?.evaluation_status === 'FAILED';
+        pointsEarnedToSave = isFailed ? null : pointsEarned;
+
+        // In score calculation, we add 0 if it failed, but save null in DB
+        score += pointsEarned;
+        correctQuestionsCount += pts > 0 ? (pointsEarned / pts) : (isCorrect ? 1 : 0);
       } else {
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
         let isTextMatch = false;
@@ -190,10 +231,11 @@ Focus on logical correctness. Give partial marks for logically correct solutions
         }
         isCorrect = isDirectMatch || isTextMatch;
         pointsEarned = isCorrect ? pts : 0;
-      }
+        pointsEarnedToSave = pointsEarned;
 
-      score += pointsEarned;
-      correctQuestionsCount += pts > 0 ? (pointsEarned / pts) : (isCorrect ? 1 : 0);
+        score += pointsEarned;
+        correctQuestionsCount += pts > 0 ? (pointsEarned / pts) : (isCorrect ? 1 : 0);
+      }
 
       // Store response (using findFirst to prevent duplicate insert on unique constraint)
       const existingResponse = await prisma.testResponse.findFirst({
@@ -203,29 +245,29 @@ Focus on logical correctness. Give partial marks for logically correct solutions
         }
       });
 
+      const dbData = {
+        student_answer: studentAnswer ? String(studentAnswer) : null,
+        is_correct: isCorrect,
+        points_earned: pointsEarnedToSave,
+        ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
+        submitted_at: new Date()
+      };
+
       if (existingResponse) {
         await prisma.testResponse.update({
           where: { id: existingResponse.id },
-          data: {
-            student_answer: studentAnswer ? String(studentAnswer) : null,
-            is_correct: isCorrect,
-            points_earned: pointsEarned,
-            ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
-            submitted_at: new Date()
-          }
+          data: dbData
         });
+        console.log(`[AI Evaluation] [Test: ${id}] Successfully updated database response for question ${questionId}`);
       } else {
         await prisma.testResponse.create({
           data: {
             test_id: id,
             question_id: questionId,
-            student_answer: studentAnswer ? String(studentAnswer) : null,
-            is_correct: isCorrect,
-            points_earned: pointsEarned,
-            ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
-            submitted_at: new Date()
+            ...dbData
           }
         });
+        console.log(`[AI Evaluation] [Test: ${id}] Successfully created database response for question ${questionId}`);
       }
     }
 
