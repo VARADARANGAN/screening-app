@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import Groq from 'groq-sdk';
 
 export async function POST(
   request: NextRequest,
@@ -103,22 +104,13 @@ Analyze the code and respond strictly in valid JSON format matching this schema 
 
 Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
 
-          const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: "application/json",
-            }
-          };
-
-          console.log(`[AI Evaluation] [Test: ${id}] Request Payload prepared:`, JSON.stringify(payload));
-
-          const apiKey = process.env.GEMINI_API_KEY;
+          const apiKey = process.env.GROQ_API_KEY;
           if (!apiKey) {
-            throw new Error('GEMINI_API_KEY is not configured on the server.');
+            throw new Error('GROQ_API_KEY is not configured on the server.');
           }
 
-          const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite'];
+          const groq = new Groq({ apiKey });
+          const models = ['llama-3.3-70b-versatile', 'llama3-8b-8192'];
           let lastErrorMsg = '';
           let apiSuccess = false;
           let textContent = '';
@@ -130,25 +122,26 @@ Focus on logical correctness. Give partial marks for logically correct solutions
             while (attempt <= maxAttempts && !apiSuccess) {
               try {
                 console.log(`[AI Evaluation] [Test: ${id}] Calling model ${model} (Attempt ${attempt}/${maxAttempts})`);
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
+                
+                const chatCompletion = await groq.chat.completions.create({
+                  messages: [{ role: 'user', content: prompt }],
+                  model: model,
+                  temperature: 0.2,
+                  response_format: { type: 'json_object' }
                 });
 
-                if (res.ok) {
-                  const resData = await res.json();
-                  textContent = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                  console.log(`[AI Evaluation] [Test: ${id}] HTTP 200 Raw Response from ${model}:`, textContent);
+                textContent = chatCompletion.choices[0]?.message?.content || '';
+                
+                if (textContent) {
+                  console.log(`[AI Evaluation] [Test: ${id}] Success Response from ${model}:`, textContent);
                   apiSuccess = true;
                   break;
                 } else {
-                  const errorText = await res.text();
-                  lastErrorMsg = `HTTP ${res.status} error from model ${model}: ${errorText}`;
+                  lastErrorMsg = `Empty response from model ${model}`;
                   console.error(`[AI Evaluation Error] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
                 }
-              } catch (fetchErr: any) {
-                lastErrorMsg = `Fetch exception: ${fetchErr.message || fetchErr}`;
+              } catch (groqErr: any) {
+                lastErrorMsg = `Groq exception: ${groqErr.message || groqErr}`;
                 console.error(`[AI Evaluation Exception] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
               }
               attempt++;
@@ -156,6 +149,7 @@ Focus on logical correctness. Give partial marks for logically correct solutions
 
             if (apiSuccess) break;
           }
+
 
           if (apiSuccess && textContent) {
             let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
