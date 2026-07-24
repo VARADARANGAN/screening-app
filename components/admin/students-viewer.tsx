@@ -641,20 +641,55 @@ export function StudentsViewer() {
                         </pre>
                       </div>
 
+                      {response?.ai_evaluation_json && 
+                       (response.ai_evaluation_json.evaluation_status === 'PENDING' || response.ai_evaluation_json.evaluation_status === 'PROCESSING') && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3 text-left">
+                          <h5 className="font-bold text-xs text-yellow-800 uppercase tracking-wider flex items-center gap-2">
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            AI Evaluation in Progress
+                          </h5>
+                          <p className="text-yellow-700 text-sm">The code is currently being analyzed by the AI evaluator. Please refresh the page in a few moments.</p>
+                        </div>
+                      )}
+
                       {response?.ai_evaluation_json && (response.ai_evaluation_json.evaluation_status === 'FAILED' || response.ai_evaluation_json.evaluationStatus === 'failed') && (
                         <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
-                          <h5 className="font-bold text-xs text-red-800 uppercase tracking-wider flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            AI Evaluation Failed
-                          </h5>
-                          <p className="text-red-700 text-xs">Automated evaluation failed. Error details below:</p>
+                          <div className="flex justify-between items-start">
+                            <h5 className="font-bold text-xs text-red-800 uppercase tracking-wider flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                              AI Evaluation Failed
+                            </h5>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/tests/${testId}/reevaluate`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                                    body: JSON.stringify({ questionId: q.id })
+                                  });
+                                  if (res.ok) {
+                                    alert('Re-evaluation triggered successfully! Please refresh the page in a few moments.');
+                                  } else {
+                                    const data = await res.json();
+                                    alert(`Error: ${data.message}`);
+                                  }
+                                } catch (err) {
+                                  alert('Failed to trigger re-evaluation');
+                                }
+                              }}
+                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold rounded transition-colors"
+                            >
+                              Retry AI Evaluation
+                            </button>
+                          </div>
+                          <p className="text-red-700 text-xs">Automated evaluation failed. You can retry or manually grade below. Error details:</p>
                           <div className="p-2.5 bg-red-100/80 rounded text-xs font-mono text-red-900 overflow-x-auto">
                             {response.ai_evaluation_json.error || 'Unknown API failure'}
                           </div>
                         </div>
                       )}
 
-                      {response?.ai_evaluation_json && response.ai_evaluation_json.evaluation_status !== 'FAILED' && response.ai_evaluation_json.evaluationStatus !== 'failed' && (
+                      {response?.ai_evaluation_json && response.ai_evaluation_json.evaluation_status === 'COMPLETED' && (
                         <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3 text-left">
                           <h5 className="font-bold text-xs text-blue-800 uppercase tracking-wider flex items-center gap-2">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>

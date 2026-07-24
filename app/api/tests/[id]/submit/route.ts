@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { evaluateCodingAnswer } from '@/lib/ai-evaluation';
+import { processBackgroundEvaluations } from '@/lib/services/evaluation-pipeline';
+import { recalculateTestScore } from '@/lib/services/score-calculation';
 
 export async function POST(
   request: NextRequest,
@@ -61,83 +62,38 @@ export async function POST(
     const totalQuestions = await prisma.testQuestion.count({
       where: { test_id: id }
     });
-    let score = 0;
-    let totalPoints = 0;
-    let correctQuestionsCount = 0;
 
+    let correctQuestionsCount = 0;
+    const backgroundTasks: { testId: string; questionId: string; studentAnswer: string }[] = [];
+
+    // Process all answers and persist them synchronously
     for (const [questionId, studentAnswer] of Object.entries(answers)) {
-      // Get question details
       const question = await prisma.question.findUnique({
         where: { id: questionId }
       });
 
       if (!question) continue;
       const pts = question.points || 0;
-      totalPoints += pts;
 
       let isCorrect = false;
-      let pointsEarned = 0;
-      let aiEvaluationJson = null;
       let pointsEarnedToSave: number | null = 0;
+      let aiEvaluationJson: any = null;
 
       if (question.type === 'coding') {
-        try {
-          console.log(`[AI Evaluation] [Test: ${id}] [Question: ${questionId}] [Student: ${student.id}] Starting evaluation.`);
-          
-          const evaluationResult = await evaluateCodingAnswer(
-            question.question_text,
-            pts,
-            String(studentAnswer)
-          );
+        // Set pending status for coding evaluations
+        aiEvaluationJson = { evaluation_status: 'PENDING', evaluated_at: new Date().toISOString() };
+        pointsEarnedToSave = null;
 
-          if (evaluationResult.success) {
-            console.log(`[AI Evaluation] [Test: ${id}] Successfully parsed JSON result from service.`);
-            pointsEarned = evaluationResult.marksAwarded;
-            isCorrect = pointsEarned >= pts * 0.5; // Correct if >= 50% marks
-
-            aiEvaluationJson = {
-              detected_language: evaluationResult.language,
-              marks_awarded: pointsEarned,
-              total_marks: pts,
-              evaluation_status: 'success',
-              ai_feedback: evaluationResult.feedback,
-              deduction_reason: evaluationResult.deductionReason,
-              ai_evaluation_json: evaluationResult.rawJson,
-              evaluated_at: new Date().toISOString()
-            };
-          } else {
-            console.error(`[AI Evaluation Service Error] [Test: ${id}]`, evaluationResult.error);
-            pointsEarned = 0;
-            isCorrect = false;
-
-            aiEvaluationJson = {
-              evaluation_status: 'FAILED',
-              error: evaluationResult.error || 'Unknown AI Service Failure',
-              raw_response: evaluationResult.rawJson?.raw_response,
-              evaluated_at: new Date().toISOString()
-            };
-          }
-        } catch (e: any) {
-          console.error(`[AI Evaluation System Error] [Test: ${id}]`, e);
-          pointsEarned = 0;
-          isCorrect = false;
-          aiEvaluationJson = {
-            evaluation_status: 'FAILED',
-            error: `System Exception: ${e.message || e}`,
-            evaluated_at: new Date().toISOString()
-          };
-        }
-
-        // If evaluation failed, we save points_earned as null
-        const isFailed = aiEvaluationJson?.evaluation_status === 'FAILED';
-        pointsEarnedToSave = isFailed ? null : pointsEarned;
-
-        // In score calculation, we add 0 if it failed, but save null in DB
-        score += pointsEarned;
-        correctQuestionsCount += pts > 0 ? (pointsEarned / pts) : (isCorrect ? 1 : 0);
+        backgroundTasks.push({
+          testId: id,
+          questionId,
+          studentAnswer: String(studentAnswer)
+        });
       } else {
+        // Evaluate MCQ immediately
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
         let isTextMatch = false;
+        
         if (question.options_json && Array.isArray(question.options_json)) {
           const correctIdx = parseInt(question.correct_answer || '-1');
           if (correctIdx >= 0 && correctIdx < question.options_json.length) {
@@ -148,36 +104,31 @@ export async function POST(
             isTextMatch = String(studentAnswer).trim() === String(correctOptText).trim();
           }
         }
+        
         isCorrect = isDirectMatch || isTextMatch;
-        pointsEarned = isCorrect ? pts : 0;
-        pointsEarnedToSave = pointsEarned;
-
-        score += pointsEarned;
-        correctQuestionsCount += pts > 0 ? (pointsEarned / pts) : (isCorrect ? 1 : 0);
+        pointsEarnedToSave = isCorrect ? pts : 0;
+        
+        if (isCorrect) correctQuestionsCount++;
       }
 
-      // Store response (using findFirst to prevent duplicate insert on unique constraint)
-      const existingResponse = await prisma.testResponse.findFirst({
-        where: {
-          test_id: id,
-          question_id: questionId
-        }
-      });
-
+      // Upsert the response so we don't violate unique constraints
       const dbData = {
         student_answer: studentAnswer ? String(studentAnswer) : null,
         is_correct: isCorrect,
         points_earned: pointsEarnedToSave,
-        ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
+        ai_evaluation_json: aiEvaluationJson,
         submitted_at: new Date()
       };
+
+      const existingResponse = await prisma.testResponse.findFirst({
+        where: { test_id: id, question_id: questionId }
+      });
 
       if (existingResponse) {
         await prisma.testResponse.update({
           where: { id: existingResponse.id },
           data: dbData
         });
-        console.log(`[AI Evaluation] [Test: ${id}] Successfully updated database response for question ${questionId}`);
       } else {
         await prisma.testResponse.create({
           data: {
@@ -186,32 +137,43 @@ export async function POST(
             ...dbData
           }
         });
-        console.log(`[AI Evaluation] [Test: ${id}] Successfully created database response for question ${questionId}`);
       }
     }
 
+    // Set test to submitted
     const { status } = data;
-    const updatedTest = await prisma.test.update({
+    await prisma.test.update({
       where: { id: id },
       data: {
         status: status || 'submitted',
-        score: correctQuestionsCount,
+        is_completed: true,
         end_time: new Date(),
         violations_count: violations ? violations.length : 0
       }
     });
 
+    // Recalculate score (which right now just calculates MCQ scores since coding is null)
+    const initialScore = await recalculateTestScore(id);
+
+    // Fire and forget the background evaluation (so the student doesn't wait)
+    if (backgroundTasks.length > 0) {
+      processBackgroundEvaluations(backgroundTasks).catch((err) => {
+        console.error(`[Background Task Spawning Error]`, err);
+      });
+    }
+
     return NextResponse.json({
       message: 'Test submitted successfully',
-      test: updatedTest,
-      score: correctQuestionsCount,
+      score: initialScore,
+      correctQuestions: correctQuestionsCount,
       totalQuestions: totalQuestions
     });
+
   } catch (error: any) {
     console.error('[Submit Test Error]', error);
     return NextResponse.json(
       { message: error.message || 'Failed to submit test' },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }
