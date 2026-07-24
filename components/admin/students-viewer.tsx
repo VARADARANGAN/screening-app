@@ -662,7 +662,7 @@ export function StudentsViewer() {
                             <button
                               onClick={async () => {
                                 try {
-                                  const res = await fetch(`/api/tests/${testId}/reevaluate`, {
+                                  const res = await fetch(`/api/tests/${activeTestDetail.id}/reevaluate`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                                     body: JSON.stringify({ questionId: q.id })
