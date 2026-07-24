@@ -81,6 +81,8 @@ export async function POST(
 
       if (question.type === 'coding') {
         try {
+          console.log(`[AI Evaluation] Starting evaluation for question ${questionId}`);
+          
           const prompt = `You are an expert programming examiner. Evaluate the following student's code submission for a coding test.
 
 Problem Statement:
@@ -102,6 +104,8 @@ Analyze the code and respond strictly in valid JSON format matching this schema 
 
 Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
 
+          console.log(`[AI Evaluation] Payload to Gemini prepared.`);
+
           const apiKey = process.env.GEMINI_API_KEY;
           if (apiKey) {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -119,26 +123,57 @@ Focus on logical correctness. Give partial marks for logically correct solutions
             if (res.ok) {
               const data = await res.json();
               const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              
               if (textContent) {
-                const aiResult = JSON.parse(textContent);
-                aiEvaluationJson = aiResult;
-                pointsEarned = Number(aiResult.marksAwarded) || 0;
-                isCorrect = Boolean(aiResult.isCorrect);
+                console.log(`[AI Evaluation] Raw response from Gemini:`, textContent);
+                // Strip markdown formatting if the LLM wraps it in ```json ... ```
+                let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
+                
+                try {
+                  const aiResult = JSON.parse(cleanedText);
+                  console.log(`[AI Evaluation] Successfully parsed AI response.`);
+                  
+                  aiEvaluationJson = {
+                    ...aiResult,
+                    evaluationStatus: 'success',
+                    evaluatedAt: new Date().toISOString()
+                  };
+                  pointsEarned = Number(aiResult.marksAwarded) || 0;
+                  isCorrect = Boolean(aiResult.isCorrect);
+                } catch (parseError: any) {
+                  console.error('[AI Evaluation] Failed to parse JSON:', cleanedText);
+                  pointsEarned = 0;
+                  isCorrect = false;
+                  aiEvaluationJson = {
+                    evaluationStatus: 'failed',
+                    error: `JSON Parse Error: ${parseError.message}`,
+                    rawResponse: textContent
+                  };
+                }
               } else {
+                console.error('[AI Evaluation] Empty response from Gemini.');
                 pointsEarned = 0;
                 isCorrect = false;
+                aiEvaluationJson = { evaluationStatus: 'failed', error: 'Empty response from AI.' };
               }
             } else {
-              console.error('[Gemini API Error]', await res.text());
+              const errorText = await res.text();
+              console.error('[AI Evaluation Error] HTTP Error from Gemini API:', errorText);
               pointsEarned = 0;
+              isCorrect = false;
+              aiEvaluationJson = { evaluationStatus: 'failed', error: `API Error: ${errorText}` };
             }
           } else {
-            console.warn('GEMINI_API_KEY is not set. Skipping AI evaluation.');
+            console.warn('[AI Evaluation] GEMINI_API_KEY is not set. Skipping AI evaluation.');
             pointsEarned = 0;
+            isCorrect = false;
+            aiEvaluationJson = { evaluationStatus: 'failed', error: 'GEMINI_API_KEY not configured on server.' };
           }
-        } catch (e) {
-          console.error('[AI Evaluation Error]', e);
+        } catch (e: any) {
+          console.error('[AI Evaluation Catch Error]', e);
           pointsEarned = 0;
+          isCorrect = false;
+          aiEvaluationJson = { evaluationStatus: 'failed', error: `Exception: ${e.message || 'Unknown error'}` };
         }
       } else {
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
