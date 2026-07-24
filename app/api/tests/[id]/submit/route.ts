@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import Groq from 'groq-sdk';
+import { evaluateCodingAnswer } from '@/lib/ai-evaluation';
 
 export async function POST(
   request: NextRequest,
@@ -84,124 +84,39 @@ export async function POST(
         try {
           console.log(`[AI Evaluation] [Test: ${id}] [Question: ${questionId}] [Student: ${student.id}] Starting evaluation.`);
           
-          const prompt = `You are an expert programming examiner. Evaluate the following student's code submission for a coding test.
+          const evaluationResult = await evaluateCodingAnswer(
+            question.question_text,
+            pts,
+            String(studentAnswer)
+          );
 
-Problem Statement:
-${question.question_text}
+          if (evaluationResult.success) {
+            console.log(`[AI Evaluation] [Test: ${id}] Successfully parsed JSON result from service.`);
+            pointsEarned = evaluationResult.marksAwarded;
+            isCorrect = pointsEarned >= pts * 0.5; // Correct if >= 50% marks
 
-Maximum Marks: ${pts}
-
-Student's Submitted Code:
-${studentAnswer}
-
-Analyze the code and respond strictly in valid JSON format matching this schema without any markdown formatting or extra text:
-{
-  "language": "string", // name of detected programming language
-  "marksAwarded": number, // integer or decimal
-  "feedback": "string",
-  "deductionReason": "string" // leave empty or describe reasons if points were deducted
-}
-
-Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
-
-          const apiKey = process.env.GROQ_API_KEY;
-          if (!apiKey) {
-            throw new Error('GROQ_API_KEY is not configured on the server.');
-          }
-
-          const groq = new Groq({ apiKey });
-          const models = ['llama-3.3-70b-versatile', 'llama3-8b-8192'];
-          let lastErrorMsg = '';
-          let apiSuccess = false;
-          let textContent = '';
-
-          for (const model of models) {
-            let attempt = 1;
-            const maxAttempts = 2; // 2 attempts per model
-
-            while (attempt <= maxAttempts && !apiSuccess) {
-              try {
-                console.log(`[AI Evaluation] [Test: ${id}] Calling model ${model} (Attempt ${attempt}/${maxAttempts})`);
-                
-                const chatCompletion = await groq.chat.completions.create({
-                  messages: [{ role: 'user', content: prompt }],
-                  model: model,
-                  temperature: 0.2,
-                  response_format: { type: 'json_object' }
-                });
-
-                textContent = chatCompletion.choices[0]?.message?.content || '';
-                
-                if (textContent) {
-                  console.log(`[AI Evaluation] [Test: ${id}] Success Response from ${model}:`, textContent);
-                  apiSuccess = true;
-                  break;
-                } else {
-                  lastErrorMsg = `Empty response from model ${model}`;
-                  console.error(`[AI Evaluation Error] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
-                }
-              } catch (groqErr: any) {
-                lastErrorMsg = `Groq exception: ${groqErr.message || groqErr}`;
-                console.error(`[AI Evaluation Exception] [Test: ${id}] [Model: ${model}] [Attempt: ${attempt}]`, lastErrorMsg);
-              }
-              attempt++;
-            }
-
-            if (apiSuccess) break;
-          }
-
-
-          if (apiSuccess && textContent) {
-            let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-            try {
-              const aiResult = JSON.parse(cleanedText);
-              console.log(`[AI Evaluation] [Test: ${id}] Successfully parsed JSON result.`);
-              
-              const marksAwarded = Number(aiResult.marksAwarded) || 0;
-              
-              aiEvaluationJson = {
-                detected_language: aiResult.language || aiResult.detectedLanguage || 'N/A',
-                marks_awarded: marksAwarded,
-                total_marks: pts,
-                evaluation_status: 'success',
-                ai_feedback: aiResult.feedback || 'No feedback provided.',
-                deduction_reason: aiResult.deductionReason || aiResult.deductions || '',
-                ai_evaluation_json: aiResult,
-                evaluated_at: new Date().toISOString()
-              };
-              pointsEarned = marksAwarded;
-              isCorrect = marksAwarded >= pts * 0.5; // Correct if >= 50% marks
-            } catch (parseError: any) {
-              const parseErrMsg = `JSON Parse Error: ${parseError.message}. Content: ${cleanedText}`;
-              console.error(`[AI Evaluation Parsing Error] [Test: ${id}]`, parseErrMsg);
-              pointsEarned = 0;
-              isCorrect = false;
-              aiEvaluationJson = {
-                evaluation_status: 'FAILED',
-                error: parseErrMsg,
-                evaluated_at: new Date().toISOString()
-              };
-            }
+            aiEvaluationJson = {
+              detected_language: evaluationResult.language,
+              marks_awarded: pointsEarned,
+              total_marks: pts,
+              evaluation_status: 'success',
+              ai_feedback: evaluationResult.feedback,
+              deduction_reason: evaluationResult.deductionReason,
+              ai_evaluation_json: evaluationResult.rawJson,
+              evaluated_at: new Date().toISOString()
+            };
           } else {
-            console.error(`[AI Evaluation Failed] [Test: ${id}] All models/retries failed. Last error:`, lastErrorMsg);
+            console.error(`[AI Evaluation Service Error] [Test: ${id}]`, evaluationResult.error);
             pointsEarned = 0;
             isCorrect = false;
+
             aiEvaluationJson = {
               evaluation_status: 'FAILED',
-              error: lastErrorMsg || 'Unknown API failure after retries.',
+              error: evaluationResult.error || 'Unknown AI Service Failure',
+              raw_response: evaluationResult.rawJson?.raw_response,
               evaluated_at: new Date().toISOString()
             };
           }
-        } catch (e: any) {
-          console.error(`[AI Evaluation System Error] [Test: ${id}]`, e);
-          pointsEarned = 0;
-          isCorrect = false;
-          aiEvaluationJson = {
-            evaluation_status: 'FAILED',
-            error: `System Exception: ${e.message || e}`,
-            evaluated_at: new Date().toISOString()
-          };
-        }
 
         // If evaluation failed, we save points_earned as null
         const isFailed = aiEvaluationJson?.evaluation_status === 'FAILED';

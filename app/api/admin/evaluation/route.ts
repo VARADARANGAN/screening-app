@@ -46,9 +46,9 @@ export async function GET(request: NextRequest) {
       .map((t, idx) => ({
         rank: idx + 1,
         testId: t.id,
-        fullName: t.student.full_name,
-        usn: t.student.usn,
-        branch: t.student.branch_name || '',
+        fullName: t.student?.full_name || 'Unknown',
+        usn: t.student?.usn || 'Unknown',
+        branch: t.student?.branch_name || '',
         score: t.score !== null ? Number(t.score) : 0,
         violations: t.violations_count || 0,
         submittedAt: t.end_time || t.updated_at
@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
       message: 'Evaluations retrieved',
       tests: tests.map(t => ({
         id: t.id,
-        fullName: t.student.full_name,
-        usn: t.student.usn,
-        branch: t.student.branch_name || '',
-        email: t.student.user?.email || '',
+        fullName: t.student?.full_name || 'Unknown',
+        usn: t.student?.usn || 'Unknown',
+        branch: t.student?.branch_name || '',
+        email: t.student?.user?.email || '',
         status: t.status,
         score: t.score !== null ? Number(t.score) : null,
         totalQuestions: t._count?.test_questions || 0,

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       _avg: { score: true },
       where: { score: { not: null } }
     });
-    const avgScore = avgScoreAgg._avg.score?.toNumber() || 0;
+    const avgScore = avgScoreAgg._avg.score !== null ? Number(avgScoreAgg._avg.score) : 0;
 
     const testsByBranch: any[] = [];
 
