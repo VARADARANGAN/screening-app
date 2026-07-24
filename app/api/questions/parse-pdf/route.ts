@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
         questions.push({
           questionText,
           type: 'mcq',
-          category: 'PDF Import',
           optionsJson: options,
           correctAnswer,
           timeLimitSeconds: 60,

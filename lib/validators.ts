@@ -27,7 +27,6 @@ export const StudentProfileSchema = z.object({
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   college: z.string().min(2, 'College name is required'),
   usn: z.string().min(1, 'USN is required'),
-  branchName: z.string().min(2, 'Branch name is required'),
   cameraPermission: z.boolean().default(false),
   microphonePermission: z.boolean().default(false),
 });
@@ -42,8 +41,6 @@ export const AdminProfileSchema = z.object({
 export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
   type: z.enum(['mcq', 'coding']),
-  category: z.string().optional().default('General'),
-  branchId: z.string().uuid('Invalid branch ID').or(z.literal('')).optional().nullable().transform(v => v === '' || v === null ? undefined : v),
   timeLimitSeconds: z.number().optional().default(60),
   points: z.number().min(1, 'Points must be at least 1'),
   isPublished: z.boolean().default(false),
@@ -60,11 +57,6 @@ export const QuestionSchema = z.object({
   return true;
 }, {
   message: 'MCQ questions require options and a correct answer',
-});
-
-// ==================== Branch Schemas ====================
-export const BranchSchema = z.object({
-  name: z.string().min(2, 'Branch name must be at least 2 characters'),
 });
 
 // ==================== Test Schemas ====================
@@ -126,7 +118,6 @@ export const PaginationSchema = z.object({
 export const AnalyticsFilterSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  branch: z.string().optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
 });
 
@@ -136,7 +127,6 @@ export type LoginInput = z.infer<typeof LoginSchema>;
 export type StudentProfileInput = z.infer<typeof StudentProfileSchema>;
 export type AdminProfileInput = z.infer<typeof AdminProfileSchema>;
 export type QuestionInput = z.infer<typeof QuestionSchema>;
-export type BranchInput = z.infer<typeof BranchSchema>;
 export type CreateTestInput = z.infer<typeof CreateTestSchema>;
 export type SubmitTestResponseInput = z.infer<typeof SubmitTestResponseSchema>;
 export type TestStatusUpdateInput = z.infer<typeof TestStatusUpdateSchema>;
@@ -151,7 +141,6 @@ export default {
   StudentProfileSchema,
   AdminProfileSchema,
   QuestionSchema,
-  BranchSchema,
   CreateTestSchema,
   SubmitTestResponseSchema,
   TestStatusUpdateSchema,

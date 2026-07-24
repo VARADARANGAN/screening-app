@@ -105,8 +105,6 @@ export async function PUT(
       data: {
         question_text: validatedData.questionText,
         type: validatedData.type,
-        category: validatedData.category,
-        branch_id: validatedData.branchId || null,
         options_json: validatedData.optionsJson || [],
         correct_answer: validatedData.correctAnswer,
         time_limit_seconds: validatedData.timeLimitSeconds,

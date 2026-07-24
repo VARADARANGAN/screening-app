@@ -67,9 +67,6 @@ export async function GET(
             include: {
               user: {
                 select: { email: true }
-              },
-              branch: {
-                select: { name: true }
               }
             }
           },
@@ -129,7 +126,6 @@ export async function GET(
       student: test.student ? {
         fullName: test.student.full_name,
         usn: test.student.usn,
-        branchName: test.student.branch?.name || '',
         email: test.student.user?.email || ''
       } : undefined,
       responses: test.test_responses ? test.test_responses.map((tr: any) => ({

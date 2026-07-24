@@ -30,7 +30,6 @@ model Student {
   phone                 String?   @db.VarChar(20)
   college               String?   @db.VarChar(255)
   usn                   String?   @unique @db.VarChar(50)
-  branch_id             String?   @db.Uuid
   profile_completed     Boolean   @default(false)
   camera_permission     Boolean   @default(false)
   microphone_permission Boolean   @default(false)
@@ -38,23 +37,9 @@ model Student {
   updated_at            DateTime  @default(now()) @db.Timestamp(6)
 
   user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  branch                Branch?   @relation(fields: [branch_id], references: [id])
   tests                 Test[]
 
   @@map("students")
-}
-
-model Branch {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @unique @db.VarChar(100)
-  created_at  DateTime  @default(now()) @db.Timestamp(6)
-  updated_at  DateTime  @default(now()) @db.Timestamp(6)
-
-  students    Student[]
-  questions   Question[]
-  templates   TestTemplate[]
-
-  @@map("branches")
 }
 
 model Admin {
@@ -74,8 +59,6 @@ model Question {
   id                 String    @id @default(uuid()) @db.Uuid
   question_text      String
   type               String    @default("mcq") @db.VarChar(50)
-  category           String?   @db.VarChar(100)
-  branch_id          String?   @db.Uuid
   options_json       Json?
   correct_answer     String?
   explanation        String?
@@ -87,7 +70,6 @@ model Question {
   updated_at         DateTime  @default(now()) @db.Timestamp(6)
 
   creator            User      @relation(fields: [created_by], references: [id])
-  branch             Branch?   @relation(fields: [branch_id], references: [id])
   test_questions     TestQuestion[]
   test_responses     TestResponse[]
 
@@ -170,14 +152,12 @@ model TestTemplate {
   description     String?
   total_questions Int
   total_duration  Int
-  branch_id       String?   @db.Uuid
   created_by      String    @db.Uuid
   is_active       Boolean?  @default(true)
   created_at      DateTime  @default(now()) @db.Timestamp(6)
   updated_at      DateTime  @default(now()) @db.Timestamp(6)
 
   creator         User      @relation(fields: [created_by], references: [id])
-  branch          Branch?   @relation(fields: [branch_id], references: [id])
 
   @@map("test_templates")
 }

@@ -5,8 +5,6 @@ import { z } from 'zod';
 
 const AssignTestSchema = z.object({
   questionIds: z.array(z.string()).min(1, 'Select at least one question'),
-  branchIds: z.array(z.string()).optional(),
-  branchId: z.string().optional(), // Fallback for backward compatibility
   totalDuration: z.number().optional(), // custom duration in minutes
 });
 
@@ -34,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { questionIds, branchIds, branchId, totalDuration } = validation.data;
+    const { questionIds, totalDuration } = validation.data;
 
     // Fetch the questions to sum up the duration
     const questions = await prisma.question.findMany({
@@ -48,23 +46,13 @@ export async function POST(request: NextRequest) {
 
     const totalDurationMinutes = totalDuration ? totalDuration : Math.ceil(questions.reduce((acc, q) => acc + (q.time_limit_seconds || 60), 0) / 60);
 
-    // Resolve target branches
-    let targetBranchIds: string[] = [];
-    if (branchIds && branchIds.length > 0) {
-      targetBranchIds = branchIds.filter(id => id !== 'all');
-    } else if (branchId && branchId !== 'all') {
-      targetBranchIds = [branchId];
-    }
-
     // Fetch target students
-    const whereClause = targetBranchIds.length > 0 ? { branch_id: { in: targetBranchIds } } : {};
     const students = await prisma.student.findMany({
-      where: whereClause,
       select: { id: true }
     });
 
     if (students.length === 0) {
-      return NextResponse.json({ message: 'No students found for this branch' }, { status: 404 });
+      return NextResponse.json({ message: 'No students found' }, { status: 404 });
     }
 
     // Create a Test for each student, and then map TestQuestions

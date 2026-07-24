@@ -64,7 +64,6 @@ export function QuestionImporter() {
           return {
             questionText: String(row['Question Text'] || ''),
             type: type as any,
-            category: String(row['Category'] || 'General'),
             difficulty: difficulty as any,
             timeLimitSeconds: Number(row['Time Limit']) || 60,
             points: Number(row['Points']) || 1,
@@ -80,7 +79,7 @@ export function QuestionImporter() {
       // Filter out invalid rows quickly
       const validQuestions = questions.filter(q => q.questionText.length >= 10);
       if (validQuestions.length === 0) {
-        throw new Error('No valid questions found. Check column headers ("Question Text", "Type", "Category", etc).');
+        throw new Error('No valid questions found. Check column headers ("Question Text", "Type", etc).');
       }
 
       const token = localStorage.getItem('token');
@@ -110,7 +109,7 @@ export function QuestionImporter() {
       <p className="text-gray-600 mb-6">
         Upload an Excel (.xlsx) or CSV file. The first row must contain the following headers:
         <br />
-        <span className="font-mono text-sm text-blue-600">Question Text | Type | Category | Difficulty | Branch | Time Limit | Points | Option 1 | Option 2 | Option 3 | Option 4 | Correct Answer | Explanation</span>
+        <span className="font-mono text-sm text-blue-600">Question Text | Type | Difficulty | Time Limit | Points | Option 1 | Option 2 | Option 3 | Option 4 | Correct Answer | Explanation</span>
       </p>
 
       {error && (

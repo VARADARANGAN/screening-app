@@ -28,18 +28,6 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const validatedData = StudentProfileSchema.parse(data);
 
-    // Dynamic Branch Handling
-    const branchName = validatedData.branchName.trim();
-    let branch = await prisma.branch.findUnique({
-      where: { name: branchName }
-    });
-
-    if (!branch) {
-      branch = await prisma.branch.create({
-        data: { name: branchName }
-      });
-    }
-
     const student = await prisma.student.upsert({
       where: { user_id: decoded.userId },
       update: {
@@ -47,7 +35,6 @@ export async function POST(request: NextRequest) {
         phone: validatedData.phone,
         college: validatedData.college,
         usn: validatedData.usn,
-        branch_id: branch.id,
         profile_completed: true,
       },
       create: {
@@ -56,7 +43,6 @@ export async function POST(request: NextRequest) {
         phone: validatedData.phone,
         college: validatedData.college,
         usn: validatedData.usn,
-        branch_id: branch.id,
         profile_completed: true,
       }
     });
@@ -97,8 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findUnique({
-      where: { user_id: decoded.userId },
-      include: { branch: true }
+      where: { user_id: decoded.userId }
     });
 
     if (!student) {
@@ -112,7 +97,6 @@ export async function GET(request: NextRequest) {
         phone: student.phone,
         college: student.college,
         usn: student.usn,
-        branchName: student.branch?.name || '',
         profileCompleted: student.profile_completed,
       },
     });

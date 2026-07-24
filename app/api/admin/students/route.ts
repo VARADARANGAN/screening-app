@@ -21,26 +21,17 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const branchName = searchParams.get('branch');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Build Prisma query filters
     const whereClause: any = {};
-    if (branchName) {
-      whereClause.branch = {
-        name: branchName
-      };
-    }
 
     const students = await prisma.student.findMany({
       where: whereClause,
       include: {
         user: {
           select: { email: true }
-        },
-        branch: {
-          select: { name: true }
         },
         tests: {
           select: { score: true, created_at: true },
@@ -62,7 +53,6 @@ export async function GET(request: NextRequest) {
         id: s.id,
         fullName: s.full_name,
         usn: s.usn,
-        branch: s.branch?.name || '',
         college: s.college,
         email: s.user?.email || '',
         test_count,

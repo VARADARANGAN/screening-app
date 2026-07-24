@@ -41,8 +41,6 @@ export async function POST(request: NextRequest) {
       data: validatedQuestions.map(q => ({
         question_text: q.questionText,
         type: q.type,
-        category: q.category,
-        branch_id: q.branchId,
         options_json: q.optionsJson || [],
         correct_answer: q.correctAnswer,
         time_limit_seconds: q.timeLimitSeconds,

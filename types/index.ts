@@ -53,7 +53,6 @@ export interface Question {
   id: string;
   questionText: string;
   type: QuestionType;
-  category: string;
   difficulty: QuestionDifficulty;
   branch: Branch;
   optionsJson?: MCQOption[] | string[];

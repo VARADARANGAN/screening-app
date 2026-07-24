@@ -22,14 +22,12 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const branchId = searchParams.get('branchId');
     const isPublished = searchParams.get('isPublished');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Build Prisma where clause
     const whereClause: any = {};
-    if (branchId) whereClause.branch_id = branchId;
     
     // If student, force isPublished to true
     if (decoded.role === 'student') {
@@ -40,9 +38,6 @@ export async function GET(request: NextRequest) {
 
     const questions = await prisma.question.findMany({
       where: whereClause,
-      include: {
-        branch: true
-      },
       take: limit,
       skip: offset,
       orderBy: { created_at: 'desc' }
@@ -86,8 +81,6 @@ export async function POST(request: NextRequest) {
       data: {
         question_text: validatedData.questionText,
         type: validatedData.type,
-        category: validatedData.category,
-        branch_id: validatedData.branchId,
         options_json: validatedData.optionsJson || [],
         correct_answer: validatedData.correctAnswer,
         time_limit_seconds: validatedData.timeLimitSeconds,
