@@ -23,13 +23,19 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
     for (const payload of payloads) {
       const { questionId, studentAnswer } = payload;
 
-      // Update status to PROCESSING
-      await prisma.testResponse.update({
-        where: { test_id_question_id: { test_id: testId, question_id: questionId } },
-        data: {
-          ai_evaluation_json: { evaluation_status: 'PROCESSING', evaluated_at: new Date().toISOString() }
-        }
+      // Update status to PROCESSING using findFirst since there is no unique constraint
+      const existingResponse = await prisma.testResponse.findFirst({
+        where: { test_id: testId, question_id: questionId }
       });
+
+      if (existingResponse) {
+        await prisma.testResponse.update({
+          where: { id: existingResponse.id },
+          data: {
+            ai_evaluation_json: { evaluation_status: 'PROCESSING', evaluated_at: new Date().toISOString() }
+          }
+        });
+      }
 
       // Get question details for max marks and problem statement
       const question = await prisma.question.findUnique({ where: { id: questionId } });
@@ -74,13 +80,15 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
       }
 
       // Update the DB with the final evaluation result
-      await prisma.testResponse.update({
-        where: { test_id_question_id: { test_id: testId, question_id: questionId } },
-        data: {
-          points_earned: pointsEarnedToSave,
-          ai_evaluation_json: aiEvaluationJson
-        }
-      });
+      if (existingResponse) {
+        await prisma.testResponse.update({
+          where: { id: existingResponse.id },
+          data: {
+            points_earned: pointsEarnedToSave,
+            ai_evaluation_json: aiEvaluationJson
+          }
+        });
+      }
     }
 
     // After all coding questions are evaluated, recalculate the final score
