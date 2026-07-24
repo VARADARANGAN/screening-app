@@ -120,8 +120,9 @@ model TestResponse {
   question_id    String    @db.Uuid
   student_answer String?
   is_correct     Boolean?
-  points_earned  Decimal?  @default(0) @db.Decimal(5, 2)
-  auto_saved_at  DateTime? @db.Timestamp(6)
+  points_earned       Decimal?  @default(0) @db.Decimal(5, 2)
+  ai_evaluation_json  Json?
+  auto_saved_at       DateTime? @db.Timestamp(6)
   submitted_at   DateTime? @db.Timestamp(6)
   created_at     DateTime  @default(now()) @db.Timestamp(6)
   updated_at     DateTime  @default(now()) @db.Timestamp(6)

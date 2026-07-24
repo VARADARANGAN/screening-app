@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import vm from 'vm';
 
 export async function POST(
   request: NextRequest,
@@ -78,63 +77,68 @@ export async function POST(
       let isCorrect = false;
       let pointsEarned = 0;
 
-      if (question.type === 'coding') {
-        const options = (question.options_json as any) || {};
-        const hiddenTestCases = options.hiddenTestCases || [];
-        
-        if (hiddenTestCases.length > 0) {
-          let passedCount = 0;
-          for (const tc of hiddenTestCases) {
-            const inputVal = tc.input || '';
-            const expectedOutput = tc.expectedOutput || tc.output || '';
-            
-            try {
-              const sandbox = {
-                input: inputVal,
-                output: '',
-                console: {
-                  log: (...args: any[]) => {
-                    sandbox.output += args.join(' ') + '\n';
-                  }
-                }
-              };
-              const scriptCode = `
-                (function() {
-                  ${studentAnswer}
-                })();
-              `;
-              const script = new vm.Script(scriptCode);
-              const context = vm.createContext(sandbox);
-              script.runInContext(context, { timeout: 1000 });
+      let aiEvaluationJson = null;
 
-              const actualOutput = sandbox.output.trim();
-              if (String(actualOutput) === String(expectedOutput).trim()) {
-                passedCount++;
+      if (question.type === 'coding') {
+        try {
+          const prompt = `You are an expert programming examiner. Evaluate the following student's code submission for a coding test.
+
+Problem Statement:
+${question.question_text}
+
+Maximum Marks: ${pts}
+
+Student's Submitted Code:
+${studentAnswer}
+
+Analyze the code and respond strictly in valid JSON format matching this schema without any markdown formatting or extra text:
+{
+  "detectedLanguage": "string",
+  "marksAwarded": number, // integer or decimal
+  "isCorrect": boolean,
+  "feedback": "string",
+  "deductions": "string" // leave empty if full marks
+}
+
+Focus on logical correctness. Give partial marks for logically correct solutions with minor syntax mistakes, similar to a human examiner.`;
+
+          const apiKey = process.env.GEMINI_API_KEY;
+          if (apiKey) {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.2,
+                  responseMimeType: "application/json",
+                }
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (textContent) {
+                const aiResult = JSON.parse(textContent);
+                aiEvaluationJson = aiResult;
+                pointsEarned = Number(aiResult.marksAwarded) || 0;
+                isCorrect = Boolean(aiResult.isCorrect);
+              } else {
+                pointsEarned = 0;
+                isCorrect = false;
               }
-            } catch (e) {
-              const containsPrint = String(studentAnswer).toLowerCase().includes('print') || String(studentAnswer).toLowerCase().includes('system.out') || String(studentAnswer).toLowerCase().includes('cout');
-              if (containsPrint) {
-                passedCount++;
-              }
+            } else {
+              console.error('[Gemini API Error]', await res.text());
+              pointsEarned = 0;
             }
+          } else {
+            console.warn('GEMINI_API_KEY is not set. Skipping AI evaluation.');
+            pointsEarned = 0;
           }
-          pointsEarned = Math.round((passedCount / hiddenTestCases.length) * pts);
-          isCorrect = passedCount === hiddenTestCases.length;
-        } else {
-          const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
-          let isTextMatch = false;
-          if (question.options_json && Array.isArray(question.options_json)) {
-            const correctIdx = parseInt(question.correct_answer || '-1');
-            if (correctIdx >= 0 && correctIdx < question.options_json.length) {
-              const correctOpt = question.options_json[correctIdx];
-              const correctOptText = typeof correctOpt === 'object' && correctOpt !== null && 'text' in correctOpt
-                                     ? correctOpt.text
-                                     : String(correctOpt);
-              isTextMatch = String(studentAnswer).trim() === String(correctOptText).trim();
-            }
-          }
-          isCorrect = isDirectMatch || isTextMatch;
-          pointsEarned = isCorrect ? pts : 0;
+        } catch (e) {
+          console.error('[AI Evaluation Error]', e);
+          pointsEarned = 0;
         }
       } else {
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
@@ -171,6 +175,7 @@ export async function POST(
             student_answer: studentAnswer ? String(studentAnswer) : null,
             is_correct: isCorrect,
             points_earned: pointsEarned,
+            ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
             submitted_at: new Date()
           }
         });
@@ -182,6 +187,7 @@ export async function POST(
             student_answer: studentAnswer ? String(studentAnswer) : null,
             is_correct: isCorrect,
             points_earned: pointsEarned,
+            ai_evaluation_json: aiEvaluationJson ? JSON.parse(JSON.stringify(aiEvaluationJson)) : null,
             submitted_at: new Date()
           }
         });

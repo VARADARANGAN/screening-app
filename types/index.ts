@@ -92,6 +92,7 @@ export interface TestResponse {
   studentAnswer?: string;
   isCorrect?: boolean;
   pointsEarned: number;
+  aiEvaluationJson?: any;
   autoSavedAt?: Date;
   submittedAt?: Date;
   createdAt: Date;
