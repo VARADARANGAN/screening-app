@@ -117,6 +117,16 @@ export async function POST(
               evaluated_at: new Date().toISOString()
             };
           }
+        } catch (e: any) {
+          console.error(`[AI Evaluation System Error] [Test: ${id}]`, e);
+          pointsEarned = 0;
+          isCorrect = false;
+          aiEvaluationJson = {
+            evaluation_status: 'FAILED',
+            error: `System Exception: ${e.message || e}`,
+            evaluated_at: new Date().toISOString()
+          };
+        }
 
         // If evaluation failed, we save points_earned as null
         const isFailed = aiEvaluationJson?.evaluation_status === 'FAILED';
