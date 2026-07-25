@@ -90,28 +90,10 @@ export function TestInterface({ testId }: { testId: string }) {
       }
     };
 
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault();
-      recordViolation('Right-click attempted');
-    };
-
-    const handleCopy = (e: ClipboardEvent) => {
-      // Allow copy/paste generally unless they are focusing inside Monaco editor (handled by Monaco)
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.classList.contains('monaco-editor'))) {
-        e.preventDefault();
-        recordViolation('Copy attempted in editor');
-      }
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('copy', handleCopy);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('copy', handleCopy);
     };
   }, []);
 
@@ -517,6 +499,28 @@ export function TestInterface({ testId }: { testId: string }) {
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
                         tabSize: 2,
+                        contextmenu: false,
+                        dragAndDrop: false,
+                      }}
+                      onMount={(editor, monaco) => {
+                        const preventAction = () => {
+                          alert('Copy and paste are disabled during the coding test.');
+                          recordViolation('Copy/Paste attempted in editor');
+                        };
+
+                        // Disable Copy, Paste, Cut
+                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, preventAction);
+                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, preventAction);
+                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, preventAction);
+
+                        // Prevent native context menu from being triggered inside the editor container
+                        const domNode = editor.getDomNode();
+                        if (domNode) {
+                          domNode.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          });
+                        }
                       }}
                     />
                   </div>
