@@ -11,9 +11,9 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'super_admin') {
         window.location.href = '/admin/dashboard';
-      } else if (user.role === 'student') {
+      } else {
         window.location.href = '/student/dashboard';
       }
     }

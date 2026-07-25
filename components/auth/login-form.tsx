@@ -93,7 +93,7 @@ export function LoginForm() {
     setApiError('');
     try {
       const user = await login(data.email, data.password);
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'super_admin') {
         window.location.href = '/admin/dashboard';
       } else {
         window.location.href = '/student/dashboard';
