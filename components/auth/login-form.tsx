@@ -94,9 +94,9 @@ export function LoginForm() {
     try {
       const user = await login(data.email, data.password);
       if (user.role === 'admin') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else {
-        router.push('/student/dashboard');
+        window.location.href = '/student/dashboard';
       }
     } catch (error: any) {
       setApiError(error.message || 'Login failed');

@@ -12,12 +12,12 @@ export default function HomePage() {
   useEffect(() => {
     if (!isLoading && user) {
       if (user.role === 'admin') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (user.role === 'student') {
-        router.push('/student/dashboard');
+        window.location.href = '/student/dashboard';
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (user) {
     return (
