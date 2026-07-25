@@ -348,9 +348,10 @@ export function StudentsViewer() {
                     <TableHead className="font-semibold text-slate-700 w-36">USN</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-40">Branch</TableHead>
                     <TableHead className="font-semibold text-slate-700">Email</TableHead>
-                    <TableHead className="font-semibold text-slate-700">College</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-24 text-center">Tests Taken</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-28 text-center">Latest Score</TableHead>
+                    <TableHead className="font-semibold text-slate-700 max-w-[150px]">College</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32 text-center">Test Status</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-28 text-center">Score</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32 text-center">Coding Answer</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -363,31 +364,63 @@ export function StudentsViewer() {
                       <TableCell colSpan={7} className="text-center py-12 text-slate-400">No students registered yet</TableCell>
                     </TableRow>
                   ) : (
-                    filteredStudents.map(student => (
-                      <TableRow 
-                        key={student.id} 
-                        onClick={() => handleOpenHistory(student)}
-                        className="hover:bg-slate-50/70 transition border-b border-slate-100 last:border-b-0 cursor-pointer"
-                      >
-                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            checked={selectedStudentIds.has(student.id)}
-                            onChange={(e) => toggleStudentSelection(student.id, e as any)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-bold text-slate-800">{student.fullName}</TableCell>
-                        <TableCell className="w-36 font-mono text-xs text-slate-600">{student.usn}</TableCell>
-                        <TableCell className="w-40 text-slate-600 font-medium">{student.branch}</TableCell>
-                        <TableCell className="text-slate-600">{student.email}</TableCell>
-                        <TableCell className="text-slate-600 truncate max-w-[150px]">{student.college}</TableCell>
-                        <TableCell className="w-24 text-center font-semibold text-slate-700">{student.test_count}</TableCell>
-                        <TableCell className="w-28 text-center font-bold text-emerald-600">
-                          {student.avg_score !== null && student.avg_score !== undefined ? `${Math.round(student.avg_score * 10) / 10}` : 'N/A'}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredStudents.map(student => {
+                      const latestAttempt = attempts.find(a => a.usn === student.usn || a.email === student.email);
+                      
+                      let statusText = 'No Attempt';
+                      if (latestAttempt) {
+                        statusText = latestAttempt.status === 'submitted' || latestAttempt.status === 'evaluated' ? 'Completed' : (latestAttempt.status === 'auto_submitted' ? 'Auto Submitted' : latestAttempt.status);
+                      }
+
+                      return (
+                        <TableRow 
+                          key={student.id} 
+                          onClick={() => handleOpenHistory(student)}
+                          className="hover:bg-slate-50/70 transition border-b border-slate-100 last:border-b-0 cursor-pointer text-xs"
+                        >
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              checked={selectedStudentIds.has(student.id)}
+                              onChange={(e) => toggleStudentSelection(student.id, e as any)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-bold text-slate-800">{student.fullName}</TableCell>
+                          <TableCell className="w-36 font-mono text-slate-600">{student.usn}</TableCell>
+                          <TableCell className="w-40 text-slate-600 font-medium">{student.branch}</TableCell>
+                          <TableCell className="text-slate-600">{student.email}</TableCell>
+                          <TableCell className="text-slate-600 truncate max-w-[150px]">{student.college}</TableCell>
+                          
+                          <TableCell className="w-32 text-center">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              statusText === 'Completed' ? 'bg-emerald-50 text-emerald-700' :
+                              statusText === 'No Attempt' ? 'bg-slate-100 text-slate-500' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>
+                              {statusText}
+                            </span>
+                          </TableCell>
+                          
+                          <TableCell className="w-28 text-center font-bold text-indigo-600 font-mono">
+                            {latestAttempt && latestAttempt.score !== null ? `${latestAttempt.score} Pts` : 'N/A'}
+                          </TableCell>
+                          
+                          <TableCell className="w-32 text-center" onClick={(e) => e.stopPropagation()}>
+                            {latestAttempt ? (
+                              <button
+                                onClick={() => handleViewCodingAnswers(latestAttempt.id)}
+                                className="text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold px-3 py-1 rounded transition"
+                              >
+                                View Answer
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-semibold italic">No Submission</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
