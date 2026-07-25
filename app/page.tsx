@@ -20,7 +20,12 @@ export default function HomePage() {
   }, [user, isLoading, router]);
 
   if (user) {
-    return null; // Will redirect
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <div className="w-8 h-8 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-500 font-medium">Redirecting to your dashboard...</p>
+      </div>
+    );
   }
 
   return (
