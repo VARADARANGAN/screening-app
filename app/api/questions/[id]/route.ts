@@ -98,7 +98,19 @@ export async function PUT(
     const { id } = resolvedParams;
 
     const data = await request.json();
-    const validatedData = QuestionSchema.parse(data);
+    const validationResult = QuestionSchema.safeParse(data);
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          message: 'Validation failed', 
+          errors: validationResult.error.errors 
+        }, 
+        { status: 400 }
+      );
+    }
+    
+    const validatedData = validationResult.data;
 
     const question = await prisma.question.update({
       where: { id },

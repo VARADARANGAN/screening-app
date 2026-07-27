@@ -136,6 +136,8 @@ model TestResponse {
   auto_saved_at       DateTime? @db.Timestamp(6)
   submitted_at   DateTime? @db.Timestamp(6)
   started_at     DateTime? @db.Timestamp(6)
+  word_count     Int?      @default(0)
+  character_count Int?     @default(0)
   evaluation_status  String?   @default("PENDING") @db.VarChar(50)
   created_at     DateTime  @default(now()) @db.Timestamp(6)
   updated_at     DateTime  @default(now()) @db.Timestamp(6)

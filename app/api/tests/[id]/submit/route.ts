@@ -43,6 +43,10 @@ export async function POST(
       return NextResponse.json({ message: 'Test not found' }, { status: 404 });
     }
 
+    if (test.is_completed || test.status === 'submitted' || test.status === 'auto_submitted') {
+      return NextResponse.json({ message: 'Test has already been submitted' }, { status: 409 });
+    }
+
     const data = await request.json();
     const { answers, violations } = data;
 
@@ -116,13 +120,18 @@ export async function POST(
         if (isCorrect) correctQuestionsCount++;
       }
 
+      const charCount = studentAnswer ? String(studentAnswer).length : 0;
+      const wordCount = studentAnswer ? String(studentAnswer).trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+
       // Upsert the response so we don't violate unique constraints
       const dbData = {
         student_answer: studentAnswer ? String(studentAnswer) : null,
         is_correct: (question.type === 'coding' || question.type === 'descriptive') ? false : isCorrect,
         points_earned: pointsEarnedToSave,
         ai_evaluation_json: aiEvaluationJson,
-        submitted_at: new Date()
+        submitted_at: new Date(),
+        word_count: wordCount,
+        character_count: charCount
       };
 
       const existingResponse = await prisma.testResponse.findFirst({

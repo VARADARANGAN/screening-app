@@ -664,11 +664,102 @@ export function EvaluationManager() {
                         return (
                           <div className="space-y-4">
                             <div>
-                              <p className="text-xs text-gray-500 font-bold uppercase mb-1">Submitted Answer (Read-Only Code):</p>
-                              <pre className="p-3 bg-gray-900 border border-slate-800 rounded-xl text-xs text-slate-100 font-mono whitespace-pre-wrap max-h-60 overflow-y-auto shadow-inner text-left">
+                              <p className="text-xs text-gray-500 font-bold uppercase mb-1">{q.type === 'descriptive' ? 'Student Response:' : 'Submitted Answer (Read-Only Code):'}</p>
+                              <pre className={`p-3 border rounded-xl text-xs whitespace-pre-wrap overflow-y-auto shadow-inner text-left ${q.type === 'descriptive' ? 'bg-slate-50 border-slate-200 text-slate-800 font-sans max-h-96' : 'bg-gray-900 border-slate-800 text-slate-100 font-mono max-h-60'}`}>
                                 {cleanCode || 'No response recorded.'}
                               </pre>
                             </div>
+                            {q.optionsJson?.scenario && (
+                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 italic mt-3 mb-2">
+                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Scenario</span>
+                                {q.optionsJson.scenario}
+                              </div>
+                            )}
+
+                            {q.optionsJson?.caseStudy && (
+                              <div className="mt-3 mb-4 space-y-3 p-5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm">
+                                {q.optionsJson.caseStudy.title && (
+                                  <h4 className="text-md font-bold text-slate-900 border-b border-slate-200 pb-1">
+                                    {q.optionsJson.caseStudy.title}
+                                  </h4>
+                                )}
+                                {q.optionsJson.caseStudy.background && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed"><MarkdownRenderer content={q.optionsJson.caseStudy.background} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.caseStudy.context && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed"><MarkdownRenderer content={q.optionsJson.caseStudy.context} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.caseStudy.problemStatement && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h5>
+                                    <div className="text-xs text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={q.optionsJson.caseStudy.problemStatement} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.caseStudy.supportingInfo && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed bg-white p-2 rounded-md border border-slate-100"><MarkdownRenderer content={q.optionsJson.caseStudy.supportingInfo} /></div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {q.optionsJson?.aiScenario && (
+                              <div className="mt-3 mb-4 space-y-3 p-5 bg-slate-50 border border-slate-200 rounded-xl shadow-sm">
+                                {q.optionsJson.aiScenario.title && (
+                                  <h4 className="text-md font-bold text-slate-900 border-b border-slate-200 pb-1">
+                                    {q.optionsJson.aiScenario.title}
+                                  </h4>
+                                )}
+                                {q.optionsJson.aiScenario.background && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed"><MarkdownRenderer content={q.optionsJson.aiScenario.background} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.aiScenario.context && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed"><MarkdownRenderer content={q.optionsJson.aiScenario.context} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.aiScenario.problemStatement && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h5>
+                                    <div className="text-xs text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={q.optionsJson.aiScenario.problemStatement} /></div>
+                                  </div>
+                                )}
+                                {q.optionsJson.aiScenario.supportingInfo && (
+                                  <div>
+                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h5>
+                                    <div className="text-xs text-slate-700 leading-relaxed bg-white p-2 rounded-md border border-slate-100"><MarkdownRenderer content={q.optionsJson.aiScenario.supportingInfo} /></div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {q.type === 'descriptive' && response && (
+                                <div className="flex gap-6 mt-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                  <div>
+                                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Word Count</span>
+                                    <span className="font-semibold text-slate-800">{response.word_count || 0} words</span>
+                                  </div>
+                                  {response.started_at && response.submitted_at && (
+                                    <div>
+                                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time Taken</span>
+                                      <span className="font-semibold text-slate-800">
+                                        {Math.max(1, Math.round((new Date(response.submitted_at).getTime() - new Date(response.started_at).getTime()) / 60000))} mins
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                             {q.type === 'coding' && response?.ai_evaluation_json && 
                              (response.ai_evaluation_json.evaluation_status === 'PENDING' || response.ai_evaluation_json.evaluation_status === 'PROCESSING') && (

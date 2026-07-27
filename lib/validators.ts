@@ -43,8 +43,9 @@ export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
   type: z.enum(['mcq', 'coding', 'descriptive']),
   timeLimitSeconds: z.number().optional().default(60),
-  points: z.number().min(1, 'Points must be at least 1'),
+  points: z.number().min(0, 'Points must be at least 0').default(0),
   isPublished: z.boolean().default(false),
+  explanation: z.string().optional(),
   
   assessmentDimension: z.enum(['ATTITUDE', 'LEARNING', 'PROBLEM_SOLVING', 'EXECUTION', 'COMMUNICATION', 'INTEGRITY', 'AI_LITERACY']).optional(),
   weight: z.number().optional().default(1),

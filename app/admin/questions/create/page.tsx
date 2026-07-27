@@ -45,7 +45,7 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
   AI_LITERACY: [
     { id: 'mcq', label: 'MCQ' },
     { id: 'descriptive', label: 'Descriptive' },
-    { id: 'practical_prompt', label: 'Practical Prompt' }
+    { id: 'ai_scenario', label: 'Scenario Based' }
   ],
   PRACTICAL: [
     { id: 'practical_task', label: 'Practical Task' },
@@ -77,6 +77,16 @@ export default function CreateQuestionPage() {
   const [weight, setWeight] = useState(1);
   const [scenario, setScenario] = useState('');
   
+  const [minCharacters, setMinCharacters] = useState(50);
+  const [maxCharacters, setMaxCharacters] = useState(0);
+
+  // Case Study specifics
+  const [caseStudyTitle, setCaseStudyTitle] = useState('');
+  const [caseStudyBackground, setCaseStudyBackground] = useState('');
+  const [caseStudyContext, setCaseStudyContext] = useState('');
+  const [caseStudyProblemStatement, setCaseStudyProblemStatement] = useState('');
+  const [caseStudySupportingInfo, setCaseStudySupportingInfo] = useState('');
+  
   // Coding specifics
   const [constraints, setConstraints] = useState('');
   const [sampleInput, setSampleInput] = useState('');
@@ -96,6 +106,13 @@ export default function CreateQuestionPage() {
     setExpectedAnswerLength(150);
     setWeight(1);
     setScenario('');
+    setMinCharacters(50);
+    setMaxCharacters(0);
+    setCaseStudyTitle('');
+    setCaseStudyBackground('');
+    setCaseStudyContext('');
+    setCaseStudyProblemStatement('');
+    setCaseStudySupportingInfo('');
     setConstraints('');
     setSampleInput('');
     setSampleOutput('');
@@ -114,7 +131,7 @@ export default function CreateQuestionPage() {
       const token = localStorage.getItem('token');
       
       let dbType = type;
-      if (['numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'practical_prompt', 'practical_task'].includes(type)) {
+      if (['numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task'].includes(type)) {
         dbType = 'descriptive';
       } else if (type === 'yes_no' || type === 'coding_mcq') {
         dbType = 'mcq';
@@ -145,7 +162,33 @@ export default function CreateQuestionPage() {
         payload.correctAnswer = '';
       } else {
         // Descriptive and others
-        payload.optionsJson = scenario ? { scenario } : {};
+        let optionsJson: any = {};
+        if (scenario) optionsJson.scenario = scenario;
+        if (type === 'case_study') {
+          optionsJson.caseStudy = {
+            title: caseStudyTitle,
+            background: caseStudyBackground,
+            context: caseStudyContext,
+            problemStatement: caseStudyProblemStatement,
+            supportingInfo: caseStudySupportingInfo
+          };
+        } else if (type === 'ai_scenario') {
+          optionsJson.aiScenario = {
+            title: caseStudyTitle,
+            background: caseStudyBackground,
+            context: caseStudyContext,
+            problemStatement: caseStudyProblemStatement,
+            supportingInfo: caseStudySupportingInfo
+          };
+        }
+        
+        optionsJson.minCharacters = Number(minCharacters);
+        if (Number(maxCharacters) > 0) {
+          optionsJson.maxCharacters = Number(maxCharacters);
+        }
+        optionsJson.expectedAnswerLength = Number(expectedAnswerLength);
+
+        payload.optionsJson = optionsJson;
         payload.correctAnswer = '';
         // Automatically assign a dimension based on section to avoid breaking backend
         payload.assessmentDimension = section === 'BEHAVIOUR' ? 'COMMUNICATION' : 'LEARNING';
@@ -160,8 +203,11 @@ export default function CreateQuestionPage() {
       });
 
       setIsSaved(true);
-    } catch (e) {
-      alert('Failed to save question');
+    } catch (e: any) {
+      const errorMsg = e.response?.data?.errors 
+        ? e.response.data.errors.map((err: any) => err.message).join('\n') 
+        : e.response?.data?.message || 'Failed to save question';
+      alert(`Error saving question:\n${errorMsg}`);
       console.error(e);
     }
   };
@@ -336,7 +382,7 @@ export default function CreateQuestionPage() {
                 </div>
 
                 {/* Eligibility / Descriptive toggles */}
-                {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'practical_prompt', 'practical_task'].includes(type) && (
+                {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task'].includes(type) && (
                   <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">Required Question</h4>
@@ -439,19 +485,54 @@ export default function CreateQuestionPage() {
                   </div>
                 )}
 
-                {/* Config Metadata (Duration/Length) */}
-                {['descriptive', 'scenario', 'case_study'].includes(type) && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                {/* Case Study / AI Scenario Fields */}
+                {(type === 'case_study' || type === 'ai_scenario') && (
+                  <div className="space-y-6">
+                    <h3 className="font-bold text-slate-800 text-lg border-b pb-2">{type === 'case_study' ? 'Case Study Details' : 'Scenario Details'}</h3>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Duration (mins)</label>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">{type === 'case_study' ? 'Case Study Title' : 'Scenario Title'}</label>
+                      <Input value={caseStudyTitle} onChange={(e) => setCaseStudyTitle(e.target.value)} placeholder="e.g. Acme Corp Customer Retention" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Background</label>
+                      <LatexEditor value={caseStudyBackground} onChange={setCaseStudyBackground} placeholder="Background details..." rows={3} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Context</label>
+                      <LatexEditor value={caseStudyContext} onChange={setCaseStudyContext} placeholder="Specific situation..." rows={3} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Problem Statement</label>
+                      <LatexEditor value={caseStudyProblemStatement} onChange={setCaseStudyProblemStatement} placeholder="The core issue..." rows={3} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Supporting Information (Optional)</label>
+                      <LatexEditor value={caseStudySupportingInfo} onChange={setCaseStudySupportingInfo} placeholder="Data, tables, references..." rows={3} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Config Metadata (Duration/Length) */}
+                {['descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type) && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Duration (mins)</label>
                       <Input type="number" min="1" value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))} className="bg-white border-slate-200" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Expected Length (words)</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Min Characters</label>
+                      <Input type="number" min="0" value={minCharacters} onChange={(e) => setMinCharacters(Number(e.target.value))} className="bg-white border-slate-200" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Max Characters (0=No Limit)</label>
+                      <Input type="number" min="0" value={maxCharacters} onChange={(e) => setMaxCharacters(Number(e.target.value))} className="bg-white border-slate-200" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Words</label>
                       <Input type="number" min="10" value={expectedAnswerLength} onChange={(e) => setExpectedAnswerLength(Number(e.target.value))} className="bg-white border-slate-200" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Weight</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Weight</label>
                       <Input type="number" min="1" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="bg-white border-slate-200" />
                     </div>
                   </div>
@@ -498,7 +579,7 @@ export default function CreateQuestionPage() {
                       <span className="font-bold text-indigo-600">{points} Pts</span>
                     </div>
                   )}
-                  {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study'].includes(type) && (
+                  {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type) && (
                     <div>
                       <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Requirement</span>
                       <span className={`font-semibold ${isRequired ? 'text-rose-600' : 'text-slate-500'}`}>{isRequired ? 'Required' : 'Optional'}</span>

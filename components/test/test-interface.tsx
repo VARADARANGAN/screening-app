@@ -35,6 +35,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [violations, setViolations] = useState<string[]>([]);
   const [showWarning, setShowWarning] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
 
   // Security and execution state
   const submittingRef = useRef(false);
@@ -175,13 +176,20 @@ export function TestInterface({ testId }: { testId: string }) {
       [questionId]: answer,
     }));
 
+    setSaveStatus((prev) => ({ ...prev, [questionId]: 'Saving...' }));
+
     // Auto-save answer
     const token = localStorage.getItem('token');
     axios.post(
       `/api/tests/${testId}/auto-save`,
       { questionId, answer },
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch((error) => console.error('[Auto-save Error]', error));
+    ).then(() => {
+      setSaveStatus((prev) => ({ ...prev, [questionId]: '✓ Saved just now' }));
+    }).catch((error) => {
+      console.error('[Auto-save Error]', error);
+      setSaveStatus((prev) => ({ ...prev, [questionId]: '❌ Save failed' }));
+    });
   }, [testId]);
 
   const handleClearAnswer = useCallback((questionId: string) => {
@@ -191,12 +199,19 @@ export function TestInterface({ testId }: { testId: string }) {
       return newAnswers;
     });
 
+    setSaveStatus((prev) => ({ ...prev, [questionId]: 'Saving...' }));
+
     const token = localStorage.getItem('token');
     axios.post(
       `/api/tests/${testId}/auto-save`,
       { questionId, answer: '' },
       { headers: { Authorization: `Bearer ${token}` } }
-    ).catch((error) => console.error('[Auto-save Error]', error));
+    ).then(() => {
+      setSaveStatus((prev) => ({ ...prev, [questionId]: '✓ Saved just now' }));
+    }).catch((error) => {
+      console.error('[Auto-save Error]', error);
+      setSaveStatus((prev) => ({ ...prev, [questionId]: '❌ Save failed' }));
+    });
   }, [testId]);
 
   const handleRunCode = async () => {
@@ -260,6 +275,37 @@ export function TestInterface({ testId }: { testId: string }) {
       submittingRef.current = false;
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const validateCurrentQuestion = () => {
+    const currentQuestion = test?.questions[currentQuestionIndex];
+    if (currentQuestion?.type === 'descriptive') {
+      const ans = answers[currentQuestion.id] || '';
+      const minChars = currentQuestion.optionsJson?.minCharacters || 50;
+      const maxChars = currentQuestion.optionsJson?.maxCharacters;
+
+      if (ans.length < minChars) {
+        alert(`Please write at least ${minChars} characters before continuing.`);
+        return false;
+      }
+      if (maxChars && ans.length > maxChars) {
+        alert(`Your response exceeds the maximum limit of ${maxChars} characters.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateCurrentQuestion()) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handleConfirmSubmit = () => {
+    if (validateCurrentQuestion()) {
+      setShowConfirmModal(true);
     }
   };
 
@@ -409,9 +455,83 @@ export function TestInterface({ testId }: { testId: string }) {
               <div className="text-xl font-black text-slate-900 leading-tight">
                 <MarkdownRenderer content={currentQuestion.questionText} />
               </div>
-              <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
-                Points: {currentQuestion.points || 10}
-              </div>
+              {currentQuestion.type !== 'descriptive' && (
+                <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
+                  Points: {currentQuestion.points || 10}
+                </div>
+              )}
+              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.scenario && (
+                <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Scenario Context</h4>
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{currentQuestion.optionsJson.scenario}</p>
+                </div>
+              )}
+              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.caseStudy && (
+                <div className="mt-6 space-y-4 p-6 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
+                  {currentQuestion.optionsJson.caseStudy.title && (
+                    <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-2">
+                      {currentQuestion.optionsJson.caseStudy.title}
+                    </h3>
+                  )}
+                  {currentQuestion.optionsJson.caseStudy.background && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.background} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.caseStudy.context && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.context} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.caseStudy.problemStatement && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h4>
+                      <div className="text-sm text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.problemStatement} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.caseStudy.supportingInfo && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed bg-white p-4 rounded-xl border border-slate-100"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.supportingInfo} /></div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.aiScenario && (
+                <div className="mt-6 space-y-4 p-6 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
+                  {currentQuestion.optionsJson.aiScenario.title && (
+                    <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-2">
+                      {currentQuestion.optionsJson.aiScenario.title}
+                    </h3>
+                  )}
+                  {currentQuestion.optionsJson.aiScenario.background && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.background} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.aiScenario.context && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.context} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.aiScenario.problemStatement && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h4>
+                      <div className="text-sm text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.problemStatement} /></div>
+                    </div>
+                  )}
+                  {currentQuestion.optionsJson.aiScenario.supportingInfo && (
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h4>
+                      <div className="text-sm text-slate-700 leading-relaxed bg-white p-4 rounded-xl border border-slate-100"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.supportingInfo} /></div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Answer Input */}
@@ -565,12 +685,32 @@ export function TestInterface({ testId }: { testId: string }) {
                   </div>
                   <textarea
                     value={answers[currentQuestion.id] || ''}
-                    onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                    className="w-full h-64 p-4 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans resize-y shadow-inner"
-                    placeholder="Type your answer here..."
+                    onChange={(e) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                      handleAnswerChange(currentQuestion.id, e.target.value);
+                    }}
+                    className="w-full min-h-[16rem] p-4 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans shadow-inner overflow-hidden"
+                    placeholder={`Type your answer here (minimum ${currentQuestion.optionsJson?.minCharacters || 50} characters)...`}
+                    aria-label={`Descriptive response for question ${currentQuestionIndex + 1}`}
+                    tabIndex={0}
                   />
-                  <div className="text-right text-xs text-slate-500 font-medium">
-                    Word count: {(answers[currentQuestion.id] || '').trim().split(/\s+/).filter(w => w.length > 0).length}
+                  <div className="flex justify-between items-center text-xs text-slate-500 font-medium mt-1">
+                    <div className="flex gap-4 items-center">
+                      <span className={saveStatus[currentQuestion.id] === '❌ Save failed' ? 'text-rose-600' : 'text-emerald-600 font-bold'}>
+                        {saveStatus[currentQuestion.id] || ''}
+                      </span>
+                      <span>Characters: {(answers[currentQuestion.id] || '').length}</span>
+                      <span>Words: {(answers[currentQuestion.id] || '').trim().split(/\s+/).filter(w => w.length > 0).length}</span>
+                      {currentQuestion.optionsJson?.maxCharacters && (
+                        <span className={(answers[currentQuestion.id] || '').length > currentQuestion.optionsJson.maxCharacters ? 'text-rose-600 font-bold' : ''}>
+                          Remaining: {currentQuestion.optionsJson.maxCharacters - (answers[currentQuestion.id] || '').length}
+                        </span>
+                      )}
+                    </div>
+                    {currentQuestion.optionsJson?.expectedAnswerLength && (
+                       <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Suggested: {currentQuestion.optionsJson.expectedAnswerLength} words</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -590,14 +730,14 @@ export function TestInterface({ testId }: { testId: string }) {
 
           {currentQuestionIndex < test.questions.length - 1 ? (
             <button
-              onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+              onClick={handleNext}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md"
             >
               Next
             </button>
           ) : (
             <button
-              onClick={() => setShowConfirmModal(true)}
+              onClick={handleConfirmSubmit}
               disabled={isSubmitting}
               className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2 px-6 rounded-md"
             >

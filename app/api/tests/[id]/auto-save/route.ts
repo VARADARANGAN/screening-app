@@ -41,6 +41,10 @@ export async function POST(
       return NextResponse.json({ message: 'Test not found' }, { status: 404 });
     }
 
+    if (test.is_completed || test.status === 'submitted' || test.status === 'auto_submitted') {
+      return NextResponse.json({ message: 'Test has already been submitted' }, { status: 409 });
+    }
+
     const data = await request.json();
     const { questionId, answer } = data;
 
@@ -52,13 +56,19 @@ export async function POST(
       }
     });
 
+    // Calculate counts
+    const charCount = answer ? String(answer).length : 0;
+    const wordCount = answer ? String(answer).trim().split(/\s+/).filter(w => w.length > 0).length : 0;
+
     if (existingResponse) {
       await prisma.testResponse.update({
         where: { id: existingResponse.id },
         data: {
           student_answer: answer ? String(answer) : null,
           auto_saved_at: new Date(),
-          started_at: existingResponse.started_at || new Date()
+          started_at: existingResponse.started_at || new Date(),
+          word_count: wordCount,
+          character_count: charCount
         }
       });
     } else {
@@ -68,7 +78,9 @@ export async function POST(
           question_id: questionId,
           student_answer: answer ? String(answer) : null,
           auto_saved_at: new Date(),
-          started_at: new Date()
+          started_at: new Date(),
+          word_count: wordCount,
+          character_count: charCount
         }
       });
     }
