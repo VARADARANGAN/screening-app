@@ -104,10 +104,14 @@ export async function POST(
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
         let isTextMatch = false;
         
-        if (question.options_json && Array.isArray(question.options_json)) {
+        const optionsArray = Array.isArray(question.options_json) 
+          ? question.options_json 
+          : (question.options_json?.options || null);
+
+        if (optionsArray && Array.isArray(optionsArray)) {
           const correctIdx = parseInt(question.correct_answer || '-1');
-          if (correctIdx >= 0 && correctIdx < question.options_json.length) {
-            const correctOpt = question.options_json[correctIdx];
+          if (correctIdx >= 0 && correctIdx < optionsArray.length) {
+            const correctOpt = optionsArray[correctIdx];
             const correctOptText = typeof correctOpt === 'object' && correctOpt !== null && 'text' in correctOpt
                                    ? correctOpt.text
                                    : String(correctOpt);

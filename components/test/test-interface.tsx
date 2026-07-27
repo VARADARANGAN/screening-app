@@ -549,7 +549,11 @@ export function TestInterface({ testId }: { testId: string }) {
                       </button>
                     )}
                   </div>
-                  {currentQuestion.optionsJson.map((option: any, idx: number) => {
+                  {(() => {
+                    const optionsArray = Array.isArray(currentQuestion.optionsJson) 
+                      ? currentQuestion.optionsJson 
+                      : (currentQuestion.optionsJson?.options || []);
+                    return optionsArray.map((option: any, idx: number) => {
                     const optionVal = typeof option === 'object' && option !== null && 'text' in option ? option.text : String(option);
                     const isSelected = answers[currentQuestion.id] === optionVal;
                     return (
@@ -570,7 +574,7 @@ export function TestInterface({ testId }: { testId: string }) {
                         <span className="text-sm font-semibold text-slate-700">{optionVal}</span>
                       </label>
                     );
-                  })}
+                  })()}
                 </div>
               )}
 

@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
     const validationResult = QuestionSchema.safeParse(data);
     
     if (!validationResult.success) {
-      const errorStr = validationResult.error.errors.map((e: any) => e.message).join(', ');
+      const errorStr = validationResult.error.issues.map((e: any) => e.message).join(', ');
       return NextResponse.json(
         { 
           message: errorStr || 'Validation failed', 
-          errors: validationResult.error.errors 
+          errors: validationResult.error.issues 
         }, 
         { status: 400 }
       );
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       data: {
         question_text: validatedData.questionText,
         type: validatedData.type,
-        options_json: validatedData.optionsJson || [],
+        options_json: validatedData.optionsJson || {},
         correct_answer: validatedData.correctAnswer,
         time_limit_seconds: validatedData.timeLimitSeconds,
         points: validatedData.points,

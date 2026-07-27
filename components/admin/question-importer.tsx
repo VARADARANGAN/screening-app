@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { QuestionSchema } from '@/lib/validators';
+import { mapQuestionPayload } from '@/lib/questionMapper';
 import { z } from 'zod';
 
 export function QuestionImporter() {
@@ -28,88 +29,7 @@ export function QuestionImporter() {
   };
 
   const mapRowToPayload = (row: any, rowIndex: number) => {
-    const rawType = String(row['Question Type'] || '').trim().toLowerCase();
-    const rawSection = String(row['Section'] || '').trim().toUpperCase();
-    
-    // Map human friendly type to DB type
-    let type = 'descriptive';
-    if (['mcq'].includes(rawType)) {
-      type = 'mcq';
-    } else if (['coding'].includes(rawType)) {
-      type = 'coding';
-    }
-
-    // Map human friendly section to DB section
-    let section = 'APTITUDE';
-    if (rawSection === 'CODING') section = 'CODING';
-    if (rawSection === 'BEHAVIOUR') section = 'BEHAVIOUR';
-    if (rawSection === 'LEARNING') section = 'LEARNING';
-    if (rawSection === 'AI LITERACY' || rawSection === 'AI_LITERACY') section = 'AI_LITERACY';
-
-    let optionsJson: any = {};
-    let correctAnswer = '';
-
-    if (type === 'mcq') {
-      const options = [];
-      if (row['Option 1']) options.push({ text: String(row['Option 1']) });
-      if (row['Option 2']) options.push({ text: String(row['Option 2']) });
-      if (row['Option 3']) options.push({ text: String(row['Option 3']) });
-      if (row['Option 4']) options.push({ text: String(row['Option 4']) });
-      optionsJson = options;
-      
-      const rawAnswer = String(row['Correct Answer'] || '').trim();
-      // If it's an option index (0-3) or option text, we just store it as string.
-      // Usually Create wizard stores index as string. We'll store it as is, schema takes string.
-      correctAnswer = rawAnswer;
-    } else if (type === 'coding') {
-      optionsJson = {
-        constraints: row['Constraints'] ? String(row['Constraints']) : '',
-        sampleInput: row['Sample Input'] ? String(row['Sample Input']) : '',
-        sampleOutput: row['Sample Output'] ? String(row['Sample Output']) : '',
-        starterCode: row['Starter Code'] ? String(row['Starter Code']) : '',
-        language: row['Language'] ? String(row['Language']) : 'javascript'
-      };
-    } else {
-      // descriptive, case_study, etc.
-      if (rawType === 'case study' || rawType === 'case_study') {
-        optionsJson.caseStudy = {
-          title: String(row['Case Study Title'] || ''),
-          background: String(row['Case Study Background'] || ''),
-          context: String(row['Case Study Context'] || ''),
-          problemStatement: String(row['Case Study Problem Statement'] || ''),
-          supportingInfo: String(row['Case Study Supporting Information'] || '')
-        };
-      } else if (rawType === 'ai scenario' || rawType === 'ai_scenario') {
-        optionsJson.aiScenario = {
-          title: String(row['Case Study Title'] || ''),
-          background: String(row['Case Study Background'] || ''),
-          context: String(row['Case Study Context'] || ''),
-          problemStatement: String(row['Case Study Problem Statement'] || ''),
-          supportingInfo: String(row['Case Study Supporting Information'] || '')
-        };
-      } else if (rawType === 'scenario') {
-        optionsJson.scenario = String(row['Scenario'] || '');
-      }
-      
-      optionsJson.expectedAnswerLength = Number(row['Expected Answer Length']) || 150;
-    }
-
-    const payload = {
-      _rowIndex: rowIndex,
-      questionText: String(row['Question Text'] || ''),
-      type,
-      section,
-      points: Number(row['Points']) || 0,
-      timeLimitSeconds: Number(row['Time Limit']) || 60,
-      isPublished: true, // Auto publish on import
-      explanation: row['Explanation'] ? String(row['Explanation']) : undefined,
-      assessmentDimension: row['Assessment Dimension'] ? String(row['Assessment Dimension']).toUpperCase() : undefined,
-      expectedDuration: Number(row['Expected Duration']) || 5,
-      optionsJson: Object.keys(optionsJson).length > 0 ? optionsJson : undefined,
-      correctAnswer: correctAnswer || undefined
-    };
-
-    return payload;
+    return mapQuestionPayload(row, rowIndex);
   };
 
   const validateExcel = async () => {
@@ -145,7 +65,7 @@ export function QuestionImporter() {
 
           const validation = QuestionSchema.safeParse(rowData);
           if (!validation.success) {
-            validation.error.errors.forEach(err => {
+            validation.error.issues.forEach(err => {
               errors.push({
                 row: rowIndex,
                 field: err.path.join('.'),

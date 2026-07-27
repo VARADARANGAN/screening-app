@@ -86,8 +86,12 @@ export default function EditQuestionPage() {
 
       if (q.type === 'mcq') {
         let parsedOptions = [{ text: '' }, { text: '' }];
-        if (Array.isArray(q.options_json)) {
-          parsedOptions = q.options_json.map((opt: any) => 
+        const optionsArray = Array.isArray(q.options_json) 
+          ? q.options_json 
+          : (q.options_json?.options || null);
+
+        if (Array.isArray(optionsArray)) {
+          parsedOptions = optionsArray.map((opt: any) => 
             typeof opt === 'object' && opt !== null && 'text' in opt ? opt : { text: String(opt) }
           );
         }

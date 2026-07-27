@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       if (validation.success) {
         validQuestions.push(validation.data);
       } else {
-        validation.error.errors.forEach((err) => {
+        validation.error.issues.forEach((err) => {
           errors.push({
             row: rowIndex,
             field: err.path.join('.'),
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       data: validQuestions.map(q => ({
         question_text: q.questionText,
         type: q.type,
-        options_json: q.optionsJson || [],
+        options_json: q.optionsJson || {},
         correct_answer: q.correctAnswer,
         time_limit_seconds: q.timeLimitSeconds,
         points: q.points,

@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LatexEditor } from '@/components/ui/latex-editor';
+import { mapQuestionPayload } from '@/lib/questionMapper';
 
 // --- Configuration Data ---
 const ASSESSMENTS = [
@@ -130,73 +131,34 @@ export default function CreateQuestionPage() {
     try {
       const token = localStorage.getItem('token');
       
-      let dbType = type;
-      if (['numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task'].includes(type)) {
-        dbType = 'descriptive';
-      } else if (type === 'yes_no' || type === 'coding_mcq') {
-        dbType = 'mcq';
-      }
-
-      let payload: any = {
-        questionText,
-        type: dbType,
+      const rawData = {
+        type,
         section,
-        points: showsMarks ? Number(points) : 0,
-        timeLimitSeconds: expectedDuration * 60,
+        questionText,
+        points,
+        options,
+        correctAnswer,
+        expectedDuration,
+        expectedAnswerLength,
+        weight,
+        scenario,
+        minCharacters,
+        maxCharacters,
+        caseStudyTitle,
+        caseStudyBackground,
+        caseStudyContext,
+        caseStudyProblemStatement,
+        caseStudySupportingInfo,
+        constraints,
+        sampleInput,
+        sampleOutput,
+        starterCode,
+        language: 'javascript', // or any selected language
+        isRequired,
         isPublished: status === 'published'
       };
 
-      if (dbType === 'mcq') {
-        let finalOptions = options;
-        if (type === 'yes_no') {
-          finalOptions = [{ text: 'Yes' }, { text: 'No' }];
-        }
-        payload.optionsJson = finalOptions;
-        payload.correctAnswer = type === 'yes_no' ? '0' : correctAnswer;
-      } else if (dbType === 'coding') {
-        payload.optionsJson = {
-          constraints,
-          sampleInput,
-          sampleOutput
-        };
-        payload.correctAnswer = '';
-      } else {
-        // Descriptive and others
-        let optionsJson: any = {};
-        if (scenario) optionsJson.scenario = scenario;
-        if (type === 'case_study') {
-          optionsJson.caseStudy = {
-            title: caseStudyTitle,
-            background: caseStudyBackground,
-            context: caseStudyContext,
-            problemStatement: caseStudyProblemStatement,
-            supportingInfo: caseStudySupportingInfo
-          };
-        } else if (type === 'ai_scenario') {
-          optionsJson.aiScenario = {
-            title: caseStudyTitle,
-            background: caseStudyBackground,
-            context: caseStudyContext,
-            problemStatement: caseStudyProblemStatement,
-            supportingInfo: caseStudySupportingInfo
-          };
-        }
-        
-        optionsJson.minCharacters = Number(minCharacters);
-        if (Number(maxCharacters) > 0) {
-          optionsJson.maxCharacters = Number(maxCharacters);
-        }
-        optionsJson.expectedAnswerLength = Number(expectedAnswerLength);
-
-        payload.optionsJson = optionsJson;
-        payload.correctAnswer = '';
-        // Automatically assign a dimension based on section to avoid breaking backend
-        payload.assessmentDimension = section === 'BEHAVIOUR' ? 'COMMUNICATION' : 'LEARNING';
-        payload.weight = Number(weight);
-        payload.expectedDuration = Number(expectedDuration);
-        payload.expectedAnswerLength = Number(expectedAnswerLength);
-        payload.isRequired = isRequired;
-      }
+      const payload = mapQuestionPayload(rawData);
 
       await axios.post('/api/questions', payload, {
         headers: { Authorization: `Bearer ${token}` }
