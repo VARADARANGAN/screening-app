@@ -154,7 +154,16 @@ export default function EditQuestionPage() {
         payload.optionsJson = options;
         payload.correctAnswer = correctAnswer;
       } else if (type === 'coding') {
-        payload.optionsJson = {};
+        payload.optionsJson = {
+          constraints,
+          sampleInput,
+          sampleOutput,
+          starterCode: '',
+          supportedLanguages,
+          publicTestCases: testCases.filter(t => t.isPublic).map(({ isPublic, ...rest }) => rest),
+          hiddenTestCases: testCases.filter(t => !t.isPublic).map(({ isPublic, ...rest }) => rest),
+          language: supportedLanguages.length > 0 ? supportedLanguages[0] : 'javascript'
+        };
         payload.correctAnswer = '';
       } else if (type === 'descriptive') {
         payload.optionsJson = {};

@@ -131,32 +131,47 @@ export default function CreateQuestionPage() {
     try {
       const token = localStorage.getItem('token');
       
-      const rawData = {
+      const rawData: any = {
         type,
         section,
         questionText,
         points,
-        options,
-        correctAnswer,
         expectedDuration,
         expectedAnswerLength,
         weight,
-        scenario,
-        minCharacters,
-        maxCharacters,
-        caseStudyTitle,
-        caseStudyBackground,
-        caseStudyContext,
-        caseStudyProblemStatement,
-        caseStudySupportingInfo,
-        constraints,
-        sampleInput,
-        sampleOutput,
-        starterCode,
-        language: 'javascript', // or any selected language
         isRequired,
         isPublished: status === 'published'
       };
+
+      if (type === 'mcq' || type === 'yes_no') {
+        rawData.options = options;
+        rawData.correctAnswer = correctAnswer;
+      }
+
+      if (type === 'coding') {
+        rawData.constraints = constraints;
+        rawData.sampleInput = sampleInput;
+        rawData.sampleOutput = sampleOutput;
+        rawData.starterCode = '';
+        rawData.language = 'javascript';
+      }
+
+      if (type === 'scenario' || type === 'ai_scenario') {
+        rawData.scenario = scenario;
+      }
+
+      if (type === 'case_study' || type === 'ai_scenario') {
+        rawData.caseStudyTitle = caseStudyTitle;
+        rawData.caseStudyBackground = caseStudyBackground;
+        rawData.caseStudyContext = caseStudyContext;
+        rawData.caseStudyProblemStatement = caseStudyProblemStatement;
+        rawData.caseStudySupportingInfo = caseStudySupportingInfo;
+      }
+
+      if (['descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type)) {
+        rawData.minCharacters = minCharacters;
+        rawData.maxCharacters = maxCharacters;
+      }
 
       const payload = mapQuestionPayload(rawData);
 
