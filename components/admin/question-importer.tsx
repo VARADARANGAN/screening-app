@@ -5,156 +5,373 @@ import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
-import { QuestionInput } from '@/lib/validators';
+import { QuestionSchema } from '@/lib/validators';
+import { z } from 'zod';
 
 export function QuestionImporter() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<{row: number, field: string, reason: string}[]>([]);
+  const [isValidated, setIsValidated] = useState(false);
+  const [importResults, setImportResults] = useState<{ imported: number, failed: number } | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      setError('');
-      setSuccess('');
+      setValidationErrors([]);
+      setIsValidated(false);
+      setParsedRows([]);
+      setImportResults(null);
     }
   };
 
-  const processFile = async () => {
-    if (!file) {
-      setError('Please select a file first.');
-      return;
+  const mapRowToPayload = (row: any, rowIndex: number) => {
+    const rawType = String(row['Question Type'] || '').trim().toLowerCase();
+    const rawSection = String(row['Section'] || '').trim().toUpperCase();
+    
+    // Map human friendly type to DB type
+    let type = 'descriptive';
+    if (['mcq'].includes(rawType)) {
+      type = 'mcq';
+    } else if (['coding'].includes(rawType)) {
+      type = 'coding';
     }
 
+    // Map human friendly section to DB section
+    let section = 'APTITUDE';
+    if (rawSection === 'CODING') section = 'CODING';
+    if (rawSection === 'BEHAVIOUR') section = 'BEHAVIOUR';
+    if (rawSection === 'LEARNING') section = 'LEARNING';
+    if (rawSection === 'AI LITERACY' || rawSection === 'AI_LITERACY') section = 'AI_LITERACY';
+
+    let optionsJson: any = {};
+    let correctAnswer = '';
+
+    if (type === 'mcq') {
+      const options = [];
+      if (row['Option 1']) options.push({ text: String(row['Option 1']) });
+      if (row['Option 2']) options.push({ text: String(row['Option 2']) });
+      if (row['Option 3']) options.push({ text: String(row['Option 3']) });
+      if (row['Option 4']) options.push({ text: String(row['Option 4']) });
+      optionsJson = options;
+      
+      const rawAnswer = String(row['Correct Answer'] || '').trim();
+      // If it's an option index (0-3) or option text, we just store it as string.
+      // Usually Create wizard stores index as string. We'll store it as is, schema takes string.
+      correctAnswer = rawAnswer;
+    } else if (type === 'coding') {
+      optionsJson = {
+        constraints: row['Constraints'] ? String(row['Constraints']) : '',
+        sampleInput: row['Sample Input'] ? String(row['Sample Input']) : '',
+        sampleOutput: row['Sample Output'] ? String(row['Sample Output']) : '',
+        starterCode: row['Starter Code'] ? String(row['Starter Code']) : '',
+        language: row['Language'] ? String(row['Language']) : 'javascript'
+      };
+    } else {
+      // descriptive, case_study, etc.
+      if (rawType === 'case study' || rawType === 'case_study') {
+        optionsJson.caseStudy = {
+          title: String(row['Case Study Title'] || ''),
+          background: String(row['Case Study Background'] || ''),
+          context: String(row['Case Study Context'] || ''),
+          problemStatement: String(row['Case Study Problem Statement'] || ''),
+          supportingInfo: String(row['Case Study Supporting Information'] || '')
+        };
+      } else if (rawType === 'ai scenario' || rawType === 'ai_scenario') {
+        optionsJson.aiScenario = {
+          title: String(row['Case Study Title'] || ''),
+          background: String(row['Case Study Background'] || ''),
+          context: String(row['Case Study Context'] || ''),
+          problemStatement: String(row['Case Study Problem Statement'] || ''),
+          supportingInfo: String(row['Case Study Supporting Information'] || '')
+        };
+      } else if (rawType === 'scenario') {
+        optionsJson.scenario = String(row['Scenario'] || '');
+      }
+      
+      optionsJson.expectedAnswerLength = Number(row['Expected Answer Length']) || 150;
+    }
+
+    const payload = {
+      _rowIndex: rowIndex,
+      questionText: String(row['Question Text'] || ''),
+      type,
+      section,
+      points: Number(row['Points']) || 0,
+      timeLimitSeconds: Number(row['Time Limit']) || 60,
+      isPublished: true, // Auto publish on import
+      explanation: row['Explanation'] ? String(row['Explanation']) : undefined,
+      assessmentDimension: row['Assessment Dimension'] ? String(row['Assessment Dimension']).toUpperCase() : undefined,
+      expectedDuration: Number(row['Expected Duration']) || 5,
+      optionsJson: Object.keys(optionsJson).length > 0 ? optionsJson : undefined,
+      correctAnswer: correctAnswer || undefined
+    };
+
+    return payload;
+  };
+
+  const validateExcel = async () => {
+    if (!file) return;
     setIsProcessing(true);
-    setError('');
-    setSuccess('');
+    setValidationErrors([]);
+    setImportResults(null);
 
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       if (json.length === 0) {
-        throw new Error('The file is empty.');
+        setValidationErrors([{ row: 0, field: 'File', reason: 'The file is empty or missing headers.' }]);
+        setIsProcessing(false);
+        return;
       }
 
-      // Map excel columns to QuestionInput format
-      const questions: QuestionInput[] = json.map((row, index) => {
+      const errors: {row: number, field: string, reason: string}[] = [];
+      const mappedRows = [];
+
+      for (let i = 0; i < json.length; i++) {
+        const row = json[i];
+        const rowIndex = i + 2; // Excel row number (1-based + 1 for header)
+        
         try {
-          const type = (row['Type'] || 'mcq').toLowerCase().replace(' ', '_');
-          const difficulty = (row['Difficulty'] || 'medium').toLowerCase();
+          const payload = mapRowToPayload(row, rowIndex);
+          
+          const rowData = { ...payload };
+          delete rowData._rowIndex;
 
-          let optionsJson = [];
-          if (type === 'mcq' || type === 'true_false') {
-            if (row['Option 1']) optionsJson.push(String(row['Option 1']));
-            if (row['Option 2']) optionsJson.push(String(row['Option 2']));
-            if (row['Option 3']) optionsJson.push(String(row['Option 3']));
-            if (row['Option 4']) optionsJson.push(String(row['Option 4']));
-
-            if (type === 'true_false' && optionsJson.length === 0) {
-              optionsJson = ['True', 'False'];
-            }
+          const validation = QuestionSchema.safeParse(rowData);
+          if (!validation.success) {
+            validation.error.errors.forEach(err => {
+              errors.push({
+                row: rowIndex,
+                field: err.path.join('.'),
+                reason: err.message
+              });
+            });
           }
-
-          return {
-            questionText: String(row['Question Text'] || ''),
-            type: type as any,
-            difficulty: difficulty as any,
-            timeLimitSeconds: Number(row['Time Limit']) || 60,
-            points: Number(row['Points']) || 1,
-            optionsJson: optionsJson.length > 0 ? optionsJson : undefined,
-            correctAnswer: row['Correct Answer'] ? String(row['Correct Answer']) : undefined,
-            explanation: row['Explanation'] ? String(row['Explanation']) : undefined,
-          };
-        } catch (err) {
-          throw new Error(`Error parsing row ${index + 2}: Ensure all required columns are present.`);
+          
+          mappedRows.push(payload);
+        } catch (e: any) {
+          errors.push({ row: rowIndex, field: 'Parsing', reason: e.message || 'Failed to parse row' });
         }
-      });
-
-      // Filter out invalid rows quickly
-      const validQuestions = questions.filter(q => q.questionText.length >= 10);
-      if (validQuestions.length === 0) {
-        throw new Error('No valid questions found. Check column headers ("Question Text", "Type", etc).');
       }
 
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/questions/bulk', validQuestions, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setSuccess(`Successfully imported ${validQuestions.length} questions!`);
-      setFile(null);
-      // Reset file input visually if needed
-
-      setTimeout(() => {
-        router.push('/admin/questions');
-      }, 2000);
-
-    } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to process file.');
+      if (errors.length > 0) {
+        setValidationErrors(errors);
+        setIsValidated(false);
+      } else {
+        setParsedRows(mappedRows);
+        setIsValidated(true);
+      }
+    } catch (e: any) {
+      setValidationErrors([{ row: 0, field: 'File', reason: 'Failed to read Excel file. Please ensure it is a valid .xlsx file.' }]);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  const importQuestions = async () => {
+    if (!isValidated || parsedRows.length === 0) return;
+    setIsProcessing(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/questions/bulk', parsedRows, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const { imported, failed, errors } = response.data;
+      setImportResults({ imported, failed });
+      
+      if (errors && errors.length > 0) {
+        setValidationErrors(errors);
+      } else {
+        setTimeout(() => {
+          router.push('/admin/questions');
+        }, 3000);
+      }
+    } catch (e: any) {
+      if (e.response?.data?.errors) {
+        setValidationErrors(e.response.data.errors);
+      } else {
+        setValidationErrors([{ row: 0, field: 'Network', reason: e.response?.data?.message || 'Server error during import' }]);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const headers = [
+      'Question Text', 'Question Type', 'Section', 'Points', 'Time Limit', 'Difficulty', 'Correct Answer', 'Explanation',
+      'Option 1', 'Option 2', 'Option 3', 'Option 4',
+      'Scenario', 'Assessment Dimension', 'Expected Answer Length', 'Expected Duration',
+      'Case Study Title', 'Case Study Background', 'Case Study Context', 'Case Study Problem Statement', 'Case Study Supporting Information',
+      'Constraints', 'Sample Input', 'Sample Output', 'Starter Code', 'Language'
+    ];
+
+    const sampleRows = [
+      {
+        'Question Text': 'What is 2+2?',
+        'Question Type': 'MCQ',
+        'Section': 'Aptitude',
+        'Points': 10,
+        'Time Limit': 60,
+        'Difficulty': 'Easy',
+        'Option 1': '3',
+        'Option 2': '4',
+        'Option 3': '5',
+        'Option 4': '6',
+        'Correct Answer': '1', // Index 1 is Option 2
+        'Explanation': 'Basic math'
+      },
+      {
+        'Question Text': 'Write a function to reverse a string.',
+        'Question Type': 'Coding',
+        'Section': 'Coding',
+        'Points': 50,
+        'Time Limit': 1800,
+        'Difficulty': 'Medium',
+        'Constraints': 'O(n) time',
+        'Sample Input': '"hello"',
+        'Sample Output': '"olleh"',
+        'Starter Code': 'function reverse(s) { }',
+        'Language': 'javascript'
+      },
+      {
+        'Question Text': 'Tell me about a time you faced a conflict.',
+        'Question Type': 'Behaviour',
+        'Section': 'Behaviour',
+        'Points': 0,
+        'Time Limit': 300,
+        'Assessment Dimension': 'COMMUNICATION',
+        'Expected Answer Length': 250,
+        'Expected Duration': 5,
+        'Scenario': 'You are a team lead and two members are arguing.'
+      },
+      {
+        'Question Text': 'Analyze the following architectural flaw.',
+        'Question Type': 'Case Study',
+        'Section': 'Learning',
+        'Points': 0,
+        'Time Limit': 600,
+        'Expected Duration': 10,
+        'Case Study Title': 'Microservices Migration',
+        'Case Study Background': 'Company X is migrating from monolith.',
+        'Case Study Context': 'They are experiencing high latency.',
+        'Case Study Problem Statement': 'Identify the bottleneck.',
+        'Case Study Supporting Information': 'Logs show 500ms delay in auth service.'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleRows, { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+    XLSX.writeFile(wb, 'Question_Bank_Template.xlsx');
+  };
+
   return (
-    <div className="w-full max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900">Bulk Import Questions</h2>
-      <p className="text-gray-600 mb-6">
-        Upload an Excel (.xlsx) or CSV file. The first row must contain the following headers:
-        <br />
-        <span className="font-mono text-sm text-blue-600">Question Text | Type | Difficulty | Time Limit | Points | Option 1 | Option 2 | Option 3 | Option 4 | Correct Answer | Explanation</span>
-      </p>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+    <div className="w-full max-w-5xl mx-auto p-6 bg-white rounded-lg shadow-lg border border-slate-200">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Bulk Import Questions</h2>
+          <p className="text-gray-600 mt-1">Upload a populated Excel template to import questions into the bank.</p>
         </div>
-      )}
+        <Button onClick={downloadTemplate} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+          ⬇ Download Template
+        </Button>
+      </div>
 
-      {success && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-          {success}
-        </div>
-      )}
-
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center mb-6 bg-slate-50 transition hover:border-blue-400">
         <input
           type="file"
           accept=".xlsx, .xls, .csv"
           onChange={handleFileChange}
-          className="block w-full text-sm text-gray-500
+          className="block w-full text-sm text-slate-500
             file:mr-4 file:py-2 file:px-4
             file:rounded-md file:border-0
             file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100
-            mb-4 mx-auto"
+            file:bg-blue-600 file:text-white
+            hover:file:bg-blue-700
+            mb-4 mx-auto cursor-pointer"
         />
-        {file && <p className="text-sm text-gray-600 mt-2">Selected: {file.name}</p>}
+        {file && <p className="text-sm text-slate-800 mt-2 font-medium">Selected: {file.name}</p>}
       </div>
 
-      <div className="mt-6 flex justify-end gap-4">
+      {importResults && (
+        <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
+          <h3 className="text-green-800 font-bold mb-1">Import Complete</h3>
+          <p className="text-sm text-green-700">Successfully imported {importResults.imported} questions.</p>
+          {importResults.failed > 0 && (
+            <p className="text-sm text-amber-600 mt-1">Skipped {importResults.failed} invalid rows.</p>
+          )}
+        </div>
+      )}
+
+      {validationErrors.length > 0 && (
+        <div className="mb-6">
+          <div className="bg-red-50 border border-red-200 rounded-t-lg p-3">
+            <h3 className="text-red-800 font-bold">Validation Errors ({validationErrors.length})</h3>
+            <p className="text-xs text-red-600">Please fix these errors in your Excel file and try again.</p>
+          </div>
+          <div className="max-h-64 overflow-y-auto border border-t-0 border-red-200 rounded-b-lg">
+            <table className="w-full text-sm text-left text-slate-600">
+              <thead className="bg-slate-100 text-slate-700 sticky top-0">
+                <tr>
+                  <th className="px-4 py-2 w-20">Row</th>
+                  <th className="px-4 py-2 w-48">Field</th>
+                  <th className="px-4 py-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {validationErrors.map((err, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 last:border-0">
+                    <td className="px-4 py-2 font-mono text-slate-900">{err.row}</td>
+                    <td className="px-4 py-2 font-medium">{err.field}</td>
+                    <td className="px-4 py-2 text-red-600">{err.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {isValidated && validationErrors.length === 0 && !importResults && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg">
+          ✅ Validation passed! Ready to import {parsedRows.length} questions.
+        </div>
+      )}
+
+      <div className="flex justify-end gap-4 border-t border-slate-100 pt-6">
         <Button
           type="button"
           onClick={() => router.back()}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+          variant="outline"
         >
           Cancel
         </Button>
-        <Button
-          onClick={processFile}
-          disabled={!file || isProcessing}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          {isProcessing ? 'Processing...' : 'Import Questions'}
-        </Button>
+        {!isValidated ? (
+          <Button
+            onClick={validateExcel}
+            disabled={!file || isProcessing}
+            className="bg-slate-800 hover:bg-slate-900 text-white"
+          >
+            {isProcessing ? 'Validating...' : 'Validate Excel'}
+          </Button>
+        ) : (
+          <Button
+            onClick={importQuestions}
+            disabled={isProcessing || importResults !== null}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isProcessing ? 'Importing...' : `Import ${parsedRows.length} Questions`}
+          </Button>
+        )}
       </div>
     </div>
   );

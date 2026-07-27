@@ -4,7 +4,7 @@ import { QuestionSchema } from '@/lib/validators';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 
-const BulkQuestionSchema = z.array(QuestionSchema).min(1, 'At least one question is required');
+const BulkInputSchema = z.array(z.any()).min(1, 'At least one question is required');
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,29 +16,57 @@ export async function POST(request: NextRequest) {
     const token = authHeader.slice(7);
     const decoded = verifyToken(token);
 
-    if (!decoded) {
-      return NextResponse.json({ message: 'Invalid or expired token' }, { status: 401 });
-    }
-
     if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'super_admin')) {
       return NextResponse.json({ message: 'Only admins can create questions' }, { status: 403 });
     }
 
     const data = await request.json();
+    const arrayValidation = BulkInputSchema.safeParse(data);
     
-    const validation = BulkQuestionSchema.safeParse(data);
-    if (!validation.success) {
-      return NextResponse.json(
-        { message: 'Validation failed', errors: validation.error.flatten() },
-        { status: 400 }
-      );
+    if (!arrayValidation.success) {
+      return NextResponse.json({ message: 'Invalid payload format', errors: arrayValidation.error.flatten() }, { status: 400 });
     }
     
-    const validatedQuestions = validation.data;
-    
-    // Use Prisma createMany for bulk insert
+    const rows = arrayValidation.data;
+    const validQuestions: any[] = [];
+    const errors: { row: number; field: string; reason: string }[] = [];
+
+    // Row-by-row validation
+    for (let i = 0; i < rows.length; i++) {
+      // row mapping includes 1-based index (header is row 1, data starts row 2 usually, but we use the index provided by the frontend if available, else i+2)
+      const rowIndex = rows[i]._rowIndex || (i + 2);
+      
+      // Clean up internal _rowIndex before validating
+      const rowData = { ...rows[i] };
+      delete rowData._rowIndex;
+
+      const validation = QuestionSchema.safeParse(rowData);
+      if (validation.success) {
+        validQuestions.push(validation.data);
+      } else {
+        validation.error.errors.forEach((err) => {
+          errors.push({
+            row: rowIndex,
+            field: err.path.join('.'),
+            reason: err.message
+          });
+        });
+      }
+    }
+
+    if (validQuestions.length === 0) {
+      return NextResponse.json({
+        success: false,
+        imported: 0,
+        failed: errors.length,
+        message: 'Validation failed for all rows',
+        errors
+      }, { status: 400 });
+    }
+
+    // Use Prisma createMany for bulk insert of valid rows
     const result = await prisma.question.createMany({
-      data: validatedQuestions.map(q => ({
+      data: validQuestions.map(q => ({
         question_text: q.questionText,
         type: q.type,
         options_json: q.optionsJson || [],
@@ -46,20 +74,33 @@ export async function POST(request: NextRequest) {
         time_limit_seconds: q.timeLimitSeconds,
         points: q.points,
         explanation: q.explanation,
-        is_published: q.isPublished || false, // default false
+        assessment_dimension: q.assessmentDimension,
+        weight: q.weight,
+        expected_answer_length: q.expectedAnswerLength,
+        expected_duration: q.expectedDuration,
+        is_required: q.isRequired,
+        display_order: q.displayOrder,
+        section: q.section,
+        section_order: q.sectionOrder,
+        question_order: q.questionOrder,
+        is_published: q.isPublished || false,
         created_by: decoded.userId,
       }))
     });
 
-    return NextResponse.json(
-      { message: `Successfully imported ${result.count} questions` },
-      { status: 201 }
-    );
+    return NextResponse.json({ 
+      success: true,
+      imported: result.count,
+      failed: errors.length > 0 ? rows.length - result.count : 0,
+      message: `Successfully imported ${result.count} questions${errors.length > 0 ? `, skipped ${rows.length - result.count} invalid rows` : ''}`,
+      errors: errors.length > 0 ? errors : undefined
+    }, { status: errors.length > 0 ? 207 : 201 }); // 207 Multi-Status if partial success
   } catch (error: any) {
     console.error('[Bulk Create Question Error]', error);
     return NextResponse.json(
       { message: error.message || 'Failed to bulk import questions' },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }
+
