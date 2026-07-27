@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import axios from 'axios';
 import { useAuth } from '@/context/auth-context';
 
 interface Test {
   id: string;
-  status: 'not_started' | 'in_progress' | 'submitted' | 'evaluated';
+  status: 'not_started' | 'in_progress' | 'submitted' | 'evaluated' | 'auto_submitted';
   totalDuration: number;
   score?: number;
   totalQuestions?: number;
@@ -15,17 +14,8 @@ interface Test {
   results_published?: boolean;
 }
 
-interface Student {
-  id: string;
-  fullName: string;
-  usn: string;
-  branchName: string;
-  college: string;
-}
-
 export function StudentDashboard() {
   const { user, logout } = useAuth();
-  const [student, setStudent] = useState<Student | null>(null);
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,15 +27,13 @@ export function StudentDashboard() {
     try {
       const token = localStorage.getItem('token');
       
-      let studentData;
       try {
-        const studentRes = await axios.get('/api/students/profile', {
+        await axios.get('/api/students/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        studentData = studentRes.data.student;
       } catch (err: any) {
         if (err.response?.status === 404) {
-          // Profile not created yet, redirect to profile page
+          // Profile not created yet, redirect to profile page immediately
           window.location.href = '/student/profile';
           return;
         }
@@ -56,13 +44,9 @@ export function StudentDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setStudent(studentData);
       setTests(testsRes.data.tests || []);
     } catch (error: any) {
       console.error('[Dashboard Load Error]', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -74,123 +58,115 @@ export function StudentDashboard() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen bg-slate-50">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-12 h-12 bg-blue-100 rounded-xl mb-4"></div>
+          <div className="text-slate-400 font-bold text-sm tracking-widest uppercase">Loading Portal...</div>
+        </div>
+      </div>
+    );
   }
 
+  const isCompleted = tests.length > 0 && ['submitted', 'evaluated', 'auto_submitted'].includes(tests[0].status);
+  const isInProgress = tests.length > 0 && tests[0].status === 'in_progress';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Navbar */}
-      <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
+    <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans">
+      {/* ATS Minimalist Navbar */}
+      <nav className="bg-white border-b border-slate-200/60 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
               C
             </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-lg">
-              Campus<span className="text-blue-600 font-semibold">Screen</span>
-            </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold ml-1 uppercase tracking-wider">
-              Student
-            </span>
+            <span className="font-extrabold text-slate-900 tracking-tight">Candidate Portal</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-400 font-bold font-mono uppercase bg-slate-50 border border-slate-150 px-2.5 py-1 rounded-lg">
-              {student?.usn || 'N/A'}
-            </span>
+          <div className="flex items-center gap-6">
+            <span className="text-sm font-medium text-slate-500 hidden sm:block">{user?.email}</span>
             <button
               onClick={handleLogout}
-              className="bg-rose-50 text-rose-700 hover:bg-rose-100/70 border border-rose-100 text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+              className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
             >
-              Logout
+              Sign out
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 space-y-6">
-        <div className="space-y-1 text-left">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Student Dashboard</h1>
-          <p className="text-xs text-slate-500 font-medium">Welcome back, {student?.fullName}</p>
+      {/* Main Focus Container */}
+      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-12 md:py-24 flex flex-col justify-center">
+        
+        <div className="mb-8">
+          <span className="text-xs font-bold uppercase tracking-widest text-slate-400 block mb-2">Current Assessment</span>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Round 1 Assessment</h1>
         </div>
 
-        {/* Profile Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <span>👤</span> Candidate Profile
-            </h2>
-            <Link
-              href="/student/profile"
-              className="text-xs bg-indigo-50 hover:bg-indigo-100/70 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-100 transition"
-            >
-              Edit Profile
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">FullName</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{student?.fullName}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Branch</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{student?.branchName}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">College</p>
-              <p className="text-sm font-semibold text-slate-800 mt-0.5">{student?.college}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Reference</p>
-              <p className="text-sm font-semibold text-blue-600 mt-0.5 font-mono truncate">{user?.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Available Tests Grid */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-3xl mx-auto shadow-sm shadow-indigo-100">
-            🎯
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Campus Recruitment Aptitude Test
-            </h2>
-            <p className="text-sm text-slate-500 font-medium max-w-lg mx-auto">
-              This is a standardized assessment covering problem solving, technical knowledge, and logic. Ensure you have a stable internet connection before beginning.
-            </p>
-          </div>
-
-          <div className="pt-4">
-            {tests.length > 0 && ['submitted', 'evaluated', 'auto_submitted'].includes(tests[0].status) ? (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold text-sm">
-                ✅ You have successfully completed this assessment.<br />No Active Assessment Available.
+        {/* Primary Assessment Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-8 md:p-10 space-y-8">
+            
+            {/* Meta Data Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Duration</p>
+                <p className="text-lg font-semibold text-slate-900">60 Minutes</p>
               </div>
-            ) : (
-              <button
-                onClick={async () => {
-                  try {
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Questions</p>
+                <p className="text-lg font-semibold text-slate-900">35</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Format</p>
+                <p className="text-lg font-semibold text-slate-900">Mixed Sections</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Status</p>
+                {isCompleted ? (
+                   <span className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                     Completed
+                   </span>
+                ) : isInProgress ? (
+                   <span className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md">
+                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                     In Progress
+                   </span>
+                ) : (
+                   <span className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+                     Available
+                   </span>
+                )}
+              </div>
+            </div>
+
+            <hr className="border-slate-100" />
+
+            {/* Action Area */}
+            <div>
+              {isCompleted ? (
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 text-center">
+                  <h3 className="font-bold text-slate-800 mb-2">Assessment Completed</h3>
+                  <p className="text-sm text-slate-500">You have successfully submitted this assessment. The recruitment team will review your results and contact you regarding the next steps.</p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
                     setIsLoading(true);
-                    const token = localStorage.getItem('token');
-                    // Find if there is an active test assigned (Round 2 or 1)
-                    if (tests.length > 0 && ['not_started', 'in_progress'].includes(tests[0].status)) {
+                    if (isInProgress) {
                       window.location.href = `/student/test/${tests[0].id}`;
                     } else {
-                      // Route through Eligibility Assessment before autogenerating Round 1
                       window.location.href = '/student/eligibility';
                     }
-                  } catch (e) {
-                    setIsLoading(false);
-                    alert('Failed to start test. Please try again.');
-                  }
-                }}
-                className="bg-blue-900 hover:bg-blue-800 text-white text-base font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-900/10 transition cursor-pointer"
-              >
-                {tests.length > 0 && tests[0].status === 'in_progress' 
-                  ? `Resume Round ${tests.length} Test` 
-                  : `Take Round ${tests.length > 0 && ['not_started', 'in_progress'].includes(tests[0].status) ? tests.length : (tests.length + 1)} Test`}
-              </button>
-            )}
+                  }}
+                  className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold text-base px-10 py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  {isInProgress ? 'Resume Assessment' : 'Start Assessment'}
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </button>
+              )}
+            </div>
+            
           </div>
         </div>
       </main>
