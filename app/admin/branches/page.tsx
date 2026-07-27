@@ -1,6 +1,11 @@
-// This page has been removed.
-// Branch is simply a text field on the student profile.
-// No separate Branch management is needed.
-export default function BranchesRemoved() {
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+// Branch management is handled via the student profile.
+// This route redirects to the admin dashboard.
+export default function BranchesPage() {
+  const router = useRouter();
+  useEffect(() => { router.replace('/admin/dashboard'); }, [router]);
   return null;
 }

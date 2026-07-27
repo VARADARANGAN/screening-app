@@ -17,7 +17,6 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
   if (payloads.length === 0) return;
 
   const testId = payloads[0].testId;
-  console.log(`[Background Evaluation] Starting async processing for test ${testId}`);
 
   try {
     for (const payload of payloads) {
@@ -42,7 +41,6 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
       if (!question) continue;
 
       const pts = question.points || 0;
-      console.log(`[Background Evaluation] Evaluating Question ${questionId} (Max Marks: ${pts})`);
 
       const evaluationResult = await evaluateCodingAnswer(
         question.question_text,
@@ -54,7 +52,6 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
       let aiEvaluationJson: any = null;
 
       if (evaluationResult.success) {
-        console.log(`[Background Evaluation] Success for Question ${questionId}`);
         pointsEarnedToSave = evaluationResult.marksAwarded;
         
         aiEvaluationJson = {
@@ -93,7 +90,6 @@ export async function processBackgroundEvaluations(payloads: BackgroundEvalPaylo
     }
 
     // After all coding questions are evaluated, recalculate the final score
-    console.log(`[Background Evaluation] All AI evaluations completed. Recalculating score for test ${testId}`);
     await recalculateTestScore(testId);
     
   } catch (error) {

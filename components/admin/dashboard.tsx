@@ -189,20 +189,6 @@ export function AdminDashboard() {
                 </CardHeader>
               </Card>
             </Link>
-
-            <Link href="/admin/system-health">
-              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
-                <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-slate-800 group-hover:text-white transition">
-                    🔬
-                  </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">System Health</CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Live diagnostic dashboard. Verify DB, AI engine, assessment sections, and all subsystems.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
           </div>
         </div>
       </main>

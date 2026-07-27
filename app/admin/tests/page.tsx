@@ -32,6 +32,7 @@ export default function TestManagementPage() {
   // Action states
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
   const [isPublishing, setIsPublishing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -99,14 +100,15 @@ export default function TestManagementPage() {
 
   const handlePublishTest = async () => {
     if (selectedQuestionIds.size === 0) {
-      alert('Please select at least one question.');
+      setStatusMessage({ type: 'error', text: 'Please select at least one question.' });
       return;
     }
     if (selectedBranchIds.size === 0) {
-      alert('Please select at least one target branch.');
+      setStatusMessage({ type: 'error', text: 'Please select at least one target branch.' });
       return;
     }
 
+    setStatusMessage(null);
     setIsPublishing(true);
     try {
       const token = localStorage.getItem('token');
@@ -118,7 +120,7 @@ export default function TestManagementPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert(response.data.message || 'Test successfully published to students of selected branches!');
+      setStatusMessage({ type: 'success', text: response.data.message || 'Test successfully published to students of selected branches!' });
       setSelectedQuestionIds(new Set());
       setSelectedBranchIds(new Set());
       setCustomDuration('');
@@ -126,7 +128,7 @@ export default function TestManagementPage() {
       loadData();
     } catch (e: any) {
       console.error('[Assign Test Error]', e);
-      alert(e.response?.data?.message || 'Failed to publish/assign test');
+      setStatusMessage({ type: 'error', text: e.response?.data?.message || 'Failed to publish test. Please try again.' });
     } finally {
       setIsPublishing(false);
     }
@@ -352,6 +354,16 @@ export default function TestManagementPage() {
                 >
                   {isPublishing ? 'Publishing Test...' : 'Publish Test Now'}
                 </Button>
+
+                {statusMessage && (
+                  <div className={`text-xs font-semibold px-3 py-2 rounded-lg text-center ${
+                    statusMessage.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {statusMessage.text}
+                  </div>
+                )}
               </div>
             </div>
           </div>

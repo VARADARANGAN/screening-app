@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, newPassword, otp } = body;
-    console.log(`[Reset Password Request] Attempting to reset password for ${email}`);
 
     // Admin reset password flow (requires valid token)
     const authHeader = request.headers.get('authorization');
@@ -72,7 +71,6 @@ export async function POST(request: NextRequest) {
 
     // Clear OTP after successful reset
     clearCachedOTP(email);
-    console.log(`[Reset Password Success] Password successfully reset for ${email}`);
 
     return createResponse(
       successResponse(null, 'Password reset successfully'),
