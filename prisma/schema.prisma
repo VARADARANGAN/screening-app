@@ -39,6 +39,7 @@ model Student {
 
   user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   tests                 Test[]
+  eligibility_result    EligibilityResult?
 
   @@map("students")
 }
@@ -191,4 +192,37 @@ model TestAnalytics {
   test              Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
 
   @@map("test_analytics")
+}
+
+model HiringDrive {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String    @db.VarChar(255)
+  is_active           Boolean   @default(true)
+  min_cgpa            Decimal?  @db.Decimal(4, 2)
+  max_active_backlogs Int?
+  eligible_branches   String[]
+  graduation_years    Int[]
+  require_work_auth   Boolean?
+  created_at          DateTime  @default(now()) @db.Timestamp(6)
+  updated_at          DateTime  @default(now()) @db.Timestamp(6)
+
+  eligibility_results EligibilityResult[]
+
+  @@map("hiring_drives")
+}
+
+model EligibilityResult {
+  id              String    @id @default(uuid()) @db.Uuid
+  student_id      String    @unique @db.Uuid
+  hiring_drive_id String    @db.Uuid
+  responses_json  Json?
+  status          String    @default("PENDING") @db.VarChar(50)
+  reason          String?
+  created_at      DateTime  @default(now()) @db.Timestamp(6)
+  updated_at      DateTime  @default(now()) @db.Timestamp(6)
+
+  student         Student     @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  hiring_drive    HiringDrive @relation(fields: [hiring_drive_id], references: [id], onDelete: Cascade)
+
+  @@map("eligibility_results")
 }

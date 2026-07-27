@@ -19,6 +19,8 @@ interface Student {
   email: string;
   test_count: number;
   avg_score: number;
+  eligibility_status?: string;
+  eligibility_reason?: string;
 }
 
 interface TestAttempt {
@@ -349,6 +351,7 @@ export function StudentsViewer() {
                     <TableHead className="font-semibold text-slate-700 w-40">Branch</TableHead>
                     <TableHead className="font-semibold text-slate-700">Email</TableHead>
                     <TableHead className="font-semibold text-slate-700 max-w-[150px]">College</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32 text-center">Eligibility</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-32 text-center">Test Status</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-28 text-center">Score</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-32 text-center">Coding Answer</TableHead>
@@ -357,11 +360,11 @@ export function StudentsViewer() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-slate-400">Loading student profiles...</TableCell>
+                      <TableCell colSpan={8} className="text-center py-12 text-slate-400">Loading student profiles...</TableCell>
                     </TableRow>
                   ) : filteredStudents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-slate-400">No students registered yet</TableCell>
+                      <TableCell colSpan={8} className="text-center py-12 text-slate-400">No students registered yet</TableCell>
                     </TableRow>
                   ) : (
                     filteredStudents.map(student => {
@@ -391,6 +394,16 @@ export function StudentsViewer() {
                           <TableCell className="w-40 text-slate-600 font-medium">{student.branch}</TableCell>
                           <TableCell className="text-slate-600">{student.email}</TableCell>
                           <TableCell className="text-slate-600 truncate max-w-[150px]">{student.college}</TableCell>
+                          <TableCell className="w-32 text-center" title={student.eligibility_reason}>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              student.eligibility_status === 'ELIGIBLE' ? 'bg-emerald-50 text-emerald-700' :
+                              student.eligibility_status === 'NOT_ELIGIBLE' ? 'bg-rose-50 text-rose-700' :
+                              student.eligibility_status === 'MANUAL_REVIEW' ? 'bg-amber-50 text-amber-700' :
+                              'bg-slate-100 text-slate-500'
+                            }`}>
+                              {student.eligibility_status ? student.eligibility_status.replace('_', ' ') : 'NOT STARTED'}
+                            </span>
+                          </TableCell>
                           
                           <TableCell className="w-32 text-center">
                             <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${

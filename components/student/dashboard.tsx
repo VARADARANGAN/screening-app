@@ -176,9 +176,8 @@ export function StudentDashboard() {
                     if (tests.length > 0 && ['not_started', 'in_progress'].includes(tests[0].status)) {
                       window.location.href = `/student/test/${tests[0].id}`;
                     } else {
-                      // Autogenerate Round 1
-                      const res = await axios.get('/api/tests/active', { headers: { Authorization: `Bearer ${token}` }});
-                      window.location.href = `/student/test/${res.data.testId}`;
+                      // Route through Eligibility Assessment before autogenerating Round 1
+                      window.location.href = '/student/eligibility';
                     }
                   } catch (e) {
                     setIsLoading(false);

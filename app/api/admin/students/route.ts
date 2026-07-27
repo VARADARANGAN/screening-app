@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
         tests: {
           select: { score: true, created_at: true },
           orderBy: { created_at: 'desc' }
+        },
+        eligibility_result: {
+          select: { status: true, reason: true }
         }
       },
       take: limit,
@@ -57,7 +60,9 @@ export async function GET(request: NextRequest) {
         college: s.college,
         email: s.user?.email || '',
         test_count,
-        avg_score
+        avg_score,
+        eligibility_status: s.eligibility_result?.status || 'NOT_STARTED',
+        eligibility_reason: s.eligibility_result?.reason || ''
       };
     });
 
