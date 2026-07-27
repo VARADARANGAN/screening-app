@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { verifyAuth } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
 import { evaluateCandidate } from '@/lib/ai/evaluator';
 
 export async function POST(
@@ -8,8 +8,14 @@ export async function POST(
   { params }: { params: { testId: string } }
 ) {
   try {
-    const authResult = await verifyAuth(req);
-    if (!authResult.user) {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    const token = authHeader.slice(7);
+    const decoded = verifyToken(token);
+
+    if (!decoded || (decoded.role !== 'admin' && decoded.role !== 'super_admin' && decoded.role !== 'recruiter')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -1,5 +1,5 @@
 import Groq from 'groq-sdk';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { BEHAVIOUR_SYSTEM_PROMPT, getBehaviourUserPrompt } from './behaviour.prompt';
 import { LEARNING_SYSTEM_PROMPT, getLearningUserPrompt } from './learning.prompt';
 import { AI_LITERACY_SYSTEM_PROMPT, getAILiteracyUserPrompt } from './aiLiteracy.prompt';
