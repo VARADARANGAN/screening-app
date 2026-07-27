@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { testId: string } }
+  { params }: { params: Promise<{ testId: string }> }
 ) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const testId = params.testId;
+    const { testId } = await params;
 
     const test = await prisma.test.findUnique({
       where: { id: testId },
