@@ -175,6 +175,20 @@ export function AdminDashboard() {
                 </CardHeader>
               </Card>
             </Link>
+
+            <Link href="/admin/results">
+              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
+                <CardHeader className="p-6">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-emerald-700 group-hover:text-white transition">
+                    📊
+                  </div>
+                  <CardTitle className="text-base font-extrabold text-slate-900">Results Dashboard</CardTitle>
+                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    View detailed assessment results, category scores, and Candidate Intelligence (AI).
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
           </div>
         </div>
       </main>
