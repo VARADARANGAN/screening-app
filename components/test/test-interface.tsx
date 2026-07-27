@@ -11,10 +11,11 @@ import Editor from '@monaco-editor/react';
 interface Question {
   id: string;
   questionText: string;
-  type: 'mcq' | 'coding' | 'essay' | 'true_false';
+  type: 'mcq' | 'coding' | 'essay' | 'true_false' | 'descriptive';
   optionsJson?: any;
   points: number;
   timeLimitSeconds: number;
+  section?: string;
 }
 
 interface TestData {
@@ -333,38 +334,51 @@ export function TestInterface({ testId }: { testId: string }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
-          {test.questions.map((q, idx) => {
-            const isSelected = currentQuestionIndex === idx;
-            const isAnswered = answers[q.id] && answers[q.id].trim().length > 0;
-            return (
-              <button
-                key={q.id}
-                onClick={() => setCurrentQuestionIndex(idx)}
-                className={`w-full text-left p-3.5 rounded-xl font-semibold transition text-xs flex items-center justify-between border ${
-                  isSelected
-                    ? 'bg-blue-50 text-blue-900 border-blue-200'
-                    : isAnswered
-                      ? 'bg-slate-50/50 text-slate-700 border-slate-100 hover:bg-slate-50'
-                      : 'bg-white text-slate-600 border-transparent hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
-                    isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {idx + 1}
-                  </span>
-                  <span className="truncate max-w-[150px]">{q.type === 'coding' ? 'Coding Challenge' : 'Multiple Choice'}</span>
-                </div>
-                {isAnswered && (
-                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
-                    ✓ Saved
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {Object.entries(
+            test.questions.reduce((acc, q, idx) => {
+              const sectionName = q.section || 'APTITUDE';
+              if (!acc[sectionName]) acc[sectionName] = [];
+              acc[sectionName].push({ ...q, originalIndex: idx });
+              return acc;
+            }, {} as Record<string, any[]>)
+          ).map(([sectionName, sectionQuestions]) => (
+            <div key={sectionName} className="space-y-1.5">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2">{sectionName.replace(/_/g, ' ')}</h3>
+              {sectionQuestions.map((q) => {
+                const idx = q.originalIndex;
+                const isSelected = currentQuestionIndex === idx;
+                const isAnswered = answers[q.id] && answers[q.id].trim().length > 0;
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setCurrentQuestionIndex(idx)}
+                    className={`w-full text-left p-3.5 rounded-xl font-semibold transition text-xs flex items-center justify-between border ${
+                      isSelected
+                        ? 'bg-blue-50 text-blue-900 border-blue-200'
+                        : isAnswered
+                          ? 'bg-slate-50/50 text-slate-700 border-slate-100 hover:bg-slate-50'
+                          : 'bg-white text-slate-600 border-transparent hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className="truncate max-w-[150px]">{q.type === 'coding' ? 'Coding Challenge' : q.type === 'descriptive' ? 'Descriptive' : 'Multiple Choice'}</span>
+                    </div>
+                    {isAnswered && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
+                        ✓ Saved
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -390,7 +404,7 @@ export function TestInterface({ testId }: { testId: string }) {
           <div className="max-w-4xl space-y-6">
             <div className="space-y-2 text-left">
               <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : 'MCQ'}
+                Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : currentQuestion.type === 'descriptive' ? 'Descriptive Assessment' : 'MCQ'}
               </div>
               <div className="text-xl font-black text-slate-900 leading-tight">
                 <MarkdownRenderer content={currentQuestion.questionText} />
@@ -534,6 +548,31 @@ export function TestInterface({ testId }: { testId: string }) {
                   className="w-full h-64 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   placeholder="Enter your essay answer here..."
                 />
+              )}
+
+              {currentQuestion.type === 'descriptive' && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Your Answer</span>
+                    {answers[currentQuestion.id] && (
+                      <button
+                        onClick={() => handleClearAnswer(currentQuestion.id)}
+                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
+                      >
+                        Clear Answer
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    value={answers[currentQuestion.id] || ''}
+                    onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                    className="w-full h-64 p-4 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans resize-y shadow-inner"
+                    placeholder="Type your answer here..."
+                  />
+                  <div className="text-right text-xs text-slate-500 font-medium">
+                    Word count: {(answers[currentQuestion.id] || '').trim().split(/\s+/).filter(w => w.length > 0).length}
+                  </div>
+                </div>
               )}
             </div>
           </div>

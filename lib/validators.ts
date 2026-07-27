@@ -41,11 +41,21 @@ export const AdminProfileSchema = z.object({
 // ==================== Question Schemas ====================
 export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
-  type: z.enum(['mcq', 'coding']),
+  type: z.enum(['mcq', 'coding', 'descriptive']),
   timeLimitSeconds: z.number().optional().default(60),
   points: z.number().min(1, 'Points must be at least 1'),
   isPublished: z.boolean().default(false),
   
+  assessmentDimension: z.enum(['ATTITUDE', 'LEARNING', 'PROBLEM_SOLVING', 'EXECUTION', 'COMMUNICATION', 'INTEGRITY', 'AI_LITERACY']).optional(),
+  weight: z.number().optional().default(1),
+  expectedAnswerLength: z.number().optional().default(150),
+  expectedDuration: z.number().optional().default(5),
+  isRequired: z.boolean().optional().default(true),
+  displayOrder: z.number().optional().default(0),
+  section: z.string().optional().default('APTITUDE'),
+  sectionOrder: z.number().optional().default(0),
+  questionOrder: z.number().optional().default(0),
+
   // Conditional validation based on type
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),

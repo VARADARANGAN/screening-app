@@ -57,7 +57,8 @@ export async function POST(
         where: { id: existingResponse.id },
         data: {
           student_answer: answer ? String(answer) : null,
-          auto_saved_at: new Date()
+          auto_saved_at: new Date(),
+          started_at: existingResponse.started_at || new Date()
         }
       });
     } else {
@@ -66,7 +67,8 @@ export async function POST(
           test_id: id,
           question_id: questionId,
           student_answer: answer ? String(answer) : null,
-          auto_saved_at: new Date()
+          auto_saved_at: new Date(),
+          started_at: new Date()
         }
       });
     }

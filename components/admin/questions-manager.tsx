@@ -250,6 +250,7 @@ export function QuestionsManager() {
               <option value="all">All Types</option>
               <option value="mcq">Multiple Choice (MCQ)</option>
               <option value="coding">Coding Challenge</option>
+              <option value="descriptive">Descriptive Assessment</option>
             </select>
         </div>
           <div className="flex gap-3 shrink-0 mt-3 md:mt-0 items-center">
@@ -319,9 +320,11 @@ export function QuestionsManager() {
                       </TableCell>
                       <TableCell className="w-44">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                          q.type === 'mcq' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                          q.type === 'mcq' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                          q.type === 'descriptive' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                          'bg-indigo-50 text-indigo-700 border border-indigo-100'
                         }`}>
-                          {q.type === 'mcq' ? 'Aptitude (MCQ)' : 'Coding'}
+                          {q.type === 'mcq' ? 'Aptitude (MCQ)' : q.type === 'descriptive' ? 'Descriptive' : 'Coding'}
                         </span>
                       </TableCell>
                       <TableCell className="w-28 text-center text-slate-800 font-semibold">

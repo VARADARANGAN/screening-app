@@ -650,8 +650,8 @@ export function EvaluationManager() {
                         </div>
                       )}
 
-                      {/* Non MCQ details (Coding/Essay) */}
-                      {['coding', 'essay'].includes(q.type) && (() => {
+                      {/* Non MCQ details (Coding/Essay/Descriptive) */}
+                      {['coding', 'essay', 'descriptive'].includes(q.type) && (() => {
                         const rawAns = response?.student_answer || '';
                         let cleanCode = rawAns;
                         if (rawAns.startsWith('// === EVALUATION REMARKS ===')) {

@@ -89,6 +89,11 @@ export async function POST(
           questionId,
           studentAnswer: String(studentAnswer)
         });
+      } else if (question.type === 'descriptive') {
+        // Descriptive questions are just saved, no evaluation in Sprint 1
+        pointsEarnedToSave = null;
+        isCorrect = false;
+        aiEvaluationJson = null;
       } else {
         // Evaluate MCQ immediately
         const isDirectMatch = String(studentAnswer).trim() === String(question.correct_answer).trim();
@@ -114,7 +119,7 @@ export async function POST(
       // Upsert the response so we don't violate unique constraints
       const dbData = {
         student_answer: studentAnswer ? String(studentAnswer) : null,
-        is_correct: question.type === 'coding' ? false : isCorrect,
+        is_correct: (question.type === 'coding' || question.type === 'descriptive') ? false : isCorrect,
         points_earned: pointsEarnedToSave,
         ai_evaluation_json: aiEvaluationJson,
         submitted_at: new Date()

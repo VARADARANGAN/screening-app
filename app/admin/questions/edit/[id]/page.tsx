@@ -15,8 +15,17 @@ export default function EditQuestionPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [type, setType] = useState('mcq');
+  const [section, setSection] = useState('APTITUDE');
   const [questionText, setQuestionText] = useState('');
   const [points, setPoints] = useState(10);
+
+  // Descriptive Specific State
+  const [assessmentDimension, setAssessmentDimension] = useState('ATTITUDE');
+  const [weight, setWeight] = useState(1);
+  const [expectedDuration, setExpectedDuration] = useState(5);
+  const [expectedAnswerLength, setExpectedAnswerLength] = useState(150);
+  const [isRequired, setIsRequired] = useState(true);
+  const [displayOrder, setDisplayOrder] = useState(0);
 
   // MCQ Specific State
   const [options, setOptions] = useState([{ text: '' }, { text: '' }]);
@@ -65,8 +74,15 @@ export default function EditQuestionPage() {
       const q = data.question;
 
       setType(q.type || 'mcq');
+      setSection(q.section || 'APTITUDE');
       setQuestionText(q.question_text || '');
       setPoints(q.points || 10);
+      setAssessmentDimension(q.assessment_dimension || 'ATTITUDE');
+      setWeight(q.weight || 1);
+      setExpectedDuration(q.expected_duration || 5);
+      setExpectedAnswerLength(q.expected_answer_length || 150);
+      setIsRequired(q.is_required !== false);
+      setDisplayOrder(q.display_order || 0);
 
       if (q.type === 'mcq') {
         let parsedOptions = [{ text: '' }, { text: '' }];
@@ -121,23 +137,33 @@ export default function EditQuestionPage() {
     try {
       const token = localStorage.getItem('token');
       
-      let optionsJsonPayload: any = options;
-      let finalCorrectAnswer = correctAnswer;
-
-      if (type === 'coding') {
-        optionsJsonPayload = {};
-        finalCorrectAnswer = '';
-      }
-
-      await axios.put(`/api/questions/${id}`, {
+      let payload: any = {
         questionText,
         type,
+        section,
         points: Number(points),
         timeLimitSeconds: 60,
-        optionsJson: optionsJsonPayload,
-        correctAnswer: finalCorrectAnswer,
         isPublished: true
-      }, {
+      };
+
+      if (type === 'mcq') {
+        payload.optionsJson = options;
+        payload.correctAnswer = correctAnswer;
+      } else if (type === 'coding') {
+        payload.optionsJson = {};
+        payload.correctAnswer = '';
+      } else if (type === 'descriptive') {
+        payload.optionsJson = {};
+        payload.correctAnswer = '';
+        payload.assessmentDimension = assessmentDimension;
+        payload.weight = Number(weight);
+        payload.expectedDuration = Number(expectedDuration);
+        payload.expectedAnswerLength = Number(expectedAnswerLength);
+        payload.isRequired = isRequired;
+        payload.displayOrder = Number(displayOrder);
+      }
+
+      await axios.put(`/api/questions/${id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -169,6 +195,26 @@ export default function EditQuestionPage() {
           <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Assessment Section</label>
+                <select
+                  value={section}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white"
+                >
+                  <option value="ELIGIBILITY">Eligibility</option>
+                  <option value="APTITUDE">Aptitude</option>
+                  <option value="CODING">Coding</option>
+                  <option value="ATTITUDE">Attitude</option>
+                  <option value="LEARNING">Learning</option>
+                  <option value="PROBLEM_SOLVING">Problem Solving</option>
+                  <option value="EXECUTION">Execution</option>
+                  <option value="COMMUNICATION">Communication</option>
+                  <option value="INTEGRITY">Integrity</option>
+                  <option value="AI_LITERACY">AI Literacy</option>
+                  <option value="PRACTICAL">Practical</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Question Type</label>
                 <select
                   value={type}
@@ -177,13 +223,15 @@ export default function EditQuestionPage() {
                 >
                   <option value="mcq">Multiple Choice (MCQ)</option>
                   <option value="coding">Coding Challenge</option>
+                  <option value="descriptive">Descriptive Assessment</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-400 mb-1">Universal Repository Question</label>
-                <div className="px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 text-xs font-medium">
-                  Stored globally and unassigned. Modifying will affect future test launches.
-                </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-400 mb-1">Universal Repository Question</label>
+              <div className="px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 text-xs font-medium">
+                Stored globally and unassigned. Modifying will affect future test launches.
               </div>
             </div>
 
@@ -223,6 +271,74 @@ export default function EditQuestionPage() {
                 <Button type="button" variant="outline" size="sm" onClick={addOption} className="border-slate-200 text-slate-700 bg-white">
                   + Add Option
                 </Button>
+              </div>
+            )}
+
+            {/* DESCRIPTIVE SECTION */}
+            {type === 'descriptive' && (
+              <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
+                <h3 className="font-bold text-slate-800 text-sm">Descriptive Settings</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Assessment Dimension</label>
+                    <select
+                      value={assessmentDimension}
+                      onChange={(e) => setAssessmentDimension(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    >
+                      <option value="ATTITUDE">Attitude</option>
+                      <option value="LEARNING">Learning</option>
+                      <option value="PROBLEM_SOLVING">Problem Solving</option>
+                      <option value="EXECUTION">Execution</option>
+                      <option value="COMMUNICATION">Communication</option>
+                      <option value="INTEGRITY">Integrity</option>
+                      <option value="AI_LITERACY">AI Literacy</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Weight</label>
+                    <Input 
+                      type="number" min="1" max="100"
+                      value={weight} onChange={(e) => setWeight(Number(e.target.value))}
+                      className="bg-white border-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Duration (mins)</label>
+                    <Input 
+                      type="number" min="1" max="120"
+                      value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))}
+                      className="bg-white border-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Answer Length (words)</label>
+                    <Input 
+                      type="number" min="10" max="2000"
+                      value={expectedAnswerLength} onChange={(e) => setExpectedAnswerLength(Number(e.target.value))}
+                      className="bg-white border-slate-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Display Order</label>
+                    <Input 
+                      type="number" min="0" max="100"
+                      value={displayOrder} onChange={(e) => setDisplayOrder(Number(e.target.value))}
+                      className="bg-white border-slate-200"
+                    />
+                  </div>
+                  <div className="flex items-center mt-6">
+                    <input 
+                      type="checkbox" 
+                      id="isRequired"
+                      checked={isRequired}
+                      onChange={(e) => setIsRequired(e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded mr-2"
+                    />
+                    <label htmlFor="isRequired" className="text-xs font-semibold text-slate-700">Required Question</label>
+                  </div>
+                </div>
               </div>
             )}
 

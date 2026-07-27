@@ -111,6 +111,15 @@ export async function PUT(
         points: validatedData.points,
         explanation: validatedData.explanation,
         is_published: validatedData.isPublished,
+        assessment_dimension: validatedData.assessmentDimension,
+        weight: validatedData.weight,
+        expected_answer_length: validatedData.expectedAnswerLength,
+        expected_duration: validatedData.expectedDuration,
+        is_required: validatedData.isRequired,
+        display_order: validatedData.displayOrder,
+        section: validatedData.section,
+        section_order: validatedData.sectionOrder,
+        question_order: validatedData.questionOrder,
       }
     });
 

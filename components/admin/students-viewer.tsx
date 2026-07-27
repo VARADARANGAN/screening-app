@@ -608,7 +608,7 @@ export function StudentsViewer() {
             <div className="p-5 border-b border-slate-100 flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  {isDetailLoading ? 'Loading coding answers...' : 'Submitted Coding Answers'}
+                  {isDetailLoading ? 'Loading answers...' : 'Submitted Coding & Descriptive Answers'}
                 </h3>
                 {activeTestDetail && (
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -629,10 +629,10 @@ export function StudentsViewer() {
             <div className="flex-1 overflow-y-auto p-5 bg-slate-50/50 space-y-4">
               {isDetailLoading ? (
                 <div className="text-center py-12 text-slate-400 text-sm">Fetching candidate responses...</div>
-              ) : activeTestDetail?.questions?.filter((q: any) => q.type === 'coding').length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-sm">No coding questions in this test attempt.</div>
+              ) : activeTestDetail?.questions?.filter((q: any) => q.type === 'coding' || q.type === 'descriptive').length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-sm">No coding or descriptive questions in this test attempt.</div>
               ) : (
-                activeTestDetail?.questions?.filter((q: any) => q.type === 'coding').map((q: any, idx: number) => {
+                activeTestDetail?.questions?.filter((q: any) => q.type === 'coding' || q.type === 'descriptive').map((q: any, idx: number) => {
                   const response = activeTestDetail.responses?.find((r: any) => r.question_id === q.id);
                   const rawAns = response?.student_answer || '';
                   
@@ -653,13 +653,15 @@ export function StudentsViewer() {
                     <div key={q.id} className="bg-white p-5 border border-slate-200 rounded-xl space-y-3 shadow-sm text-left">
                       <div>
                         <h4 className="font-bold text-slate-800 text-sm">
-                          Coding Question {idx + 1}: <span className="font-medium text-slate-700">{q.questionText}</span>
+                          {q.type === 'coding' ? 'Coding' : 'Descriptive'} Question {idx + 1}: <span className="font-medium text-slate-700">{q.questionText}</span>
                         </h4>
                         <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
                           <span>Max Points: {q.points || 10}</span>
-                          <span className={`font-bold ${response?.points_earned !== undefined && response?.points_earned !== null ? 'text-indigo-600' : 'text-amber-600'}`}>
-                            Earned Points: {response?.points_earned !== undefined && response?.points_earned !== null ? response.points_earned : (response?.ai_evaluation_json?.evaluation_status === 'FAILED' ? 'Evaluation Failed' : '0')}
-                          </span>
+                          {q.type === 'coding' && (
+                            <span className={`font-bold ${response?.points_earned !== undefined && response?.points_earned !== null ? 'text-indigo-600' : 'text-amber-600'}`}>
+                              Earned Points: {response?.points_earned !== undefined && response?.points_earned !== null ? response.points_earned : (response?.ai_evaluation_json?.evaluation_status === 'FAILED' ? 'Evaluation Failed' : '0')}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -669,7 +671,28 @@ export function StudentsViewer() {
                           {cleanCode || 'No answer submitted.'}
                         </pre>
                       </div>
-
+                      {q.type === 'descriptive' && (
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-left mt-3">
+                          <h5 className="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            {(!response?.evaluation_status || response.evaluation_status === 'PENDING') ? (
+                              <>
+                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Pending Evaluation
+                              </>
+                            ) : response.evaluation_status === 'COMPLETED' ? (
+                              <>
+                                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                Evaluation Completed
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                {response.evaluation_status}
+                              </>
+                            )}
+                          </h5>
+                        </div>
+                      )}
                       {response?.ai_evaluation_json && 
                        (response.ai_evaluation_json.evaluation_status === 'PENDING' || response.ai_evaluation_json.evaluation_status === 'PROCESSING') && (
                         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3 text-left">
