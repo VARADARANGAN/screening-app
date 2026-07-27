@@ -61,9 +61,8 @@ export const QuestionSchema = z.object({
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),
 }).refine((data) => {
-  // MCQ requires options and correct answer
   if (data.type === 'mcq') {
-    return data.optionsJson && data.correctAnswer;
+    return !!data.optionsJson && data.correctAnswer !== undefined && data.correctAnswer !== '';
   }
   return true;
 }, {

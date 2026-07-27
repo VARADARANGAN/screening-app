@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
     const validationResult = QuestionSchema.safeParse(data);
     
     if (!validationResult.success) {
+      const errorStr = validationResult.error.errors.map((e: any) => e.message).join(', ');
       return NextResponse.json(
         { 
-          message: 'Validation failed', 
+          message: errorStr || 'Validation failed', 
           errors: validationResult.error.errors 
         }, 
         { status: 400 }
