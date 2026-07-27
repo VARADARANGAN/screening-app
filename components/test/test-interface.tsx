@@ -574,6 +574,7 @@ export function TestInterface({ testId }: { testId: string }) {
                         <span className="text-sm font-semibold text-slate-700">{optionVal}</span>
                       </label>
                     );
+                  });
                   })()}
                 </div>
               )}
