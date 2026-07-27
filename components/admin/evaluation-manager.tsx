@@ -33,6 +33,8 @@ export function EvaluationManager() {
   // Inspection Modal State
   const [inspectTestId, setInspectTestId] = useState<string | null>(null);
   const [inspectData, setInspectData] = useState<any>(null);
+  const [inspectAiEvaluation, setInspectAiEvaluation] = useState<any>(null);
+  const [inspectTab, setInspectTab] = useState<'details' | 'ai_intelligence'>('ai_intelligence');
   const [isInspecting, setIsInspecting] = useState(false);
 
   // Local evaluation state for each question
@@ -80,6 +82,8 @@ export function EvaluationManager() {
     setInspectTestId(testId);
     setIsInspecting(true);
     setInspectData(null);
+    setInspectAiEvaluation(null);
+    setInspectTab('ai_intelligence');
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`/api/tests/${testId}`, {
@@ -87,6 +91,17 @@ export function EvaluationManager() {
       });
       const qData = response.data.test;
       setInspectData(qData);
+
+      try {
+        const aiRes = await axios.get(`/api/evaluations/${testId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (aiRes.data && aiRes.data.status !== 'NOT_FOUND') {
+          setInspectAiEvaluation(aiRes.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI Evaluation', err);
+      }
 
       const marksMap: { [key: string]: number } = {};
       const remarksMap: { [key: string]: string } = {};
@@ -144,6 +159,22 @@ export function EvaluationManager() {
       alert(e.response?.data?.message || 'Failed to save evaluation.');
     } finally {
       setIsSavingEvaluation(false);
+    }
+  };
+
+  const handleRegenerateIntelligence = async () => {
+    if (!inspectTestId) return;
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`/api/evaluations/${inspectTestId}/trigger`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('AI Evaluation regeneration triggered successfully. This may take a minute.');
+      // Optionally reload the inspection modal data here
+      handleInspect(inspectTestId);
+    } catch (e: any) {
+      console.error('Failed to trigger regeneration', e);
+      alert('Failed to regenerate intelligence report.');
     }
   };
 
@@ -602,9 +633,119 @@ export function EvaluationManager() {
               <Button variant="outline" size="sm" onClick={() => setIsInspecting(false)}>Close</Button>
             </div>
 
+            <div className="flex border-b border-gray-100">
+              <button
+                onClick={() => setInspectTab('ai_intelligence')}
+                className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition ${
+                  inspectTab === 'ai_intelligence' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Candidate Intelligence (AI)
+              </button>
+              <button
+                onClick={() => setInspectTab('details')}
+                className={`flex-1 py-3 text-sm font-semibold text-center border-b-2 transition ${
+                  inspectTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Raw Responses & Manual Grading
+              </button>
+            </div>
+
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
               {inspectData === null ? (
                 <div className="text-center py-12 text-gray-500">Loading student responses details...</div>
+              ) : inspectTab === 'ai_intelligence' ? (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-gray-900">AI Intelligence Report</h3>
+                    <Button onClick={handleRegenerateIntelligence} variant="outline" size="sm">Regenerate Report</Button>
+                  </div>
+                  
+                  {!inspectAiEvaluation || inspectAiEvaluation.status === 'PENDING' || inspectAiEvaluation.status === 'PROCESSING' ? (
+                    <div className="text-center py-12 text-gray-500">
+                      AI Evaluation is currently {inspectAiEvaluation?.status || 'PENDING'}. Please check back later.
+                    </div>
+                  ) : inspectAiEvaluation.status === 'FAILED' ? (
+                    <div className="p-4 bg-red-50 text-red-700 rounded-lg">
+                      AI Evaluation failed: {inspectAiEvaluation.error_message}
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Executive Summary */}
+                      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="font-bold text-lg text-gray-900">Executive Summary</h4>
+                            <p className="text-gray-700 mt-2">{inspectAiEvaluation.aggregated_report?.executiveSummary}</p>
+                          </div>
+                          <div className={`px-4 py-2 rounded-lg font-bold text-lg text-white ${
+                            inspectAiEvaluation.aggregated_report?.recommendation === 'Highly Recommended' ? 'bg-green-600' :
+                            inspectAiEvaluation.aggregated_report?.recommendation === 'Recommended' ? 'bg-emerald-500' :
+                            inspectAiEvaluation.aggregated_report?.recommendation === 'Consider' ? 'bg-yellow-500' :
+                            inspectAiEvaluation.aggregated_report?.recommendation === 'Needs Further Review' ? 'bg-orange-500' :
+                            'bg-red-600'
+                          }`}>
+                            {inspectAiEvaluation.aggregated_report?.recommendation}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Scores Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Overall', score: inspectAiEvaluation.aggregated_report?.overallScore },
+                          { label: 'Technical', score: inspectAiEvaluation.aggregated_report?.technicalScore },
+                          { label: 'Behaviour', score: inspectAiEvaluation.aggregated_report?.behaviourScore },
+                          { label: 'Learning', score: inspectAiEvaluation.aggregated_report?.learningScore },
+                          { label: 'AI Literacy', score: inspectAiEvaluation.aggregated_report?.aiLiteracyScore },
+                          { label: 'Communication', score: inspectAiEvaluation.aggregated_report?.communicationScore },
+                          { label: 'Problem Solving', score: inspectAiEvaluation.aggregated_report?.problemSolvingScore },
+                          { label: 'Adaptability', score: inspectAiEvaluation.aggregated_report?.adaptabilityScore },
+                        ].map(metric => (
+                          <div key={metric.label} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">{metric.label}</span>
+                            <span className={`text-3xl font-black mt-2 ${
+                              (metric.score || 0) >= 80 ? 'text-green-600' : (metric.score || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>{metric.score || 0}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Strengths & Areas */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-100">
+                          <h4 className="font-bold text-emerald-900 mb-3">Key Strengths</h4>
+                          <ul className="list-disc pl-5 space-y-1 text-emerald-800 text-sm">
+                            {(inspectAiEvaluation.aggregated_report?.strengths || []).map((s: string, i: number) => (
+                              <li key={i}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="bg-orange-50 p-6 rounded-xl border border-orange-100">
+                          <h4 className="font-bold text-orange-900 mb-3">Development Areas</h4>
+                          <ul className="list-disc pl-5 space-y-1 text-orange-800 text-sm">
+                            {(inspectAiEvaluation.aggregated_report?.developmentAreas || []).map((a: string, i: number) => (
+                              <li key={i}>{a}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Interview Focus */}
+                      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                        <h4 className="font-bold text-blue-900 mb-3">Suggested Interview Focus</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(inspectAiEvaluation.aggregated_report?.interviewFocus || []).map((focus: string, i: number) => (
+                            <span key={i} className="px-3 py-1 bg-white text-blue-800 rounded-full text-sm font-semibold shadow-sm border border-blue-200">
+                              {focus}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 inspectData.questions.map((q: any, index: number) => {
                   const response = inspectData.responses?.find((r: any) => r.question_id === q.id);

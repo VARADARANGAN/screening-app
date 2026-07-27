@@ -40,6 +40,7 @@ model Student {
   user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   tests                 Test[]
   eligibility_result    EligibilityResult?
+  ai_evaluations        AIEvaluation[]
 
   @@map("students")
 }
@@ -107,8 +108,34 @@ model Test {
   test_responses   TestResponse[]
   violations       Violation[]
   analytics        TestAnalytics?
+  ai_evaluation    AIEvaluation?
 
   @@map("tests")
+}
+
+model AIEvaluation {
+  id                  String   @id @default(uuid()) @db.Uuid
+  test_id             String   @unique @db.Uuid
+  student_id          String   @db.Uuid
+  
+  behaviour_evaluation Json?
+  learning_evaluation  Json?
+  ai_literacy_evaluation Json?
+  
+  aggregated_report   Json?
+  
+  model_used          String?  @default("llama3-70b-8192") @db.VarChar(100)
+  prompt_version      String?  @default("1.0") @db.VarChar(50)
+  status              String   @default("PENDING") @db.VarChar(50)
+  error_message       String?
+  
+  created_at          DateTime @default(now()) @db.Timestamp(6)
+  updated_at          DateTime @default(now()) @db.Timestamp(6)
+
+  test                Test     @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  student             Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@map("ai_evaluations")
 }
 
 model TestQuestion {
