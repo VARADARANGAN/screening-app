@@ -25,8 +25,6 @@ export default function TestManagementPage() {
 
   // Custom configuration
   const [customDuration, setCustomDuration] = useState<number | ''>('');
-  const [assessmentName, setAssessmentName] = useState<string>('Assessment');
-  const [sectionsConfig, setSectionsConfig] = useState<{name: string, displayOrder: number}[]>([]);
 
   // Filters State for Questions
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,24 +80,6 @@ export default function TestManagementPage() {
     setSelectedQuestionIds(next);
   };
 
-  // Keep section config in sync with selected questions if not explicitly defined
-  useEffect(() => {
-    const selectedQuestions = questions.filter(q => selectedQuestionIds.has(q.id));
-    const uniqueSections = Array.from(new Set(selectedQuestions.map(q => q.section || 'Aptitude')));
-    
-    // Add new sections that were selected
-    setSectionsConfig(prev => {
-      const newConfig = [...prev];
-      uniqueSections.forEach(sec => {
-        if (!newConfig.find(c => c.name === sec)) {
-          newConfig.push({ name: sec, displayOrder: newConfig.length + 1 });
-        }
-      });
-      // Remove unselected ones
-      return newConfig.filter(c => uniqueSections.includes(c.name)).map((c, i) => ({ ...c, displayOrder: i + 1 }));
-    });
-  }, [selectedQuestionIds, questions]);
-
   const handleToggleBranch = (id: string) => {
     const next = new Set(selectedBranchIds);
     if (next.has(id)) next.delete(id);
@@ -150,9 +130,7 @@ export default function TestManagementPage() {
       const response = await axios.post('/api/tests/assign', {
         questionIds: Array.from(selectedQuestionIds),
         branchIds: Array.from(selectedBranchIds),
-        totalDuration: customDuration !== '' ? Number(customDuration) : totalDurationMinutes,
-        name: assessmentName,
-        sectionsConfig: sectionsConfig
+        totalDuration: customDuration !== '' ? Number(customDuration) : totalDurationMinutes
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -161,7 +139,6 @@ export default function TestManagementPage() {
       setSelectedQuestionIds(new Set());
       setSelectedBranchIds(new Set());
       setCustomDuration('');
-      setAssessmentName('Assessment');
       setActiveTab('history');
       loadData();
     } catch (e: any) {
@@ -236,40 +213,10 @@ export default function TestManagementPage() {
         {activeTab === 'create' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             <div className="lg:col-span-2 space-y-4">
-              {/* Step 1: Settings */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                 <h2 className="text-lg font-bold text-slate-900">1. Assessment Settings</h2>
-                 <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600">Assessment Name</label>
-                    <Input
-                      placeholder="e.g. Campus Recruitment Test 2026"
-                      value={assessmentName}
-                      onChange={(e) => setAssessmentName(e.target.value)}
-                      className="w-full bg-slate-50 border-slate-200"
-                    />
-                 </div>
-                 {sectionsConfig.length > 0 && (
-                   <div className="space-y-2 mt-4">
-                      <label className="block text-xs font-semibold text-slate-600">Section Order</label>
-                      <div className="space-y-2">
-                         {sectionsConfig.map((sec, idx) => (
-                           <div key={sec.name} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200">
-                              <span className="text-sm font-semibold text-slate-700">{sec.name}</span>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => moveSection(idx, 'up')} disabled={idx === 0}>↑</Button>
-                                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => moveSection(idx, 'down')} disabled={idx === sectionsConfig.length - 1}>↓</Button>
-                              </div>
-                           </div>
-                         ))}
-                      </div>
-                   </div>
-                 )}
-              </div>
-
-              {/* Step 2: Select Questions */}
+              {/* Step 1: Select Questions */}
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-slate-900">2. Select Questions</h2>
+                  <h2 className="text-lg font-bold text-slate-900">1. Select Questions</h2>
                   <span className="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-100">
                     {selectedQuestionIds.size} Selected
                   </span>
@@ -379,10 +326,10 @@ export default function TestManagementPage() {
               </div>
             </div>
 
-            {/* Step 3: Configure & Select Branches */}
+            {/* Step 2: Configure & Select Branches */}
             <div className="space-y-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold text-slate-900">3. Assign & Publish</h2>
+                <h2 className="text-lg font-bold text-slate-900">2. Assign & Publish</h2>
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
