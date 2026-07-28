@@ -591,9 +591,11 @@ export function TestInterface({ testId }: { testId: string }) {
                           });
                           
                           // Explicitly block Ctrl/Cmd + C, V, X, A without breaking normal typing
-                          domNode.addEventListener('keydown', (e: KeyboardEvent) => {
+                          editor.onKeyDown((e) => {
                             if (e.ctrlKey || e.metaKey) {
-                              const key = e.key.toLowerCase();
+                              // monaco.KeyCode enum: KeyC is 33, KeyV is 52, KeyX is 54, KeyA is 31
+                              // Or we can just use the browser event key if available
+                              const key = e.browserEvent.key.toLowerCase();
                               if (key === 'c' || key === 'v' || key === 'x' || key === 'a') {
                                 e.preventDefault();
                                 e.stopPropagation();
