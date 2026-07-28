@@ -137,7 +137,7 @@ export async function GET(
         points_earned: tr.points_earned !== null ? Number(tr.points_earned) : null,
         ai_evaluation_json: tr.ai_evaluation_json,
       })) : undefined,
-      questions: test.test_questions.map((tq: any) => ({
+      questions: test.test_questions.filter((tq: any) => tq.question).map((tq: any) => ({
         id: tq.question.id,
         optionsJson: tq.question.options_json,
         questionText: tq.question.question_text,
@@ -196,7 +196,11 @@ export async function PATCH(
           }
         });
 
-        if (response) {
+        const question = await prisma.question.findUnique({
+          where: { id: questionId }
+        });
+
+        if (response && question) {
           let cleanCode = response.student_answer || '';
           if (cleanCode.startsWith('// === EVALUATION REMARKS ===')) {
             const parts = cleanCode.split('// ==========================\n\n');

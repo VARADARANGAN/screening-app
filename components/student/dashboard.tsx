@@ -103,6 +103,13 @@ export function StudentDashboard() {
         </div>
 
         {/* Primary Assessment Card */}
+        {tests.length === 0 ? (
+          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-12 text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📋</div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Assessment Not Available</h2>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">You currently do not have any assessments assigned to you. Please contact your recruitment team if you believe this is an error.</p>
+          </div>
+        ) : (
         <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-8 md:p-10 space-y-8">
             
@@ -110,11 +117,11 @@ export function StudentDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Duration</p>
-                <p className="text-lg font-semibold text-slate-900">60 Minutes</p>
+                <p className="text-lg font-semibold text-slate-900">{tests[0].totalDuration || 60} Minutes</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Questions</p>
-                <p className="text-lg font-semibold text-slate-900">35</p>
+                <p className="text-lg font-semibold text-slate-900">{tests[0].totalQuestions || 0}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Format</p>
@@ -153,9 +160,7 @@ export function StudentDashboard() {
                 <button
                   onClick={() => {
                     setIsLoading(true);
-                    if (tests.length > 0) {
-                      window.location.href = `/student/test/${tests[0].id}`;
-                    }
+                    window.location.href = `/student/test/${tests[0].id}`;
                   }}
                   className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold text-base px-10 py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
@@ -167,6 +172,7 @@ export function StudentDashboard() {
             
           </div>
         </div>
+        )}
       </main>
     </div>
   );

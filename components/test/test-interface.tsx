@@ -36,6 +36,8 @@ export function TestInterface({ testId }: { testId: string }) {
   const [showWarning, setShowWarning] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Security and execution state
   const submittingRef = useRef(false);
@@ -140,8 +142,11 @@ export function TestInterface({ testId }: { testId: string }) {
       if (t.status !== 'not_started') {
         setShowInstructions(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Test Load Error]', error);
+      setErrorMsg(error.response?.data?.message || 'Failed to load assessment.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -294,8 +299,46 @@ export function TestInterface({ testId }: { testId: string }) {
     }
   };
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen bg-slate-50 text-slate-500 font-bold uppercase tracking-widest">Loading Assessment...</div>;
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-slate-50 space-y-4">
+        <div className="text-4xl">⚠️</div>
+        <h2 className="text-xl font-bold text-slate-800">Assessment Not Available</h2>
+        <p className="text-slate-600">{errorMsg}</p>
+        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   if (!test) {
-    return <div className="flex justify-center items-center h-screen">Loading test...</div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-slate-50 space-y-4">
+        <div className="text-4xl">📭</div>
+        <h2 className="text-xl font-bold text-slate-800">No Assessment Found</h2>
+        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  if (!test.questions || test.questions.length === 0) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-slate-50 space-y-4">
+        <div className="text-4xl">📭</div>
+        <h2 className="text-xl font-bold text-slate-800">No Questions Found</h2>
+        <p className="text-slate-600">This assessment currently contains no questions. Please notify your administrator.</p>
+        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+          Return to Dashboard
+        </button>
+      </div>
+    );
   }
 
   const currentQuestion = test.questions[currentQuestionIndex];
