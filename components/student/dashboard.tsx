@@ -18,6 +18,7 @@ export function StudentDashboard() {
   const { user, logout } = useAuth();
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -55,6 +56,23 @@ export function StudentDashboard() {
   const handleLogout = async () => {
     await logout();
     window.location.href = '/auth/login';
+  };
+
+  const handleGenerateAssessment = async () => {
+    setIsGenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.get('/api/tests/active', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // After generation, reload dashboard data to see the new test
+      await loadDashboardData();
+    } catch (error: any) {
+      console.error('[Generate Assessment Error]', error);
+      alert(error.response?.data?.message || 'Failed to generate assessment. Please ensure there are published questions available.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   if (isLoading) {
@@ -104,10 +122,26 @@ export function StudentDashboard() {
 
         {/* Primary Assessment Card */}
         {tests.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-12 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📋</div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Assessment Not Available</h2>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">You currently do not have any assessments assigned to you. Please contact your recruitment team if you believe this is an error.</p>
+          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-12 text-center space-y-6">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-800 mb-2">Ready to begin?</h2>
+              <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                Your assessment has not been generated yet. Click the button below to dynamically build your customized aptitude and coding test.
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateAssessment}
+              disabled={isGenerating}
+              className="mx-auto w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-bold text-base px-10 py-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-200"
+            >
+              {isGenerating ? 'Generating Assessment...' : 'Initialize My Assessment'}
+              {!isGenerating && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
+            </button>
           </div>
         ) : (
         <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">

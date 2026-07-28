@@ -52,8 +52,15 @@ export async function GET(request: NextRequest) {
     const shuffled = allQuestions.sort(() => 0.5 - Math.random());
     const selectedQuestions = shuffled.slice(0, totalQuestions);
 
+    console.log('[Dev] Assessment Auto-Assignment Audit:');
+    console.log(`- Filter applied: is_published = true`);
+    console.log(`- Total published questions found: ${allQuestions.length}`);
+    console.log(`- Target questions per test: ${totalQuestions}`);
+    console.log(`- Final mapped questions for this test: ${selectedQuestions.length}`);
+
     if (selectedQuestions.length === 0) {
-      return NextResponse.json({ message: 'No questions available in the question bank' }, { status: 400 });
+      console.log('❌ Auto-Assignment Failed: No published questions available.');
+      return NextResponse.json({ message: 'No questions available in the question bank. Contact admin.' }, { status: 400 });
     }
 
     // 4. Create the Test
@@ -78,6 +85,8 @@ export async function GET(request: NextRequest) {
       return test;
     });
 
+    console.log(`✅ Auto-Assignment Success! Test ID: ${newTest.id} created for student: ${student.id}`);
+    
     return NextResponse.json({ testId: newTest.id });
   } catch (error: any) {
     console.error('[Generate Active Test Error]', error);
