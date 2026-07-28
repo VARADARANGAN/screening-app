@@ -140,6 +140,53 @@ export function StudentReport() {
                     {answer.studentAnswer || '// No code submitted'}
                   </pre>
                 </div>
+                
+                {answer.aiEvaluation && answer.aiEvaluation.evaluation_status === 'COMPLETED' && (
+                  <div className="mt-4 p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg space-y-3">
+                    <h5 className="font-bold text-xs text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                      AI Evaluation Breakdown
+                    </h5>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="font-semibold text-indigo-900">Detected Language:</span>{' '}
+                        <span className="text-indigo-800 font-mono">
+                          {answer.aiEvaluation.detected_language || answer.aiEvaluation.detectedLanguage || 'Unknown'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-indigo-900">Status:</span>{' '}
+                        <span className={`font-bold ${answer.pointsEarned !== null && Number(answer.pointsEarned) > 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          {answer.pointsEarned !== null && Number(answer.pointsEarned) > 0 ? 'Correct' : 'Incorrect'}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-indigo-900 text-xs block">AI Feedback:</span>
+                      <p className="text-indigo-800 text-xs mt-0.5">
+                        {answer.aiEvaluation.ai_feedback || answer.aiEvaluation.feedback || 'No feedback provided.'}
+                      </p>
+                    </div>
+                    {(answer.aiEvaluation.deduction_reason || answer.aiEvaluation.deductions) && (
+                      <div>
+                        <span className="font-semibold text-rose-700 text-xs block">Deduction Reason:</span>
+                        <p className="text-rose-600 text-xs mt-0.5">
+                          {answer.aiEvaluation.deduction_reason || answer.aiEvaluation.deductions}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {answer.aiEvaluation && (answer.aiEvaluation.evaluation_status === 'FAILED' || answer.aiEvaluation.evaluationStatus === 'failed') && (
+                  <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-lg">
+                    <h5 className="font-bold text-xs text-rose-800 uppercase tracking-wider flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                      AI Evaluation Failed
+                    </h5>
+                    <p className="text-rose-700 text-xs font-mono">{answer.aiEvaluation.error || 'Unknown Error'}</p>
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>

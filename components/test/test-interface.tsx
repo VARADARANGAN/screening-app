@@ -589,6 +589,18 @@ export function TestInterface({ testId }: { testId: string }) {
                             e.preventDefault();
                             e.stopPropagation();
                           });
+                          
+                          // Explicitly block Ctrl/Cmd + C, V, X, A without breaking normal typing
+                          domNode.addEventListener('keydown', (e: KeyboardEvent) => {
+                            if (e.ctrlKey || e.metaKey) {
+                              const key = e.key.toLowerCase();
+                              if (key === 'c' || key === 'v' || key === 'x' || key === 'a') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                preventAction();
+                              }
+                            }
+                          });
                         }
                       }}
                     />

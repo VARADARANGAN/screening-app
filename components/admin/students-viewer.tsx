@@ -68,25 +68,8 @@ export function StudentsViewer() {
   const [questionSearchQuery, setQuestionSearchQuery] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // Coding answers viewer state
-  const [activeTestDetail, setActiveTestDetail] = useState<any>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
-
-  const handleViewCodingAnswers = async (testId: string) => {
-    setIsDetailLoading(true);
-    setActiveTestDetail(null);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/tests/${testId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setActiveTestDetail(response.data.test);
-    } catch (error) {
-      console.error('Failed to load test details', error);
-      alert('Failed to load test answers.');
-    } finally {
-      setIsDetailLoading(false);
-    }
+  const handleViewCodingAnswers = (testId: string) => {
+    router.push(`/admin/results/${testId}`);
   };
 
   useEffect(() => {
@@ -238,16 +221,22 @@ export function StudentsViewer() {
 
   // Local filtering & search logic for students
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          s.usn?.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = searchQuery === '' || 
+                          (s.fullName || 'Unknown').toLowerCase().includes(searchLower) || 
+                          (s.usn || '').toLowerCase().includes(searchLower) ||
+                          (s.email || '').toLowerCase().includes(searchLower);
     const matchesBranch = selectedBranch === 'all' || s.branch === selectedBranch;
     return matchesSearch && matchesBranch;
   });
 
   // Local filtering & search logic for attempts
   const filteredAttempts = attempts.filter(a => {
-    const matchesSearch = a.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          a.usn?.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = searchQuery === '' ||
+                          (a.fullName || 'Unknown').toLowerCase().includes(searchLower) || 
+                          (a.usn || '').toLowerCase().includes(searchLower) ||
+                          (a.email || '').toLowerCase().includes(searchLower);
     const matchesBranch = selectedBranch === 'all' || a.branch === selectedBranch;
     return matchesSearch && matchesBranch;
   });
@@ -609,212 +598,6 @@ export function StudentsViewer() {
                   </TableBody>
                 </Table>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sub-modal: Submitted Coding Answers */}
-      {(isDetailLoading || activeTestDetail) && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">
-                  {isDetailLoading ? 'Loading answers...' : 'Submitted Coding & Descriptive Answers'}
-                </h3>
-                {activeTestDetail && (
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    For candidate: {activeTestDetail.student?.fullName || 'Student'} ({activeTestDetail.student?.usn || 'N/A'})
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveTestDetail(null)}
-                className="border-slate-200 hover:bg-slate-50 text-xs py-1 h-8 cursor-pointer"
-              >
-                Back
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/50 space-y-4">
-              {isDetailLoading ? (
-                <div className="text-center py-12 text-slate-400 text-sm">Fetching candidate responses...</div>
-              ) : activeTestDetail?.questions?.filter((q: any) => q.type === 'coding' || q.type === 'descriptive').length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-sm">No coding or descriptive questions in this test attempt.</div>
-              ) : (
-                activeTestDetail?.questions?.filter((q: any) => q.type === 'coding' || q.type === 'descriptive').map((q: any, idx: number) => {
-                  const response = activeTestDetail.responses?.find((r: any) => r.question_id === q.id);
-                  const rawAns = response?.student_answer || '';
-                  
-                  let cleanCode = rawAns;
-                  let parsedRemarks = '';
-                  if (rawAns.startsWith('// === EVALUATION REMARKS ===')) {
-                    const parts = rawAns.split('// ==========================\n\n');
-                    if (parts.length > 1) {
-                      cleanCode = parts.slice(1).join('// ==========================\n\n');
-                      const header = parts[0];
-                      const lines = header.split('\n');
-                      const remarksLines = lines.slice(1, lines.length - 1).map((l: string) => l.replace(/^\/\/\s?/, ''));
-                      parsedRemarks = remarksLines.join('\n');
-                    }
-                  }
-
-                  return (
-                    <div key={q.id} className="bg-white p-5 border border-slate-200 rounded-xl space-y-3 shadow-sm text-left">
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">
-                          {q.type === 'coding' ? 'Coding' : 'Descriptive'} Question {idx + 1}: <span className="font-medium text-slate-700">{q.questionText}</span>
-                        </h4>
-                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">
-                          <span>Max Points: {q.points || 10}</span>
-                          {q.type === 'coding' && (
-                            <span className={`font-bold ${response?.points_earned !== undefined && response?.points_earned !== null ? 'text-indigo-600' : 'text-amber-600'}`}>
-                              Earned Points: {response?.points_earned !== undefined && response?.points_earned !== null ? response.points_earned : (response?.ai_evaluation_json?.evaluation_status === 'FAILED' ? 'Evaluation Failed' : '0')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Submitted Solution:</span>
-                        <pre className="p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 whitespace-pre-wrap max-h-56 overflow-y-auto">
-                          {cleanCode || 'No answer submitted.'}
-                        </pre>
-                      </div>
-                      {q.type === 'descriptive' && (
-                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-left mt-3">
-                          <h5 className="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            {(!response?.evaluation_status || response.evaluation_status === 'PENDING') ? (
-                              <>
-                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Pending Evaluation
-                              </>
-                            ) : response.evaluation_status === 'COMPLETED' ? (
-                              <>
-                                <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                                Evaluation Completed
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                {response.evaluation_status}
-                              </>
-                            )}
-                          </h5>
-                        </div>
-                      )}
-                      {response?.ai_evaluation_json && 
-                       (response.ai_evaluation_json.evaluation_status === 'PENDING' || response.ai_evaluation_json.evaluation_status === 'PROCESSING') && (
-                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl space-y-3 text-left">
-                          <h5 className="font-bold text-xs text-yellow-800 uppercase tracking-wider flex items-center gap-2">
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-                            AI Evaluation in Progress
-                          </h5>
-                          <p className="text-yellow-700 text-sm">The code is currently being analyzed by the AI evaluator. Please refresh the page in a few moments.</p>
-                        </div>
-                      )}
-
-                      {response?.ai_evaluation_json && (response.ai_evaluation_json.evaluation_status === 'FAILED' || response.ai_evaluation_json.evaluationStatus === 'failed') && (
-                        <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-2 text-left">
-                          <div className="flex justify-between items-start">
-                            <h5 className="font-bold text-xs text-red-800 uppercase tracking-wider flex items-center gap-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                              AI Evaluation Failed
-                            </h5>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(`/api/tests/${activeTestDetail.id}/reevaluate`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                                    body: JSON.stringify({ questionId: q.id })
-                                  });
-                                  if (res.ok) {
-                                    alert('Re-evaluation triggered successfully! Please refresh the page in a few moments.');
-                                  } else {
-                                    const data = await res.json();
-                                    alert(`Error: ${data.message}`);
-                                  }
-                                } catch (err) {
-                                  alert('Failed to trigger re-evaluation');
-                                }
-                              }}
-                              className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-semibold rounded transition-colors"
-                            >
-                              Retry AI Evaluation
-                            </button>
-                          </div>
-                          <p className="text-red-700 text-xs">Automated evaluation failed. You can retry or manually grade below. Error details:</p>
-                          <div className="p-2.5 bg-red-100/80 rounded text-xs font-mono text-red-900 overflow-x-auto">
-                            {response.ai_evaluation_json.error || 'Unknown API failure'}
-                          </div>
-                        </div>
-                      )}
-
-                      {response?.ai_evaluation_json && response.ai_evaluation_json.evaluation_status === 'COMPLETED' && (
-                        <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3 text-left">
-                          <h5 className="font-bold text-xs text-blue-800 uppercase tracking-wider flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            AI Evaluation Breakdown
-                          </h5>
-                          <div className="grid grid-cols-2 gap-3 text-xs">
-                            <div>
-                              <span className="font-semibold text-blue-900">Detected Language:</span>{' '}
-                              <span className="text-blue-800 font-mono">
-                                {response.ai_evaluation_json.detected_language || response.ai_evaluation_json.detectedLanguage || 'N/A'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-semibold text-blue-900">Marks Awarded:</span>{' '}
-                              <span className="text-blue-800 font-bold">
-                                {response.ai_evaluation_json.marks_awarded !== undefined ? response.ai_evaluation_json.marks_awarded : (response.ai_evaluation_json.marksAwarded || 0)} / {response.ai_evaluation_json.total_marks || q.points || 10}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-semibold text-blue-900">Status:</span>{' '}
-                              <span className={`font-bold ${response.points_earned !== null && Number(response.points_earned) > 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
-                                {response.points_earned !== null && Number(response.points_earned) > 0 ? 'Correct' : 'Incorrect'}
-                              </span>
-                            </div>
-                            {(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt) && (
-                              <div>
-                                <span className="font-semibold text-blue-900">Evaluated At:</span>{' '}
-                                <span className="text-blue-800 font-mono text-[11px]">
-                                  {new Date(response.ai_evaluation_json.evaluated_at || response.ai_evaluation_json.evaluatedAt).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-blue-900 text-xs block">AI Feedback:</span>
-                            <p className="text-blue-800 text-xs mt-0.5">
-                              {response.ai_evaluation_json.ai_feedback || response.ai_evaluation_json.feedback || 'No feedback provided.'}
-                            </p>
-                          </div>
-                          {(response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions) && (
-                            <div>
-                              <span className="font-semibold text-rose-700 text-xs block">Deduction Reason:</span>
-                              <p className="text-rose-600 text-xs mt-0.5">
-                                {response.ai_evaluation_json.deduction_reason || response.ai_evaluation_json.deductions}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {parsedRemarks && (
-                        <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900">
-                          <strong className="block font-bold text-indigo-950 uppercase tracking-wider mb-0.5 text-[10px]">Assessor Evaluation Notes:</strong>
-                          <p className="whitespace-pre-wrap">{parsedRemarks}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
             </div>
           </div>
         </div>

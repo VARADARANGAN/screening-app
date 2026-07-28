@@ -58,7 +58,8 @@ export async function GET(
         question: r.question.question_text,
         studentAnswer: r.student_answer,
         pointsEarned: r.points_earned,
-        maxPoints: r.question.points
+        maxPoints: r.question.points,
+        aiEvaluation: r.ai_evaluation_json
       }));
 
     return NextResponse.json({
