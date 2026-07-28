@@ -11,22 +11,19 @@ import { mapQuestionPayload } from '@/lib/questionMapper';
 
 // --- Configuration Data ---
 const ASSESSMENTS = [
-  { id: 'ELIGIBILITY', title: 'Eligibility', desc: 'Create recruiter screening questions that determine candidate eligibility before the assessment begins.', icon: '📋' },
   { id: 'APTITUDE', title: 'Aptitude', desc: 'Quantitative Ability, Logical Reasoning, Verbal Ability.', icon: '🧠' },
   { id: 'CODING', title: 'Coding', desc: 'Programming Challenges and Coding MCQs.', icon: '💻' },
-  { id: 'BEHAVIOUR', title: 'Behaviour', desc: 'Scenario-based professional behaviour questions.', icon: '🤝' },
-  { id: 'LEARNING', title: 'Learning', desc: 'Evaluate learning agility and comprehension.', icon: '📚' },
-  { id: 'AI_LITERACY', title: 'AI Literacy', desc: 'Assess prompt engineering and AI tool proficiency.', icon: '🤖' },
-  { id: 'PRACTICAL', title: 'Practical', desc: 'Hands-on practical tasks.', icon: '🛠️' },
+  { id: 'ELIGIBILITY', title: 'Eligibility', desc: 'Screening questions to determine candidate eligibility.', icon: '📋' },
+  { id: 'ATTITUDE_AND_OWNERSHIP', title: 'Attitude & Ownership', desc: 'Evaluate candidate ownership and attitude.', icon: '🤝' },
+  { id: 'LEARNING_APTITUDE', title: 'Learning Aptitude', desc: 'Evaluate learning agility and comprehension.', icon: '📚' },
+  { id: 'PROBLEM_SOLVING', title: 'Problem Solving', desc: 'Assess problem solving strategies and logic.', icon: '🧩' },
+  { id: 'EXECUTION_AND_RELIABILITY', title: 'Execution & Reliability', desc: 'Evaluate task execution and planning.', icon: '⚙️' },
+  { id: 'COMMUNICATION_AND_TEAMWORK', title: 'Communication & Teamwork', desc: 'Assess written communication and teamwork.', icon: '🗣️' },
+  { id: 'INTEGRITY', title: 'Integrity', desc: 'Evaluate ethical behavior and integrity.', icon: '⚖️' },
+  { id: 'AI_LITERACY', title: 'AI Literacy', desc: 'Assess prompt engineering and AI tool proficiency.', icon: '🤖' }
 ];
 
 const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
-  ELIGIBILITY: [
-    { id: 'yes_no', label: 'Yes / No' },
-    { id: 'mcq', label: 'Multiple Choice (MCQ)' },
-    { id: 'numeric', label: 'Numeric Input' },
-    { id: 'short_answer', label: 'Short Answer' }
-  ],
   APTITUDE: [
     { id: 'mcq', label: 'Multiple Choice (MCQ)' }
   ],
@@ -34,23 +31,42 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
     { id: 'coding', label: 'Coding Challenge' },
     { id: 'coding_mcq', label: 'Coding MCQ' }
   ],
-  BEHAVIOUR: [
-    { id: 'descriptive', label: 'Descriptive' },
-    { id: 'scenario', label: 'Scenario Based' }
+  ELIGIBILITY: [
+    { id: 'single_select', label: 'Single Select' },
+    { id: 'date', label: 'Date' },
+    { id: 'open_text', label: 'Open Text' }
   ],
-  LEARNING: [
-    { id: 'descriptive', label: 'Descriptive' },
-    { id: 'case_study', label: 'Case Study' },
-    { id: 'mcq', label: 'MCQ' }
+  ATTITUDE_AND_OWNERSHIP: [
+    { id: 'single_select', label: 'Single Select' },
+    { id: 'open_text', label: 'Open Text' },
+    { id: 'ranking', label: 'Ranking' }
+  ],
+  LEARNING_APTITUDE: [
+    { id: 'open_text', label: 'Open Text' },
+    { id: 'structured_response', label: 'Structured Response' },
+    { id: 'code_response', label: 'Code Response' }
+  ],
+  PROBLEM_SOLVING: [
+    { id: 'structured_response', label: 'Structured Response' },
+    { id: 'open_text', label: 'Open Text' },
+    { id: 'code_review', label: 'Code Review' }
+  ],
+  EXECUTION_AND_RELIABILITY: [
+    { id: 'structured_plan', label: 'Structured Plan' },
+    { id: 'open_text', label: 'Open Text' }
+  ],
+  COMMUNICATION_AND_TEAMWORK: [
+    { id: 'open_text', label: 'Open Text' }
+  ],
+  INTEGRITY: [
+    { id: 'single_select', label: 'Single Select' },
+    { id: 'open_text', label: 'Open Text' }
   ],
   AI_LITERACY: [
-    { id: 'mcq', label: 'MCQ' },
-    { id: 'descriptive', label: 'Descriptive' },
-    { id: 'ai_scenario', label: 'Scenario Based' }
-  ],
-  PRACTICAL: [
-    { id: 'practical_task', label: 'Practical Task' },
-    { id: 'descriptive', label: 'Descriptive' }
+    { id: 'multi_select', label: 'Multi Select' },
+    { id: 'prompt_writing', label: 'Prompt Writing' },
+    { id: 'code_review', label: 'Code Review' },
+    { id: 'open_text', label: 'Open Text' }
   ]
 };
 
@@ -143,7 +159,7 @@ export default function CreateQuestionPage() {
         isPublished: status === 'published'
       };
 
-      if (type === 'mcq' || type === 'yes_no') {
+      if (type === 'mcq' || type === 'yes_no' || type === 'single_select' || type === 'multi_select' || type === 'coding_mcq') {
         rawData.options = options;
         rawData.correctAnswer = correctAnswer;
       }
@@ -168,7 +184,7 @@ export default function CreateQuestionPage() {
         rawData.caseStudySupportingInfo = caseStudySupportingInfo;
       }
 
-      if (['descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type)) {
+      if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
         rawData.minCharacters = minCharacters;
         rawData.maxCharacters = maxCharacters;
       }
@@ -359,7 +375,7 @@ export default function CreateQuestionPage() {
                 </div>
 
                 {/* Eligibility / Descriptive toggles */}
-                {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task'].includes(type) && (
+                {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type) && (
                   <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">Required Question</h4>
@@ -373,7 +389,7 @@ export default function CreateQuestionPage() {
                 )}
 
                 {/* MCQ Options */}
-                {['mcq', 'coding_mcq'].includes(type) && (
+                {['mcq', 'coding_mcq', 'single_select', 'multi_select'].includes(type) && (
                   <div className="space-y-4">
                     <h3 className="font-bold text-slate-800 text-sm">Options & Correct Answer</h3>
                     <div className="space-y-3">
@@ -490,7 +506,7 @@ export default function CreateQuestionPage() {
                 )}
 
                 {/* Config Metadata (Duration/Length) */}
-                {['descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type) && (
+                {['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type) && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-5 bg-slate-50 border border-slate-100 rounded-xl">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Duration (mins)</label>
@@ -573,7 +589,7 @@ export default function CreateQuestionPage() {
                     </div>
                   </div>
 
-                  {['mcq', 'coding_mcq'].includes(type) && (
+                  {['mcq', 'coding_mcq', 'single_select', 'multi_select'].includes(type) && (
                     <div>
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Options</h3>
                       <div className="space-y-2">

@@ -66,6 +66,7 @@ export function StudentsViewer() {
   const [round2Duration, setRound2Duration] = useState(60);
   const [isQuestionsLoading, setIsQuestionsLoading] = useState(false);
   const [questionSearchQuery, setQuestionSearchQuery] = useState('');
+  const [selectedQuestionSection, setSelectedQuestionSection] = useState('all');
   const [isPublishing, setIsPublishing] = useState(false);
 
   const handleViewCodingAnswers = (testId: string) => {
@@ -242,7 +243,8 @@ export function StudentsViewer() {
   });
 
   const filteredQuestions = availableQuestions.filter(q => 
-    q.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase())
+    q.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase()) &&
+    (selectedQuestionSection === 'all' || q.section === selectedQuestionSection)
   );
 
   return (
@@ -631,6 +633,26 @@ export function StudentsViewer() {
                   className="bg-white border-slate-200"
                 />
               </div>
+              <div className="w-64">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Section</label>
+                <select
+                  value={selectedQuestionSection}
+                  onChange={(e) => setSelectedQuestionSection(e.target.value)}
+                  className="w-full px-3.5 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700"
+                >
+                  <option value="all">All Sections</option>
+                  <option value="APTITUDE">Aptitude</option>
+                  <option value="CODING">Coding</option>
+                  <option value="ELIGIBILITY">Eligibility</option>
+                  <option value="ATTITUDE_AND_OWNERSHIP">Attitude & Ownership</option>
+                  <option value="LEARNING_APTITUDE">Learning Aptitude</option>
+                  <option value="PROBLEM_SOLVING">Problem Solving</option>
+                  <option value="EXECUTION_AND_RELIABILITY">Execution & Reliability</option>
+                  <option value="COMMUNICATION_AND_TEAMWORK">Communication & Teamwork</option>
+                  <option value="INTEGRITY">Integrity</option>
+                  <option value="AI_LITERACY">AI Literacy</option>
+                </select>
+              </div>
               <div className="w-32">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Duration (mins)</label>
                 <Input
@@ -656,7 +678,7 @@ export function StudentsViewer() {
                       />
                     </TableHead>
                     <TableHead className="font-semibold text-slate-700">Question Content</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-32">Type</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32">Section</TableHead>
                     <TableHead className="font-semibold text-slate-700 w-24 text-center">Marks</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -684,10 +706,8 @@ export function StudentsViewer() {
                           <div className="truncate text-xs" title={q.question_text}>{q.question_text}</div>
                         </TableCell>
                         <TableCell className="w-32">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                            q.type === 'mcq' ? 'bg-blue-50 text-blue-700' : 'bg-indigo-50 text-indigo-700'
-                          }`}>
-                            {q.type === 'mcq' ? 'MCQ' : 'Coding'}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700">
+                            {(q.section || 'APTITUDE').replace(/_/g, ' ')}
                           </span>
                         </TableCell>
                         <TableCell className="w-24 text-center text-slate-600 font-semibold text-xs">

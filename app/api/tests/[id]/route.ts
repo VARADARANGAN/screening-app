@@ -139,6 +139,7 @@ export async function GET(
       })) : undefined,
       questions: test.test_questions.filter((tq: any) => tq.question).map((tq: any) => ({
         id: tq.question.id,
+        section: tq.question.section,
         optionsJson: tq.question.options_json,
         questionText: tq.question.question_text,
         type: tq.question.type,

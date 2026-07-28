@@ -30,6 +30,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [test, setTest] = useState<TestData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [violations, setViolations] = useState<string[]>([]);
@@ -65,10 +66,11 @@ export function TestInterface({ testId }: { testId: string }) {
     if (test && test.status === 'in_progress') {
       localStorage.setItem(`testState_${testId}`, JSON.stringify({
         timeRemaining,
-        currentQuestionIndex
+        currentQuestionIndex,
+        flags
       }));
     }
-  }, [timeRemaining, currentQuestionIndex, test, testId]);
+  }, [timeRemaining, currentQuestionIndex, flags, test, testId]);
 
   // Ping heartbeat every 30 seconds to update updated_at on backend
   useEffect(() => {
@@ -122,6 +124,9 @@ export function TestInterface({ testId }: { testId: string }) {
           if (savedState.currentQuestionIndex !== undefined) {
             setCurrentQuestionIndex(savedState.currentQuestionIndex);
           }
+          if (savedState.flags !== undefined) {
+            setFlags(savedState.flags);
+          }
         } catch (e) {
           setTimeRemaining(t.total_duration * 60);
         }
@@ -173,6 +178,10 @@ export function TestInterface({ testId }: { testId: string }) {
 
   const recordViolation = (type: string) => {
     setViolations((prev) => [...prev, type]);
+  };
+
+  const handleToggleFlag = (questionId: string) => {
+    setFlags((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
   const handleAnswerChange = useCallback((questionId: string, answer: string) => {
@@ -257,12 +266,24 @@ export function TestInterface({ testId }: { testId: string }) {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
+      const responsesPayload = Object.entries(answers).map(([qId, ans]) => {
+        const qObj = test.questions.find((q: any) => q.id === qId);
+        return {
+          questionId: qId,
+          section: qObj?.section || 'Uncategorized',
+          questionType: qObj?.type || 'descriptive',
+          answer: ans
+        };
+      });
+
       await axios.post(
         `/api/tests/${testId}/submit`,
         {
-          answers,
+          assessmentId: test.id,
+          studentId: test.student_id || '',
+          responses: responsesPayload,
           violations,
-          completedAt: new Date().toISOString(),
+          submittedAt: new Date().toISOString(),
           status: isTimeout ? 'auto_submitted' : 'submitted'
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -400,73 +421,84 @@ export function TestInterface({ testId }: { testId: string }) {
       )}
 
       {/* Left Sidebar - Question Navigator */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col h-full">
+      <div className="w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0">
         <div className="p-6 border-b border-slate-100 space-y-1">
           <h2 className="font-extrabold text-slate-900 text-base tracking-tight">Question Navigator</h2>
-          <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            Question {currentQuestionIndex + 1} of {test.questions.length}
-          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {Object.entries(
             test.questions.reduce((acc, q, idx) => {
-              const sectionName = q.section || 'APTITUDE';
-              if (!acc[sectionName]) acc[sectionName] = [];
-              acc[sectionName].push({ ...q, originalIndex: idx });
+              const sectionName = q.section || 'General';
+              const upperSection = sectionName.toUpperCase();
+              if (!acc[upperSection]) acc[upperSection] = [];
+              acc[upperSection].push({ ...q, originalIndex: idx });
               return acc;
             }, {} as Record<string, any[]>)
           ).map(([sectionName, sectionQuestions]) => (
-            <div key={sectionName} className="space-y-1.5">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 mb-2">{sectionName.replace(/_/g, ' ')}</h3>
-              {sectionQuestions.map((q) => {
-                const idx = q.originalIndex;
-                const isSelected = currentQuestionIndex === idx;
-                const isAnswered = answers[q.id] && answers[q.id].trim().length > 0;
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => setCurrentQuestionIndex(idx)}
-                    className={`w-full text-left p-3.5 rounded-xl font-semibold transition text-xs flex items-center justify-between border ${
-                      isSelected
-                        ? 'bg-blue-50 text-blue-900 border-blue-200'
-                        : isAnswered
-                          ? 'bg-slate-50/50 text-slate-700 border-slate-100 hover:bg-slate-50'
-                          : 'bg-white text-slate-600 border-transparent hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
-                        isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <span className="truncate max-w-[150px]">{q.type === 'coding' ? 'Coding Challenge' : 'Multiple Choice'}</span>
-                    </div>
-                    {isAnswered && (
-                      <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
-                        ✓ Saved
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            <div key={sectionName} className="space-y-4">
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{sectionName.replace(/_/g, ' ')}</h3>
+              <div className="grid grid-cols-5 gap-3">
+                {sectionQuestions.map((q) => {
+                  const idx = q.originalIndex;
+                  const isSelected = currentQuestionIndex === idx;
+                  const isAnswered = answers[q.id] && answers[q.id].trim().length > 0 && answers[q.id] !== '[]';
+                  const isFlagged = flags[q.id];
+                  
+                  let bgClass = "bg-slate-100 text-slate-600 border-transparent";
+                  if (isSelected) {
+                    bgClass = "bg-slate-50 text-slate-900 border-blue-500 border-2";
+                  } else if (isAnswered && isFlagged) {
+                    bgClass = "bg-emerald-500 text-white border-yellow-400 border-[3px]";
+                  } else if (isAnswered) {
+                    bgClass = "bg-emerald-500 text-white border-transparent";
+                  } else if (isFlagged) {
+                    bgClass = "bg-yellow-400 text-yellow-900 border-transparent";
+                  }
+
+                  return (
+                    <button
+                      key={q.id}
+                      onClick={() => setCurrentQuestionIndex(idx)}
+                      className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center transition-all hover:-translate-y-0.5 hover:shadow-md ${bgClass}`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ))}
+        </div>
+        
+        {/* Status Legend */}
+        <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
+          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Legend</h4>
+          <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Answered</div>
+            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-slate-200"></span> Not Answered</div>
+            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400"></span> Flagged</div>
+            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2 border-blue-500 bg-slate-50"></span> Current</div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
         {/* Header */}
-        <div className="bg-white p-5 flex justify-between items-center border-b border-slate-200 sticky top-0 z-10">
-          <h1 className="text-sm font-extrabold text-slate-800 tracking-tight uppercase">
-             {studentBranch} drive
-          </h1>
-          <div className={`text-xl font-bold font-mono px-3.5 py-1.5 rounded-xl border flex items-center gap-2 ${
+        <div className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-10 shrink-0 shadow-sm">
+          <div className="space-y-1">
+            <h1 className="text-sm font-extrabold text-slate-800 tracking-tight uppercase">
+               {studentBranch} drive
+            </h1>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+               Question {currentQuestionIndex + 1} of {test.questions.length} • {currentQuestion.section || 'General'}
+            </div>
+          </div>
+          <div className={`text-lg font-bold font-mono px-4 py-1.5 rounded-xl border flex items-center gap-2 ${
             timeRemaining < 300 
-              ? 'text-rose-600 border-rose-100 bg-rose-50 animate-pulse' 
-              : 'text-slate-800 border-slate-200 bg-slate-50'
+              ? 'text-rose-600 border-rose-100 bg-rose-50 animate-pulse shadow-sm' 
+              : 'text-slate-800 border-slate-200 bg-slate-50 shadow-sm'
           }`}>
             <span>⏱️</span>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -475,160 +507,338 @@ export function TestInterface({ testId }: { testId: string }) {
 
         {/* Question */}
         <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-4xl space-y-6">
-            <div className="space-y-2 text-left">
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : 'MCQ'}
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="space-y-4 text-left">
+              <div className="flex justify-between items-start">
+                <div className="text-xl font-black text-slate-900 leading-relaxed flex-1 prose prose-slate">
+                  <MarkdownRenderer content={currentQuestion.questionText} />
+                </div>
+                <button
+                  onClick={() => handleToggleFlag(currentQuestion.id)}
+                  className={`ml-6 px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 shadow-sm shrink-0 ${
+                    flags[currentQuestion.id] 
+                      ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  🚩 {flags[currentQuestion.id] ? 'Remove Flag' : 'Flag for Review'}
+                </button>
               </div>
-              <div className="text-xl font-black text-slate-900 leading-tight">
-                <MarkdownRenderer content={currentQuestion.questionText} />
-              </div>
-              <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
+              <div className="inline-flex text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
                 Points: {currentQuestion.points || 10}
               </div>
-
             </div>
 
             {/* Answer Input */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
-              {currentQuestion.type === 'mcq' && currentQuestion.optionsJson && (
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm font-semibold text-slate-600">Select one option:</span>
-                    {answers[currentQuestion.id] && (
-                      <button
-                        onClick={() => handleClearAnswer(currentQuestion.id)}
-                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
-                      >
-                        Clear Selection
-                      </button>
-                    )}
-                  </div>
-                  {(() => {
-                    const optionsArray = Array.isArray(currentQuestion.optionsJson) 
-                      ? currentQuestion.optionsJson 
-                      : (currentQuestion.optionsJson?.options || []);
-                    return optionsArray.map((option: any, idx: number) => {
-                    const optionVal = typeof option === 'object' && option !== null && 'text' in option ? option.text : String(option);
-                    const isSelected = answers[currentQuestion.id] === optionVal;
-                    return (
-                      <label 
-                        key={idx} 
-                        className={`flex items-center p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer ${
-                          isSelected ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${currentQuestion.id}`}
-                          value={optionVal}
-                          checked={isSelected}
-                          onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                          className="mr-3 text-blue-600 focus:ring-blue-500 rounded-full"
-                        />
-                        <span className="text-sm font-semibold text-slate-700">{optionVal}</span>
-                      </label>
-                    );
-                  });
-                  })()}
-                </div>
-              )}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+              {(() => {
+                const type = String(currentQuestion.type || '').toLowerCase().replace(/[\s-]/g, '_');
+                
+                // MCQ, Single Select, Multi Select, Yes/No
+                if (['mcq', 'coding_mcq', 'single_select', 'multi_select', 'yes_no'].includes(type)) {
+                  const optionsArray = Array.isArray(currentQuestion.optionsJson) 
+                    ? currentQuestion.optionsJson 
+                    : (currentQuestion.optionsJson?.options || []);
+                  
+                  const isMultiSelect = type === 'multi_select';
+                  let selectedAnswers: string[] = [];
+                  if (isMultiSelect && answers[currentQuestion.id]) {
+                    try {
+                      selectedAnswers = JSON.parse(answers[currentQuestion.id]);
+                    } catch {
+                      selectedAnswers = [answers[currentQuestion.id]];
+                    }
+                  }
 
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                        <span className="text-sm font-bold text-slate-700">Select your answer:</span>
+                        {answers[currentQuestion.id] && answers[currentQuestion.id] !== '[]' && (
+                          <button
+                            onClick={() => handleClearAnswer(currentQuestion.id)}
+                            className="text-xs font-bold text-slate-400 hover:text-rose-600 transition underline underline-offset-4"
+                          >
+                            Clear Selection
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-3">
+                        {optionsArray.map((option: any, idx: number) => {
+                          const optionVal = typeof option === 'object' && option !== null && 'text' in option ? option.text : String(option);
+                          const isSelected = isMultiSelect 
+                            ? selectedAnswers.includes(optionVal)
+                            : answers[currentQuestion.id] === optionVal;
 
+                          return (
+                            <label 
+                              key={idx} 
+                              className={`flex items-center p-4 border-2 rounded-2xl transition-all cursor-pointer ${
+                                isSelected ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              <input
+                                type={isMultiSelect ? "checkbox" : "radio"}
+                                name={`question-${currentQuestion.id}`}
+                                value={optionVal}
+                                checked={isSelected}
+                                onChange={() => {
+                                  if (isMultiSelect) {
+                                    const newArr = isSelected 
+                                      ? selectedAnswers.filter((a: string) => a !== optionVal)
+                                      : [...selectedAnswers, optionVal];
+                                    handleAnswerChange(currentQuestion.id, JSON.stringify(newArr));
+                                  } else {
+                                    handleAnswerChange(currentQuestion.id, optionVal);
+                                  }
+                                }}
+                                className={`mr-4 w-5 h-5 text-blue-600 focus:ring-blue-500 border-slate-300 ${isMultiSelect ? 'rounded' : 'rounded-full'}`}
+                              />
+                              <span className={`text-base font-semibold ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{optionVal}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
 
-              {currentQuestion.type === 'coding' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Solution Editor</span>
-                    {answers[currentQuestion.id] && (
-                      <button
-                        onClick={() => handleClearAnswer(currentQuestion.id)}
-                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
-                      >
-                        Clear Code
-                      </button>
-                    )}
-                  </div>
+                // Numeric Input
+                if (['numeric', 'numerical'].includes(type)) {
+                  return (
+                    <div className="space-y-4">
+                      <label className="text-sm font-bold text-slate-700">Enter your numeric answer:</label>
+                      <Input
+                        type="number"
+                        value={answers[currentQuestion.id] || ''}
+                        onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                        className="max-w-xs text-lg py-6 bg-slate-50 border-slate-200"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  );
+                }
 
-                  <div className="h-80 border border-slate-200 rounded-xl overflow-hidden shadow-inner">
-                    <Editor
-                      height="100%"
-                      defaultLanguage="javascript"
-                      theme="vs-dark"
-                      value={answers[currentQuestion.id] || ''}
-                      onChange={(value) => handleAnswerChange(currentQuestion.id, value || '')}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        wordWrap: 'on',
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        tabSize: 2,
-                        contextmenu: false,
-                        dragAndDrop: false,
-                      }}
-                      onMount={(editor, monaco) => {
-                        const preventAction = () => {
-                          alert('Copy and paste are disabled during the coding test.');
-                          recordViolation('Copy/Paste attempted in editor');
-                        };
+                // Date Picker
+                if (type === 'date') {
+                  return (
+                    <div className="space-y-4">
+                      <label className="text-sm font-bold text-slate-700">Select Date:</label>
+                      <Input
+                        type="date"
+                        value={answers[currentQuestion.id] || ''}
+                        onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                        className="max-w-xs text-lg py-6 bg-slate-50 border-slate-200"
+                      />
+                    </div>
+                  );
+                }
 
-                        // Disable Copy, Paste, Cut via native DOM events
-                        const domNode = editor.getDomNode();
-                        if (domNode) {
-                          const handleProhibited = (e: Event) => {
-                            e.preventDefault();
-                            preventAction();
-                          };
-                          domNode.addEventListener('copy', handleProhibited);
-                          domNode.addEventListener('paste', handleProhibited);
-                          domNode.addEventListener('cut', handleProhibited);
-                          
-                          // Prevent native context menu from being triggered inside the editor container
-                          domNode.addEventListener('contextmenu', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          });
-                          
-                          // Explicitly block Ctrl/Cmd + C, V, X, A without breaking normal typing
-                          editor.onKeyDown((e) => {
-                            if (e.ctrlKey || e.metaKey) {
-                              // monaco.KeyCode enum: KeyC is 33, KeyV is 52, KeyX is 54, KeyA is 31
-                              // Or we can just use the browser event key if available
-                              const key = e.browserEvent.key.toLowerCase();
-                              if (key === 'c' || key === 'v' || key === 'x' || key === 'a') {
+                // Textareas (Open Text, Descriptive, Prompt Writing, Code Review, Short Answer)
+                if (['open_text', 'descriptive', 'prompt_writing', 'code_review', 'short_answer'].includes(type)) {
+                  const val = answers[currentQuestion.id] || '';
+                  const wordCount = val.trim() ? val.trim().split(/\s+/).length : 0;
+                  return (
+                    <div className="space-y-4">
+                      <label className="text-sm font-bold text-slate-700">Your Response:</label>
+                      <textarea
+                        value={val}
+                        onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                        className="w-full min-h-[250px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y"
+                        placeholder="Type your response here..."
+                      />
+                      {type === 'prompt_writing' && (
+                        <div className="text-xs text-slate-400 font-bold text-right">Word Count: {wordCount}</div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Ranking (Simple Array Reordering)
+                if (type === 'ranking') {
+                  const optionsArray = Array.isArray(currentQuestion.optionsJson) 
+                    ? currentQuestion.optionsJson 
+                    : (currentQuestion.optionsJson?.options || []);
+                  
+                  let ordered: string[] = [];
+                  if (answers[currentQuestion.id]) {
+                    try { ordered = JSON.parse(answers[currentQuestion.id]); } catch {}
+                  }
+                  
+                  // Initialize if empty
+                  if (ordered.length === 0 && optionsArray.length > 0) {
+                    ordered = optionsArray.map((o: any) => typeof o === 'object' && o !== null && 'text' in o ? o.text : String(o));
+                  }
+
+                  const moveItem = (index: number, dir: number) => {
+                    if (index + dir < 0 || index + dir >= ordered.length) return;
+                    const newOrdered = [...ordered];
+                    const temp = newOrdered[index];
+                    newOrdered[index] = newOrdered[index + dir];
+                    newOrdered[index + dir] = temp;
+                    handleAnswerChange(currentQuestion.id, JSON.stringify(newOrdered));
+                  };
+
+                  if (ordered.length === 0) {
+                    return <div className="text-slate-400 italic">No ranking options provided for this question.</div>;
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <p className="text-sm font-bold text-slate-700 mb-4">Rank the items in order (1 is highest):</p>
+                      <div className="space-y-2">
+                        {ordered.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
+                            <div className="font-bold text-slate-400 w-6 text-center">{idx + 1}</div>
+                            <div className="flex-1 font-semibold text-slate-800">{item}</div>
+                            <div className="flex gap-2">
+                              <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-100 shadow-sm font-bold">↑</button>
+                              <button onClick={() => moveItem(idx, 1)} disabled={idx === ordered.length - 1} className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-100 shadow-sm font-bold">↓</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Structured Response / Structured Plan
+                if (['structured_response', 'structured_plan'].includes(type)) {
+                  let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.steps;
+                  if (!Array.isArray(fields) || fields.length === 0) {
+                    fields = type === 'structured_plan' 
+                      ? ['Step 1', 'Step 2', 'Step 3'] 
+                      : ['Problem Statement', 'Approach', 'Implementation Details', 'Limitations'];
+                  }
+
+                  let structuredAnswers: Record<string, string> = {};
+                  if (answers[currentQuestion.id]) {
+                    try { structuredAnswers = JSON.parse(answers[currentQuestion.id]); } catch {}
+                  }
+
+                  const updateField = (field: string, val: string) => {
+                    const newAnswers = { ...structuredAnswers, [field]: val };
+                    handleAnswerChange(currentQuestion.id, JSON.stringify(newAnswers));
+                  };
+
+                  return (
+                    <div className="space-y-6">
+                      {fields.map((field: string, idx: number) => (
+                        <div key={idx} className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">{field}:</label>
+                          <textarea
+                            value={structuredAnswers[field] || ''}
+                            onChange={(e) => updateField(field, e.target.value)}
+                            className="w-full min-h-[100px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y text-sm"
+                            placeholder={`Enter ${field}...`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                // Coding / Code Response
+                if (['coding', 'coding_challenge', 'code_response'].includes(type)) {
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+                        <span className="text-sm font-bold text-slate-700">Solution Editor</span>
+                        {answers[currentQuestion.id] && (
+                          <button
+                            onClick={() => handleClearAnswer(currentQuestion.id)}
+                            className="text-xs font-bold text-slate-400 hover:text-rose-600 transition underline underline-offset-4"
+                          >
+                            Clear Code
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="h-[400px] border border-slate-200 rounded-2xl overflow-hidden shadow-inner">
+                        <Editor
+                          height="100%"
+                          defaultLanguage="javascript"
+                          theme="vs-dark"
+                          value={answers[currentQuestion.id] || ''}
+                          onChange={(value) => handleAnswerChange(currentQuestion.id, value || '')}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            tabSize: 2,
+                            contextmenu: false,
+                            dragAndDrop: false,
+                            padding: { top: 16, bottom: 16 }
+                          }}
+                          onMount={(editor, monaco) => {
+                            const preventAction = () => {
+                              alert('Copy and paste are disabled during the coding test.');
+                              recordViolation('Copy/Paste attempted in editor');
+                            };
+
+                            const domNode = editor.getDomNode();
+                            if (domNode) {
+                              const handleProhibited = (e: Event) => {
+                                e.preventDefault();
+                                preventAction();
+                              };
+                              domNode.addEventListener('copy', handleProhibited);
+                              domNode.addEventListener('paste', handleProhibited);
+                              domNode.addEventListener('cut', handleProhibited);
+                              
+                              domNode.addEventListener('contextmenu', (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                preventAction();
-                              }
+                              });
+                              
+                              editor.onKeyDown((e) => {
+                                if (e.ctrlKey || e.metaKey) {
+                                  const key = e.browserEvent.key.toLowerCase();
+                                  if (key === 'c' || key === 'v' || key === 'x' || key === 'a') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    preventAction();
+                                  }
+                                }
+                              });
                             }
-                          });
-                        }
-                      }}
-                    />
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Fallback for unknown types
+                return (
+                  <div className="text-center py-10 text-slate-400 font-bold">
+                    Unsupported question type ({type}). Please contact your administrator.
                   </div>
-                </div>
-              )}
-
-
+                );
+              })()}
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="bg-white shadow-lg p-4 flex justify-between gap-4">
-          <button
-            onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-            disabled={currentQuestionIndex === 0}
-            className="bg-gray-300 hover:bg-gray-400 disabled:opacity-50 text-gray-900 font-medium py-2 px-6 rounded-md"
-          >
-            Previous
-          </button>
+        <div className="bg-white border-t border-slate-200 p-6 flex justify-between items-center gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+              disabled={currentQuestionIndex === 0}
+              className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-bold py-3 px-8 rounded-xl transition-all shadow-sm"
+            >
+              Previous
+            </button>
+          </div>
 
           {currentQuestionIndex < test.questions.length - 1 ? (
             <button
               onClick={handleNext}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               Next
             </button>
@@ -636,7 +846,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <button
               onClick={handleConfirmSubmit}
               disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium py-2 px-6 rounded-md"
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Test'}
             </button>

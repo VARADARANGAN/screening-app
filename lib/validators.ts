@@ -41,7 +41,7 @@ export const AdminProfileSchema = z.object({
 // ==================== Question Schemas ====================
 export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
-  type: z.enum(['mcq', 'coding']),
+  type: z.enum(['mcq', 'coding', 'single_select', 'date', 'open_text', 'ranking', 'structured_response', 'code_response', 'code_review', 'structured_plan', 'multi_select', 'prompt_writing']),
   timeLimitSeconds: z.number().optional().default(60),
   points: z.number().min(0, 'Points must be at least 0').default(0),
   isPublished: z.boolean().default(false),
@@ -59,7 +59,7 @@ export const QuestionSchema = z.object({
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),
 }).refine((data) => {
-  if (data.type === 'mcq') {
+  if (data.type === 'mcq' || data.type === 'single_select' || data.type === 'multi_select') {
     return !!data.optionsJson;
   }
   return true;
@@ -76,10 +76,19 @@ export const CreateTestSchema = z.object({
 });
 
 export const SubmitTestResponseSchema = z.object({
-  testId: z.string().uuid('Invalid test ID'),
-  questionId: z.string().uuid('Invalid question ID'),
-  studentAnswer: z.string().optional(),
-  isCorrect: z.boolean().optional(),
+  assessmentId: z.string().uuid('Invalid assessment ID'),
+  studentId: z.string().optional(),
+  submittedAt: z.string().datetime().optional(),
+  status: z.enum(['submitted', 'auto_submitted']).optional(),
+  violations: z.array(z.any()).optional(),
+  responses: z.array(
+    z.object({
+      questionId: z.string().uuid('Invalid question ID'),
+      section: z.string().optional(),
+      questionType: z.string().optional(),
+      answer: z.string().optional(),
+    })
+  ).default([]),
 });
 
 export const TestStatusUpdateSchema = z.object({

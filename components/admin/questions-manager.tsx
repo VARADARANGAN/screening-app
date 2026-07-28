@@ -24,7 +24,7 @@ export function QuestionsManager() {
   
   // Filtering and Searching
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
+  const [selectedSection, setSelectedSection] = useState('all');
 
   // Upload Modal State
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -192,8 +192,8 @@ export function QuestionsManager() {
   // Local filtering logic
   const filteredQuestions = questions.filter(q => {
     const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || q.type === selectedType;
-    return matchesSearch && matchesType;
+    const matchesSection = selectedSection === 'all' || q.section === selectedSection;
+    return matchesSearch && matchesSection;
   });
 
   const toggleAll = () => {
@@ -243,13 +243,21 @@ export function QuestionsManager() {
             </div>
             
             <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
               className="px-3.5 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-700 focus:bg-white"
             >
-              <option value="all">All Types</option>
-              <option value="mcq">Multiple Choice (MCQ)</option>
-              <option value="coding">Coding Challenge</option>
+              <option value="all">All Sections</option>
+              <option value="APTITUDE">Aptitude</option>
+              <option value="CODING">Coding</option>
+              <option value="ELIGIBILITY">Eligibility</option>
+              <option value="ATTITUDE_AND_OWNERSHIP">Attitude & Ownership</option>
+              <option value="LEARNING_APTITUDE">Learning Aptitude</option>
+              <option value="PROBLEM_SOLVING">Problem Solving</option>
+              <option value="EXECUTION_AND_RELIABILITY">Execution & Reliability</option>
+              <option value="COMMUNICATION_AND_TEAMWORK">Communication & Teamwork</option>
+              <option value="INTEGRITY">Integrity</option>
+              <option value="AI_LITERACY">AI Literacy</option>
             </select>
         </div>
           <div className="flex gap-3 shrink-0 mt-3 md:mt-0 items-center">
@@ -289,7 +297,7 @@ export function QuestionsManager() {
                     />
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">Question Content</TableHead>
-                  <TableHead className="font-semibold text-slate-700 w-44">Type</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-44">Section</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-28 text-center">Marks</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-36 text-right">Actions</TableHead>
                 </TableRow>
@@ -318,11 +326,8 @@ export function QuestionsManager() {
                         <div className="truncate" title={q.question_text}>{q.question_text}</div>
                       </TableCell>
                       <TableCell className="w-44">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                          q.type === 'mcq' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                          'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                        }`}>
-                          {q.type === 'mcq' ? 'Aptitude (MCQ)' : 'Coding'}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-100">
+                          {(q.section || 'APTITUDE').replace(/_/g, ' ')}
                         </span>
                       </TableCell>
                       <TableCell className="w-28 text-center text-slate-800 font-semibold">

@@ -6,22 +6,25 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
   const rawSection = String(rawData.section || rawData['Section'] || '').trim().toUpperCase();
   
   // 1. Map to strict DB types
-  let type = 'descriptive';
-  if (['mcq', 'yes_no', 'coding_mcq'].includes(rawType)) {
+  let type = rawType;
+  if (['yes_no', 'coding_mcq'].includes(rawType)) {
     type = 'mcq';
-  } else if (['coding'].includes(rawType)) {
-    type = 'coding';
+  } else if (!['mcq', 'coding', 'single_select', 'date', 'open_text', 'ranking', 'structured_response', 'code_response', 'code_review', 'structured_plan', 'multi_select', 'prompt_writing'].includes(type)) {
+    type = 'descriptive'; // fallback for unknown types
   }
 
   // 2. Map to strict sections
-  let section = 'APTITUDE';
-  if (rawSection === 'CODING') section = 'CODING';
+  let section = rawSection;
+  const ALLOWED_SECTIONS = ['APTITUDE', 'CODING', 'ELIGIBILITY', 'ATTITUDE_AND_OWNERSHIP', 'LEARNING_APTITUDE', 'PROBLEM_SOLVING', 'EXECUTION_AND_RELIABILITY', 'COMMUNICATION_AND_TEAMWORK', 'INTEGRITY', 'AI_LITERACY'];
+  if (!ALLOWED_SECTIONS.includes(section)) {
+    section = 'APTITUDE'; // fallback
+  }
 
   // 3. Construct unified optionsJson object
   let optionsJson: any = {};
   let correctAnswer = '';
 
-  if (type === 'mcq') {
+  if (type === 'mcq' || type === 'single_select' || type === 'multi_select') {
     const options: { text: string }[] = [];
     
     // Support wizard structure (rawData.options array) or Excel structure (Option 1, Option 2...)
