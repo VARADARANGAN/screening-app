@@ -109,6 +109,18 @@ export default function CreateQuestionPage() {
   const [sampleInput, setSampleInput] = useState('');
   const [sampleOutput, setSampleOutput] = useState('');
   
+  // Structured Response Specifics
+  const [structuredFields, setStructuredFields] = useState([{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+  
+  // Structured Plan Specifics
+  const [planMode, setPlanMode] = useState('day');
+  const [planDays, setPlanDays] = useState(5);
+  const [planLabels, setPlanLabels] = useState(['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']);
+
+  // Word Limits Specifics
+  const [minWords, setMinWords] = useState('');
+  const [maxWords, setMaxWords] = useState('');
+
   // Resets state when starting over
   const resetForm = () => {
     setStep(1);
@@ -133,6 +145,12 @@ export default function CreateQuestionPage() {
     setConstraints('');
     setSampleInput('');
     setSampleOutput('');
+    setStructuredFields([{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+    setPlanMode('day');
+    setPlanDays(5);
+    setPlanLabels(['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']);
+    setMinWords('');
+    setMaxWords('');
   };
 
   const handleNext = () => setStep(prev => prev + 1);
@@ -187,6 +205,21 @@ export default function CreateQuestionPage() {
       if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
         rawData.minCharacters = minCharacters;
         rawData.maxCharacters = maxCharacters;
+      }
+
+      if (type === 'structured_response') {
+        rawData.fields = structuredFields;
+      }
+
+      if (type === 'structured_plan') {
+        rawData.planMode = planMode;
+        rawData.planDays = planDays;
+        rawData.planLabels = planLabels;
+      }
+
+      if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+        rawData.minWords = minWords;
+        rawData.maxWords = maxWords;
       }
 
       const payload = mapQuestionPayload(rawData);
@@ -442,6 +475,190 @@ export default function CreateQuestionPage() {
                     <Button type="button" variant="outline" size="sm" onClick={() => setOptions([...options, { text: '' }])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
                       + Add Option
                     </Button>
+                  </div>
+                )}
+
+                {/* Structured Response Fields */}
+                {type === 'structured_response' && (
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-slate-800 text-sm">Response Structure</h3>
+                    <div className="space-y-4">
+                      {structuredFields.map((field, i) => (
+                        <div key={i} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-4 relative">
+                          {structuredFields.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => setStructuredFields(structuredFields.filter((_, idx) => idx !== i))}
+                              className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"
+                            >
+                              ✕
+                            </button>
+                          )}
+                          <h4 className="font-bold text-slate-700 text-sm">Field {i + 1}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold text-slate-600 mb-1">Field Label *</label>
+                              <Input 
+                                value={field.label} 
+                                onChange={(e) => {
+                                  const newFields = [...structuredFields];
+                                  newFields[i].label = e.target.value;
+                                  setStructuredFields(newFields);
+                                }} 
+                                placeholder="e.g. Topic Learned"
+                                className="bg-white border-slate-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-600 mb-1">Placeholder</label>
+                              <Input 
+                                value={field.placeholder} 
+                                onChange={(e) => {
+                                  const newFields = [...structuredFields];
+                                  newFields[i].placeholder = e.target.value;
+                                  setStructuredFields(newFields);
+                                }} 
+                                placeholder="e.g. Enter the topic..."
+                                className="bg-white border-slate-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-600 mb-1">Help Text (Optional)</label>
+                              <Input 
+                                value={field.helpText} 
+                                onChange={(e) => {
+                                  const newFields = [...structuredFields];
+                                  newFields[i].helpText = e.target.value;
+                                  setStructuredFields(newFields);
+                                }} 
+                                placeholder="e.g. Provide details about..."
+                                className="bg-white border-slate-200"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-md">
+                               <div className="text-xs font-bold text-slate-600">Required Field</div>
+                               <label className="relative inline-flex items-center cursor-pointer">
+                                 <input 
+                                   type="checkbox" 
+                                   className="sr-only peer" 
+                                   checked={field.required} 
+                                   onChange={(e) => {
+                                     const newFields = [...structuredFields];
+                                     newFields[i].required = e.target.checked;
+                                     setStructuredFields(newFields);
+                                   }} 
+                                 />
+                                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                               </label>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields([...structuredFields, { label: '', placeholder: '', helpText: '', required: true, maxLength: '' }])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
+                      + Add Field
+                    </Button>
+                  </div>
+                )}
+
+                {/* Structured Plan Fields */}
+                {type === 'structured_plan' && (
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-slate-800 text-sm">Planning Mode</h3>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="planMode" checked={planMode === 'day'} onChange={() => {
+                          setPlanMode('day');
+                          setPlanLabels(Array.from({ length: planDays }, (_, i) => `Day ${i + 1}`));
+                        }} className="text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm font-semibold text-slate-700">Day-wise Plan</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="planMode" checked={planMode === 'step'} onChange={() => {
+                          setPlanMode('step');
+                          setPlanLabels(['Step 1', 'Step 2', 'Step 3']);
+                        }} className="text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm font-semibold text-slate-700">Step-wise Plan</span>
+                      </label>
+                    </div>
+
+                    {planMode === 'day' && (
+                      <div className="mt-4">
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Number of Days (1-30)</label>
+                        <Input 
+                          type="number"
+                          min="1" max="30"
+                          value={planDays}
+                          onChange={(e) => {
+                            const days = Math.max(1, Math.min(30, Number(e.target.value)));
+                            setPlanDays(days);
+                            setPlanLabels(Array.from({ length: days }, (_, i) => `Day ${i + 1}`));
+                          }}
+                          className="bg-white border-slate-200 max-w-[150px]"
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-6 space-y-3">
+                      <h4 className="font-bold text-slate-700 text-sm">{planMode === 'day' ? 'Day Labels' : 'Step Labels'}</h4>
+                      {planLabels.map((label, i) => (
+                        <div key={i} className="flex gap-2 items-center">
+                          <Input
+                            value={label}
+                            onChange={(e) => {
+                              const newLabels = [...planLabels];
+                              newLabels[i] = e.target.value;
+                              setPlanLabels(newLabels);
+                            }}
+                            className="bg-white border-slate-200 max-w-sm"
+                            placeholder={planMode === 'day' ? `Day ${i + 1}` : `Step ${i + 1}`}
+                          />
+                          {planMode === 'step' && planLabels.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setPlanLabels(planLabels.filter((_, idx) => idx !== i))}
+                              className="text-slate-400 hover:text-rose-500 font-bold p-2 transition-colors"
+                            >✕</button>
+                          )}
+                        </div>
+                      ))}
+                      {planMode === 'step' && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => setPlanLabels([...planLabels, `Step ${planLabels.length + 1}`])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
+                          + Add Step
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Word Limits Section */}
+                {['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type) && (
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <h3 className="font-bold text-slate-800 text-sm">Word Limits</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Minimum Words (Optional)</label>
+                        <Input 
+                          type="number"
+                          min="0"
+                          value={minWords} 
+                          onChange={(e) => setMinWords(e.target.value)} 
+                          className="bg-white border-slate-200" 
+                          placeholder="e.g. 100"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">Maximum Words (Optional)</label>
+                        <Input 
+                          type="number"
+                          min="0"
+                          value={maxWords} 
+                          onChange={(e) => setMaxWords(e.target.value)} 
+                          className="bg-white border-slate-200" 
+                          placeholder="e.g. 500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 

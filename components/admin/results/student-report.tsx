@@ -192,6 +192,101 @@ export function StudentReport() {
           </CardContent>
         </Card>
       )}
+
+      {/* Structured Responses Section */}
+      {data.structuredAnswers && data.structuredAnswers.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle>Structured Responses</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-8">
+            {data.structuredAnswers.map((answer: any, idx: number) => {
+              let parsedAnswers: Record<string, string> = {};
+              try {
+                if (answer.studentAnswer) {
+                  parsedAnswers = JSON.parse(answer.studentAnswer);
+                }
+              } catch (e) {
+                console.error("Failed to parse student answer for structured response", e);
+              }
+
+              return (
+                <div key={idx} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-sm font-bold text-gray-500 uppercase">Response {idx + 1}</div>
+                    <div className="text-sm font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                      Score: {answer.pointsEarned !== null ? answer.pointsEarned : 'Pending'} / {answer.maxPoints}
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <MarkdownRenderer content={answer.question || 'No question text available.'} />
+                  </div>
+                  <div className="space-y-4 border-t border-gray-100 pt-4">
+                    {answer.fields.map((field: any, fieldIdx: number) => {
+                      const isObj = typeof field === 'object' && field !== null;
+                      const label = isObj ? field.label : String(field);
+                      
+                      return (
+                        <div key={fieldIdx}>
+                          <div className="text-xs font-bold text-gray-500 uppercase mb-1">{label}</div>
+                          <div className="bg-slate-50 p-4 rounded-lg text-sm text-gray-800 whitespace-pre-wrap border border-slate-100">
+                            {parsedAnswers[label] || <span className="italic text-gray-400">No response provided</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Structured Plan Section */}
+      {data.structuredPlanAnswers && data.structuredPlanAnswers.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle>Structured Plans</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-8">
+            {data.structuredPlanAnswers.map((answer: any, idx: number) => {
+              let parsedAnswers: Record<string, string> = {};
+              try {
+                if (answer.studentAnswer) {
+                  parsedAnswers = JSON.parse(answer.studentAnswer);
+                }
+              } catch (e) {
+                console.error("Failed to parse student answer for structured plan", e);
+              }
+
+              return (
+                <div key={idx} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-sm font-bold text-gray-500 uppercase">Plan {idx + 1}</div>
+                    <div className="text-sm font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                      Score: {answer.pointsEarned !== null ? answer.pointsEarned : 'Pending'} / {answer.maxPoints}
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <MarkdownRenderer content={answer.question || 'No question text available.'} />
+                  </div>
+                  <div className="space-y-4 border-t border-gray-100 pt-4">
+                    {answer.labels.map((label: string, fieldIdx: number) => (
+                      <div key={fieldIdx}>
+                        <div className="text-xs font-bold text-gray-500 uppercase mb-1">{label}</div>
+                        <div className="bg-slate-50 p-4 rounded-lg text-sm text-gray-800 whitespace-pre-wrap border border-slate-100">
+                          {parsedAnswers[label] || <span className="italic text-gray-400">No response provided</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

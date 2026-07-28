@@ -153,6 +153,11 @@ export async function POST(
       where: {
         id: id,
         student_id: student.id
+      },
+      include: {
+        test_questions: {
+          include: { question: true }
+        }
       }
     });
 
@@ -226,6 +231,14 @@ export async function POST(
 
       const validatedData = validationResult.data;
 
+      const evalPayloads: any[] = [];
+      const questionMap = new Map();
+      if ((test as any).test_questions) {
+        (test as any).test_questions.forEach((tq: any) => {
+          questionMap.set(tq.question_id, tq.question);
+        });
+      }
+
       if (validatedData.responses && validatedData.responses.length > 0) {
         for (const response of validatedData.responses) {
           if (!response.questionId) continue;
@@ -252,6 +265,16 @@ export async function POST(
                 started_at: new Date()
               }
             });
+
+          }
+
+          const q = questionMap.get(response.questionId);
+          if (q && q.type === 'coding') {
+            evalPayloads.push({
+              testId: test.id,
+              questionId: response.questionId,
+              studentAnswer: response.answer || ''
+            });
           }
         }
       }
@@ -266,9 +289,11 @@ export async function POST(
         }
       });
 
-      processBackgroundEvaluations(test.id).catch(err => {
-        console.error('[Background Evaluation Error]', err);
-      });
+      if (evalPayloads.length > 0) {
+        processBackgroundEvaluations(evalPayloads).catch(err => {
+          console.error('[Background Evaluation Error]', err);
+        });
+      }
 
       return NextResponse.json({ message: 'Test submitted successfully' });
     }

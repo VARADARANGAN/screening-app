@@ -62,6 +62,29 @@ export async function GET(
         aiEvaluation: r.ai_evaluation_json
       }));
 
+    // Extract structured answers
+    const structuredAnswers = test.test_responses
+      .filter(r => r.question.type === 'structured_response')
+      .map(r => ({
+        question: r.question.question_text,
+        studentAnswer: r.student_answer,
+        fields: (r.question.options_json as any)?.fields || [],
+        pointsEarned: r.points_earned,
+        maxPoints: r.question.points,
+      }));
+
+    // Extract structured plan answers
+    const structuredPlanAnswers = test.test_responses
+      .filter(r => r.question.type === 'structured_plan')
+      .map(r => ({
+        question: r.question.question_text,
+        studentAnswer: r.student_answer,
+        labels: (r.question.options_json as any)?.labels || [],
+        mode: (r.question.options_json as any)?.mode || 'day',
+        pointsEarned: r.points_earned,
+        maxPoints: r.question.points,
+      }));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -74,8 +97,9 @@ export async function GET(
         totalDuration: test.total_duration,
         timeTaken: test.start_time && test.end_time ? Math.round((new Date(test.end_time).getTime() - new Date(test.start_time).getTime()) / 60000) : (test.analytics?.time_taken || null),
         scores,
-        codingAnswers
-
+        codingAnswers,
+        structuredAnswers,
+        structuredPlanAnswers
       }
     });
 

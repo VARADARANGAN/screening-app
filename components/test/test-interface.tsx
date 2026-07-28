@@ -25,6 +25,25 @@ interface TestData {
   status: string;
 }
 
+const calculateWordCount = (type: string, answerStr: string): number => {
+  if (!answerStr) return 0;
+  if (['open_text', 'descriptive', 'prompt_writing', 'code_review', 'short_answer'].includes(type)) {
+     return answerStr.trim() ? answerStr.trim().split(/\s+/).length : 0;
+  }
+  if (['structured_response', 'structured_plan'].includes(type)) {
+     try {
+       const parsed = JSON.parse(answerStr);
+       return Object.values(parsed).reduce((acc: number, val: any) => {
+         const strVal = String(val);
+         return acc + (strVal.trim() ? strVal.trim().split(/\s+/).length : 0);
+       }, 0);
+     } catch {
+       return 0;
+     }
+  }
+  return 0;
+};
+
 export function TestInterface({ testId }: { testId: string }) {
   const router = useRouter();
   const [test, setTest] = useState<TestData | null>(null);
@@ -47,6 +66,54 @@ export function TestInterface({ testId }: { testId: string }) {
   const [runResults, setRunResults] = useState<Record<string, any>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAutoSubmitModal, setShowAutoSubmitModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleClipboardEvent = (e: React.ClipboardEvent | React.DragEvent) => {
+    e.preventDefault();
+    setToastMessage("Copying and pasting is not allowed in descriptive answers.");
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const renderWordLimitIndicator = (type: string, question: any) => {
+    const minWords = question.optionsJson?.minWords;
+    const maxWords = question.optionsJson?.maxWords;
+    if (!minWords && !maxWords) return null;
+
+    const currentWordCount = calculateWordCount(type, answers[question.id] || '');
+    
+    let counterColor = "text-slate-500";
+    let counterText = `Words: ${currentWordCount}`;
+    
+    if (minWords && currentWordCount < minWords) {
+      counterText = `Words: ${currentWordCount} / ${minWords} minimum`;
+      counterColor = "text-orange-600 font-bold";
+    } else if (minWords && currentWordCount >= minWords && (!maxWords || currentWordCount <= maxWords)) {
+      counterText = `✓ Minimum word requirement satisfied (${currentWordCount} words)`;
+      counterColor = "text-emerald-600 font-bold";
+    }
+
+    if (maxWords) {
+      if (currentWordCount > maxWords) {
+        counterText = `Maximum word limit exceeded (${currentWordCount} / ${maxWords})`;
+        counterColor = "text-rose-600 font-bold bg-rose-50 px-2 py-1 rounded";
+      } else if (!minWords || currentWordCount >= minWords) {
+        counterText = `Words: ${currentWordCount} / ${maxWords} max`;
+        counterColor = "text-slate-600 font-bold";
+      }
+    }
+
+    return (
+      <div className="flex justify-between items-center text-xs mt-2 border-t border-slate-100 pt-2">
+        <div className="text-slate-500 font-medium">
+          {minWords && `Min: ${minWords} `} {minWords && maxWords && '| '} {maxWords && `Max: ${maxWords}`} words
+        </div>
+        <div className={`transition-colors ${counterColor}`}>
+          {counterText}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     loadTest();
@@ -305,6 +372,27 @@ export function TestInterface({ testId }: { testId: string }) {
   };
 
   const validateCurrentQuestion = () => {
+    setValidationError(null);
+    if (!test) return true;
+    const currentQuestion = test.questions[currentQuestionIndex];
+    if (!currentQuestion) return true;
+    
+    const type = currentQuestion.type;
+    if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+      const minWords = currentQuestion.optionsJson?.minWords;
+      const maxWords = currentQuestion.optionsJson?.maxWords;
+      if (minWords || maxWords) {
+        const wordCount = calculateWordCount(type, answers[currentQuestion.id] || '');
+        if (minWords && wordCount < minWords) {
+          setValidationError(`Minimum required: ${minWords} words. Current: ${wordCount} words.`);
+          return false;
+        }
+        if (maxWords && wordCount > maxWords) {
+          setValidationError(`Maximum word limit exceeded. Maximum allowed: ${maxWords} words. Current: ${wordCount} words.`);
+          return false;
+        }
+      }
+    }
     return true;
   };
 
@@ -401,6 +489,13 @@ export function TestInterface({ testId }: { testId: string }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4 font-bold text-sm flex items-center gap-3 border border-slate-700">
+          <span className="text-rose-400">⚠️</span> {toastMessage}
         </div>
       )}
 
@@ -524,13 +619,20 @@ export function TestInterface({ testId }: { testId: string }) {
                   🚩 {flags[currentQuestion.id] ? 'Remove Flag' : 'Flag for Review'}
                 </button>
               </div>
-              <div className="inline-flex text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
-                Points: {currentQuestion.points || 10}
+              <div className="flex gap-3 mt-2">
+                <div className="inline-flex text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
+                  Points: {currentQuestion.points || 10}
+                </div>
               </div>
             </div>
 
             {/* Answer Input */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+              {validationError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
+                  <span>⚠️</span> {validationError}
+                </div>
+              )}
               {(() => {
                 const type = String(currentQuestion.type || '').toLowerCase().replace(/[\s-]/g, '_');
                 
@@ -644,10 +746,15 @@ export function TestInterface({ testId }: { testId: string }) {
                       <textarea
                         value={val}
                         onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                        onCopy={handleClipboardEvent}
+                        onCut={handleClipboardEvent}
+                        onPaste={handleClipboardEvent}
+                        onDrop={handleClipboardEvent}
                         className="w-full min-h-[250px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y"
                         placeholder="Type your response here..."
                       />
-                      {type === 'prompt_writing' && (
+                      {renderWordLimitIndicator(type, currentQuestion)}
+                      {type === 'prompt_writing' && !currentQuestion.optionsJson?.minWords && !currentQuestion.optionsJson?.maxWords && (
                         <div className="text-xs text-slate-400 font-bold text-right">Word Count: {wordCount}</div>
                       )}
                     </div>
@@ -704,11 +811,11 @@ export function TestInterface({ testId }: { testId: string }) {
 
                 // Structured Response / Structured Plan
                 if (['structured_response', 'structured_plan'].includes(type)) {
-                  let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.steps;
+                  let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.labels || currentQuestion.optionsJson?.steps;
                   if (!Array.isArray(fields) || fields.length === 0) {
                     fields = type === 'structured_plan' 
-                      ? ['Step 1', 'Step 2', 'Step 3'] 
-                      : ['Problem Statement', 'Approach', 'Implementation Details', 'Limitations'];
+                      ? ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'] 
+                      : ['Field 1'];
                   }
 
                   let structuredAnswers: Record<string, string> = {};
@@ -716,24 +823,40 @@ export function TestInterface({ testId }: { testId: string }) {
                     try { structuredAnswers = JSON.parse(answers[currentQuestion.id]); } catch {}
                   }
 
-                  const updateField = (field: string, val: string) => {
-                    const newAnswers = { ...structuredAnswers, [field]: val };
+                  const updateField = (fieldLabel: string, val: string) => {
+                    const newAnswers = { ...structuredAnswers, [fieldLabel]: val };
                     handleAnswerChange(currentQuestion.id, JSON.stringify(newAnswers));
                   };
 
                   return (
                     <div className="space-y-6">
-                      {fields.map((field: string, idx: number) => (
-                        <div key={idx} className="space-y-2">
-                          <label className="text-sm font-bold text-slate-700">{field}:</label>
-                          <textarea
-                            value={structuredAnswers[field] || ''}
-                            onChange={(e) => updateField(field, e.target.value)}
-                            className="w-full min-h-[100px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y text-sm"
-                            placeholder={`Enter ${field}...`}
-                          />
-                        </div>
-                      ))}
+                      {fields.map((field: any, idx: number) => {
+                        const isObj = typeof field === 'object' && field !== null;
+                        const label = isObj ? field.label : String(field);
+                        const placeholder = isObj && field.placeholder ? field.placeholder : `Enter ${label}...`;
+                        const helpText = isObj && field.helpText ? field.helpText : '';
+                        const required = isObj && field.required;
+
+                        return (
+                          <div key={idx} className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700">
+                              {label} {required && <span className="text-rose-500">*</span>}
+                            </label>
+                            {helpText && <p className="text-xs text-slate-500">{helpText}</p>}
+                            <textarea
+                              value={structuredAnswers[label] || ''}
+                              onChange={(e) => updateField(label, e.target.value)}
+                              onCopy={handleClipboardEvent}
+                              onCut={handleClipboardEvent}
+                              onPaste={handleClipboardEvent}
+                              onDrop={handleClipboardEvent}
+                              className="w-full min-h-[100px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y text-sm"
+                              placeholder={placeholder}
+                            />
+                          </div>
+                        );
+                      })}
+                      {renderWordLimitIndicator(type, currentQuestion)}
                     </div>
                   );
                 }
@@ -775,7 +898,8 @@ export function TestInterface({ testId }: { testId: string }) {
                           }}
                           onMount={(editor, monaco) => {
                             const preventAction = () => {
-                              alert('Copy and paste are disabled during the coding test.');
+                              setToastMessage("Copying and pasting is not allowed in descriptive answers.");
+                              setTimeout(() => setToastMessage(null), 3000);
                               recordViolation('Copy/Paste attempted in editor');
                             };
 

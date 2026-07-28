@@ -64,6 +64,22 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
       starterCode: String(rawData.starterCode || rawData['Starter Code'] || ''),
       language: String(rawData.language || rawData['Language'] || 'javascript')
     };
+  } else if (type === 'structured_response') {
+    optionsJson = {
+      fields: Array.isArray(rawData.fields) ? rawData.fields : []
+    };
+  } else if (type === 'structured_plan') {
+    optionsJson = {
+      mode: String(rawData.planMode || 'day'),
+      days: Number(rawData.planDays) || 5,
+      labels: Array.isArray(rawData.planLabels) ? rawData.planLabels : []
+    };
+  }
+
+  // Add min/max words for all descriptive types
+  if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+    if (rawData.minWords) optionsJson.minWords = Number(rawData.minWords);
+    if (rawData.maxWords) optionsJson.maxWords = Number(rawData.maxWords);
   }
 
   // 4. Construct Final Payload
