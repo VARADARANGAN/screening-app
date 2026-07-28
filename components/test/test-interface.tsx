@@ -573,14 +573,18 @@ export function TestInterface({ testId }: { testId: string }) {
                           recordViolation('Copy/Paste attempted in editor');
                         };
 
-                        // Disable Copy, Paste, Cut
-                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC, preventAction);
-                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, preventAction);
-                        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX, preventAction);
-
-                        // Prevent native context menu from being triggered inside the editor container
+                        // Disable Copy, Paste, Cut via native DOM events
                         const domNode = editor.getDomNode();
                         if (domNode) {
+                          const handleProhibited = (e: Event) => {
+                            e.preventDefault();
+                            preventAction();
+                          };
+                          domNode.addEventListener('copy', handleProhibited);
+                          domNode.addEventListener('paste', handleProhibited);
+                          domNode.addEventListener('cut', handleProhibited);
+                          
+                          // Prevent native context menu from being triggered inside the editor container
                           domNode.addEventListener('contextmenu', (e) => {
                             e.preventDefault();
                             e.stopPropagation();

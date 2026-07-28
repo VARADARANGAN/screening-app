@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 
 const ProgressBar = ({ label, score }: { label: string, score: number | null }) => {
   const displayScore = score ?? 0;
@@ -87,7 +88,11 @@ export function StudentReport() {
             </div>
             <div>
               <span className="block text-xs font-semibold text-gray-500 uppercase">Time Taken</span>
-              <span className="text-base font-medium">{data.timeTaken ? `${Math.round(data.timeTaken / 60)} mins` : 'N/A'}</span>
+              <span className="text-base font-medium">{data.timeTaken ? `${data.timeTaken} mins` : 'N/A'}</span>
+            </div>
+            <div>
+              <span className="block text-xs font-semibold text-gray-500 uppercase">Submission Time</span>
+              <span className="text-base font-medium">{data.submissionTime ? new Date(data.submissionTime).toLocaleString() : 'N/A'}</span>
             </div>
           </CardContent>
         </Card>
@@ -110,6 +115,36 @@ export function StudentReport() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Coding Answers Section */}
+      {data.codingAnswers && data.codingAnswers.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle>Submitted Coding Answers</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-8">
+            {data.codingAnswers.map((answer: any, idx: number) => (
+              <div key={idx} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="text-sm font-bold text-gray-500 uppercase">Challenge {idx + 1}</div>
+                  <div className="text-sm font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                    Score: {answer.pointsEarned !== null ? answer.pointsEarned : 'Pending'} / {answer.maxPoints}
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <MarkdownRenderer content={answer.question || 'No question text available.'} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase mb-2">Student's Code</div>
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono">
+                    {answer.studentAnswer || '// No code submitted'}
+                  </pre>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

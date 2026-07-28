@@ -38,14 +38,28 @@ export async function GET(
     }
 
     const codingScore = test.test_responses
-      .filter(r => r.question.type === 'coding' && r.points_earned)
+      .filter(r => r.question.type === 'coding' && r.points_earned !== null)
+      .reduce((sum, r) => sum + Number(r.points_earned), 0);
+
+    const aptitudeScore = test.test_responses
+      .filter(r => r.question.type === 'mcq' && r.points_earned !== null)
       .reduce((sum, r) => sum + Number(r.points_earned), 0);
 
     const scores = {
-      aptitudeScore: test.analytics?.total_score ? Number(test.analytics.total_score) : null,
+      aptitudeScore: aptitudeScore,
       codingScore: codingScore,
-      overallScore: test.score ? Number(test.score) : null,
+      overallScore: test.score ? Number(test.score) : (aptitudeScore + codingScore),
     };
+
+    // Extract submitted coding answers for the report
+    const codingAnswers = test.test_responses
+      .filter(r => r.question.type === 'coding')
+      .map(r => ({
+        question: r.question.question_text,
+        studentAnswer: r.student_answer,
+        pointsEarned: r.points_earned,
+        maxPoints: r.question.points
+      }));
 
     return NextResponse.json({
       success: true,
@@ -55,9 +69,12 @@ export async function GET(
         status: test.status,
         startTime: test.start_time,
         endTime: test.end_time,
+        submissionTime: test.end_time,
         totalDuration: test.total_duration,
-        timeTaken: test.analytics?.time_taken,
-        scores
+        timeTaken: test.start_time && test.end_time ? Math.round((new Date(test.end_time).getTime() - new Date(test.start_time).getTime()) / 60000) : (test.analytics?.time_taken || null),
+        scores,
+        codingAnswers
+
       }
     });
 

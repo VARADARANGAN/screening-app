@@ -173,14 +173,13 @@ export async function POST(
     // Recalculate score (which right now just calculates MCQ scores since coding is null)
     const initialScore = await recalculateTestScore(id);
 
-    // In Vercel serverless, floating promises are terminated immediately. 
-    // We must await the execution to guarantee the AI evaluates the coding tasks.
+    // Run the evaluation pipeline asynchronously without awaiting it.
+    // This allows the API to return an immediate success response to the student,
+    // while the AI evaluates the coding tasks in the background.
     if (backgroundTasks.length > 0) {
-      try {
-        await processBackgroundEvaluations(backgroundTasks);
-      } catch (err) {
+      processBackgroundEvaluations(backgroundTasks).catch(err => {
         console.error(`[Background Task Spawning Error]`, err);
-      }
+      });
     }
 
 
