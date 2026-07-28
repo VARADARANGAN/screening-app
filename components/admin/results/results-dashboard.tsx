@@ -96,8 +96,8 @@ export function ResultsDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Attempted / Completed</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.attempted} / {summary.completed}</div></CardContent></Card>
           <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Avg Overall Score</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.averages.overall}%</div></CardContent></Card>
-          <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Avg Tech (Apt/Code)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.averages.aptitude}% / {summary.averages.coding}%</div></CardContent></Card>
-          <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Avg Qual (Beh/Lrn/AI)</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.averages.behaviour}% / {summary.averages.learning}% / {summary.averages.aiLiteracy}%</div></CardContent></Card>
+          <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Avg Aptitude</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.averages.aptitude}%</div></CardContent></Card>
+          <Card><CardHeader className="py-4"><CardTitle className="text-sm font-medium text-gray-500">Avg Coding</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{summary.averages.coding}%</div></CardContent></Card>
         </div>
       )}
 
@@ -122,11 +122,7 @@ export function ResultsDashboard() {
                 {renderSortableHeader('Student Name', 'studentName')}
                 {renderSortableHeader('Aptitude', 'aptitudeScore')}
                 {renderSortableHeader('Coding', 'codingScore')}
-                {renderSortableHeader('Behaviour', 'behaviourScore')}
-                {renderSortableHeader('Learning', 'learningScore')}
-                {renderSortableHeader('AI Literacy', 'aiLiteracyScore')}
                 {renderSortableHeader('Overall', 'overallScore')}
-                {renderSortableHeader('Recommendation', 'recommendation')}
                 {renderSortableHeader('Status', 'status')}
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -140,22 +136,7 @@ export function ResultsDashboard() {
                     <TableCell className="font-medium">{row.studentName}</TableCell>
                     <TableCell>{row.aptitudeScore !== null ? `${row.aptitudeScore}%` : '-'}</TableCell>
                     <TableCell>{row.codingScore !== null ? `${row.codingScore}%` : '-'}</TableCell>
-                    <TableCell>{row.behaviourScore !== null ? `${row.behaviourScore}%` : '-'}</TableCell>
-                    <TableCell>{row.learningScore !== null ? `${row.learningScore}%` : '-'}</TableCell>
-                    <TableCell>{row.aiLiteracyScore !== null ? `${row.aiLiteracyScore}%` : '-'}</TableCell>
                     <TableCell className="font-bold">{row.overallScore !== null ? `${row.overallScore}%` : '-'}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        row.recommendation === 'Highly Recommended' ? 'bg-green-100 text-green-800' :
-                        row.recommendation === 'Recommended' ? 'bg-emerald-100 text-emerald-800' :
-                        row.recommendation === 'Consider' ? 'bg-yellow-100 text-yellow-800' :
-                        row.recommendation === 'Needs Further Review' ? 'bg-orange-100 text-orange-800' :
-                        row.recommendation === 'Not Recommended' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {row.recommendation}
-                      </span>
-                    </TableCell>
                     <TableCell className="uppercase text-xs font-semibold text-gray-500">{row.status}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" onClick={() => router.push(`/admin/results/${row.id}`)}>

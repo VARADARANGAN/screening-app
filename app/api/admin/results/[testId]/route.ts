@@ -23,13 +23,13 @@ export async function GET(
     const test = await prisma.test.findUnique({
       where: { id: testId },
       include: {
-        student: {
-          include: {
-            eligibility_result: true,
-          }
-        },
+        student: true,
         analytics: true,
-        ai_evaluation: true,
+        test_responses: {
+          include: {
+            question: true
+          }
+        }
       }
     });
 
@@ -37,14 +37,14 @@ export async function GET(
       return NextResponse.json({ error: 'Test not found' }, { status: 404 });
     }
 
-    const aiReport = test.ai_evaluation?.aggregated_report as any;
+    const codingScore = test.test_responses
+      .filter(r => r.question.type === 'coding' && r.points_earned)
+      .reduce((sum, r) => sum + Number(r.points_earned), 0);
+
     const scores = {
       aptitudeScore: test.analytics?.total_score ? Number(test.analytics.total_score) : null,
-      codingScore: aiReport?.technicalScore || null,
-      behaviourScore: aiReport?.behaviourScore || null,
-      learningScore: aiReport?.learningScore || null,
-      aiLiteracyScore: aiReport?.aiLiteracyScore || null,
-      overallScore: aiReport?.overallScore || (test.score ? Number(test.score) : null),
+      codingScore: codingScore,
+      overallScore: test.score ? Number(test.score) : null,
     };
 
     return NextResponse.json({
@@ -57,17 +57,7 @@ export async function GET(
         endTime: test.end_time,
         totalDuration: test.total_duration,
         timeTaken: test.analytics?.time_taken,
-        eligibilityStatus: test.student?.eligibility_result?.status || 'Unknown',
-        scores,
-        aiReport: test.ai_evaluation ? {
-          status: test.ai_evaluation.status,
-          executiveSummary: aiReport?.executiveSummary,
-          strengths: aiReport?.strengths || [],
-          developmentAreas: aiReport?.developmentAreas || [],
-          interviewFocus: aiReport?.interviewFocus || [],
-          confidence: aiReport?.confidence,
-          recommendation: aiReport?.recommendation,
-        } : null
+        scores
       }
     });
 

@@ -3,7 +3,6 @@ import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { processBackgroundEvaluations } from '@/lib/services/evaluation-pipeline';
 import { recalculateTestScore } from '@/lib/services/score-calculation';
-import { evaluateCandidate } from '@/lib/ai/evaluator';
 
 export async function POST(
   request: NextRequest,
@@ -184,11 +183,7 @@ export async function POST(
       }
     }
 
-    // Trigger Candidate Intelligence Evaluation (asynchronously)
-    // We import evaluateCandidate at the top of the file.
-    evaluateCandidate(id).catch(err => {
-      console.error(`[Candidate Intelligence Error]`, err);
-    });
+
 
     return NextResponse.json({
       message: 'Test submitted successfully',

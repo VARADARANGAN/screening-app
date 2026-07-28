@@ -39,8 +39,6 @@ model Student {
 
   user                  User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   tests                 Test[]
-  eligibility_result    EligibilityResult?
-  ai_evaluations        AIEvaluation[]
 
   @@map("students")
 }
@@ -68,9 +66,7 @@ model Question {
   time_limit_seconds Int?      @default(60)
   points             Int?      @default(10)
   is_published       Boolean   @default(false)
-  assessment_dimension String? @db.VarChar(50)
   weight             Int?      @default(1)
-  expected_answer_length Int?  @default(150)
   expected_duration  Int?      @default(5)
   is_required        Boolean?  @default(true)
   display_order      Int?      @default(0)
@@ -108,34 +104,8 @@ model Test {
   test_responses   TestResponse[]
   violations       Violation[]
   analytics        TestAnalytics?
-  ai_evaluation    AIEvaluation?
 
   @@map("tests")
-}
-
-model AIEvaluation {
-  id                  String   @id @default(uuid()) @db.Uuid
-  test_id             String   @unique @db.Uuid
-  student_id          String   @db.Uuid
-  
-  behaviour_evaluation Json?
-  learning_evaluation  Json?
-  ai_literacy_evaluation Json?
-  
-  aggregated_report   Json?
-  
-  model_used          String?  @default("llama3-70b-8192") @db.VarChar(100)
-  prompt_version      String?  @default("1.0") @db.VarChar(50)
-  status              String   @default("PENDING") @db.VarChar(50)
-  error_message       String?
-  
-  created_at          DateTime @default(now()) @db.Timestamp(6)
-  updated_at          DateTime @default(now()) @db.Timestamp(6)
-
-  test                Test     @relation(fields: [test_id], references: [id], onDelete: Cascade)
-  student             Student  @relation(fields: [student_id], references: [id], onDelete: Cascade)
-
-  @@map("ai_evaluations")
 }
 
 model TestQuestion {
@@ -221,37 +191,4 @@ model TestAnalytics {
   test              Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
 
   @@map("test_analytics")
-}
-
-model HiringDrive {
-  id                  String    @id @default(uuid()) @db.Uuid
-  name                String    @db.VarChar(255)
-  is_active           Boolean   @default(true)
-  min_cgpa            Decimal?  @db.Decimal(4, 2)
-  max_active_backlogs Int?
-  eligible_branches   String[]
-  graduation_years    Int[]
-  require_work_auth   Boolean?
-  created_at          DateTime  @default(now()) @db.Timestamp(6)
-  updated_at          DateTime  @default(now()) @db.Timestamp(6)
-
-  eligibility_results EligibilityResult[]
-
-  @@map("hiring_drives")
-}
-
-model EligibilityResult {
-  id              String    @id @default(uuid()) @db.Uuid
-  student_id      String    @unique @db.Uuid
-  hiring_drive_id String    @db.Uuid
-  responses_json  Json?
-  status          String    @default("PENDING") @db.VarChar(50)
-  reason          String?
-  created_at      DateTime  @default(now()) @db.Timestamp(6)
-  updated_at      DateTime  @default(now()) @db.Timestamp(6)
-
-  student         Student     @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  hiring_drive    HiringDrive @relation(fields: [hiring_drive_id], references: [id], onDelete: Cascade)
-
-  @@map("eligibility_results")
 }

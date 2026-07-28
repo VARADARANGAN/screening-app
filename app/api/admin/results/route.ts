@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
       include: {
         student: true,
         analytics: true,
-        ai_evaluation: true,
+        test_responses: {
+          select: {
+            points_earned: true,
+            question: { select: { type: true } }
+          }
+        }
       },
       orderBy: {
         created_at: 'desc',
@@ -27,18 +32,17 @@ export async function GET(req: NextRequest) {
     });
 
     const results = tests.map(test => {
-      const aiReport = test.ai_evaluation?.aggregated_report as any;
+      const codingScore = test.test_responses
+        .filter(r => r.question.type === 'coding' && r.points_earned)
+        .reduce((sum, r) => sum + Number(r.points_earned), 0);
+
       return {
         id: test.id,
         studentName: test.student?.full_name || 'Unknown Student',
         status: test.status,
         aptitudeScore: test.analytics?.total_score ? Number(test.analytics.total_score) : null,
-        codingScore: aiReport?.technicalScore || null,
-        behaviourScore: aiReport?.behaviourScore || null,
-        learningScore: aiReport?.learningScore || null,
-        aiLiteracyScore: aiReport?.aiLiteracyScore || null,
-        overallScore: aiReport?.overallScore || (test.score ? Number(test.score) : null),
-        recommendation: aiReport?.recommendation || 'Pending',
+        codingScore: codingScore,
+        overallScore: test.score ? Number(test.score) : null,
       };
     });
 
@@ -53,9 +57,6 @@ export async function GET(req: NextRequest) {
     const averages = {
       aptitude: avg(validScores('aptitudeScore')),
       coding: avg(validScores('codingScore')),
-      behaviour: avg(validScores('behaviourScore')),
-      learning: avg(validScores('learningScore')),
-      aiLiteracy: avg(validScores('aiLiteracyScore')),
       overall: avg(validScores('overallScore')),
     };
 

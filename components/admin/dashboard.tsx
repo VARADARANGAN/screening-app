@@ -184,7 +184,7 @@ export function AdminDashboard() {
                   </div>
                   <CardTitle className="text-base font-extrabold text-slate-900">Results Dashboard</CardTitle>
                   <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    View detailed assessment results, category scores, and Candidate Intelligence (AI).
+                    View detailed assessment results and category scores.
                   </CardDescription>
                 </CardHeader>
               </Card>

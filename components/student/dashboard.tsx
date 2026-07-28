@@ -153,10 +153,8 @@ export function StudentDashboard() {
                 <button
                   onClick={() => {
                     setIsLoading(true);
-                    if (isInProgress) {
+                    if (tests.length > 0) {
                       window.location.href = `/student/test/${tests[0].id}`;
-                    } else {
-                      window.location.href = '/student/eligibility';
                     }
                   }}
                   className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold text-base px-10 py-4 rounded-xl transition-colors flex items-center justify-center gap-2"

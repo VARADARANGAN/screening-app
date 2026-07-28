@@ -16,9 +16,6 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
   // 2. Map to strict sections
   let section = 'APTITUDE';
   if (rawSection === 'CODING') section = 'CODING';
-  if (rawSection === 'BEHAVIOUR') section = 'BEHAVIOUR';
-  if (rawSection === 'LEARNING') section = 'LEARNING';
-  if (rawSection === 'AI_LITERACY' || rawSection === 'AI LITERACY') section = 'AI_LITERACY';
 
   // 3. Construct unified optionsJson object
   let optionsJson: any = {};
@@ -64,40 +61,10 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
       starterCode: String(rawData.starterCode || rawData['Starter Code'] || ''),
       language: String(rawData.language || rawData['Language'] || 'javascript')
     };
-  } else {
-    // Descriptive, Case Study, AI Scenario, etc.
-    if (['case_study', 'case study'].includes(rawType)) {
-      optionsJson.caseStudy = {
-        title: String(rawData.caseStudyTitle || rawData['Case Study Title'] || ''),
-        background: String(rawData.caseStudyBackground || rawData['Case Study Background'] || ''),
-        context: String(rawData.caseStudyContext || rawData['Case Study Context'] || ''),
-        problemStatement: String(rawData.caseStudyProblemStatement || rawData['Case Study Problem Statement'] || ''),
-        supportingInfo: String(rawData.caseStudySupportingInfo || rawData['Case Study Supporting Information'] || '')
-      };
-    } else if (['ai_scenario', 'ai scenario'].includes(rawType)) {
-      optionsJson.aiScenario = {
-        title: String(rawData.caseStudyTitle || rawData['Case Study Title'] || ''),
-        background: String(rawData.caseStudyBackground || rawData['Case Study Background'] || ''),
-        context: String(rawData.caseStudyContext || rawData['Case Study Context'] || ''),
-        problemStatement: String(rawData.caseStudyProblemStatement || rawData['Case Study Problem Statement'] || ''),
-        supportingInfo: String(rawData.caseStudySupportingInfo || rawData['Case Study Supporting Information'] || '')
-      };
-    } else if (['scenario'].includes(rawType)) {
-      optionsJson.scenario = String(rawData.scenario || rawData['Scenario'] || '');
-    }
-
-    optionsJson.expectedAnswerLength = Number(rawData.expectedAnswerLength || rawData['Expected Answer Length']) || 150;
-    
-    // Min/max chars from wizard
-    if (rawData.minCharacters !== undefined) optionsJson.minCharacters = Number(rawData.minCharacters);
-    if (rawData.maxCharacters !== undefined && Number(rawData.maxCharacters) > 0) {
-      optionsJson.maxCharacters = Number(rawData.maxCharacters);
-    }
   }
 
   // 4. Construct Final Payload
   const showsMarks = section === 'APTITUDE' || section === 'CODING';
-  const defaultDimension = section === 'BEHAVIOUR' ? 'COMMUNICATION' : 'LEARNING';
   
   const payload = {
     ...(rowIndex !== undefined ? { _rowIndex: rowIndex } : {}),
@@ -108,12 +75,10 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
     timeLimitSeconds: (Number(rawData.expectedDuration || rawData['Expected Duration']) ? Number(rawData.expectedDuration || rawData['Expected Duration']) * 60 : Number(rawData.timeLimitSeconds || rawData['Time Limit'])) || 60,
     isPublished: rawData.isPublished !== undefined ? rawData.isPublished : true,
     explanation: (rawData.explanation || rawData['Explanation']) ? String(rawData.explanation || rawData['Explanation']) : undefined,
-    assessmentDimension: String(rawData.assessmentDimension || rawData['Assessment Dimension'] || defaultDimension).toUpperCase(),
     expectedDuration: Number(rawData.expectedDuration || rawData['Expected Duration']) || 5,
     optionsJson,
     correctAnswer: correctAnswer || undefined,
     weight: Number(rawData.weight) || 1,
-    expectedAnswerLength: Number(rawData.expectedAnswerLength || rawData['Expected Answer Length']) || 150,
     isRequired: rawData.isRequired !== undefined ? rawData.isRequired : true
   };
 

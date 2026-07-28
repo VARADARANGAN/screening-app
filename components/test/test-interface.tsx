@@ -11,7 +11,7 @@ import Editor from '@monaco-editor/react';
 interface Question {
   id: string;
   questionText: string;
-  type: 'mcq' | 'coding' | 'essay' | 'true_false' | 'descriptive';
+  type: 'mcq' | 'coding';
   optionsJson?: any;
   points: number;
   timeLimitSeconds: number;
@@ -279,21 +279,6 @@ export function TestInterface({ testId }: { testId: string }) {
   };
 
   const validateCurrentQuestion = () => {
-    const currentQuestion = test?.questions[currentQuestionIndex];
-    if (currentQuestion?.type === 'descriptive') {
-      const ans = answers[currentQuestion.id] || '';
-      const minChars = currentQuestion.optionsJson?.minCharacters || 50;
-      const maxChars = currentQuestion.optionsJson?.maxCharacters;
-
-      if (ans.length < minChars) {
-        alert(`Please write at least ${minChars} characters before continuing.`);
-        return false;
-      }
-      if (maxChars && ans.length > maxChars) {
-        alert(`Your response exceeds the maximum limit of ${maxChars} characters.`);
-        return false;
-      }
-    }
     return true;
   };
 
@@ -413,7 +398,7 @@ export function TestInterface({ testId }: { testId: string }) {
                       }`}>
                         {idx + 1}
                       </span>
-                      <span className="truncate max-w-[150px]">{q.type === 'coding' ? 'Coding Challenge' : q.type === 'descriptive' ? 'Descriptive' : 'Multiple Choice'}</span>
+                      <span className="truncate max-w-[150px]">{q.type === 'coding' ? 'Coding Challenge' : 'Multiple Choice'}</span>
                     </div>
                     {isAnswered && (
                       <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
@@ -450,88 +435,15 @@ export function TestInterface({ testId }: { testId: string }) {
           <div className="max-w-4xl space-y-6">
             <div className="space-y-2 text-left">
               <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : currentQuestion.type === 'descriptive' ? 'Descriptive Assessment' : 'MCQ'}
+                Question {currentQuestionIndex + 1} • {currentQuestion.type === 'coding' ? 'Coding Challenge' : 'MCQ'}
               </div>
               <div className="text-xl font-black text-slate-900 leading-tight">
                 <MarkdownRenderer content={currentQuestion.questionText} />
               </div>
-              {currentQuestion.type !== 'descriptive' && (
-                <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
-                  Points: {currentQuestion.points || 10}
-                </div>
-              )}
-              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.scenario && (
-                <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Scenario Context</h4>
-                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{currentQuestion.optionsJson.scenario}</p>
-                </div>
-              )}
-              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.caseStudy && (
-                <div className="mt-6 space-y-4 p-6 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
-                  {currentQuestion.optionsJson.caseStudy.title && (
-                    <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-2">
-                      {currentQuestion.optionsJson.caseStudy.title}
-                    </h3>
-                  )}
-                  {currentQuestion.optionsJson.caseStudy.background && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.background} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.caseStudy.context && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.context} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.caseStudy.problemStatement && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h4>
-                      <div className="text-sm text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.problemStatement} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.caseStudy.supportingInfo && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed bg-white p-4 rounded-xl border border-slate-100"><MarkdownRenderer content={currentQuestion.optionsJson.caseStudy.supportingInfo} /></div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {currentQuestion.type === 'descriptive' && currentQuestion.optionsJson?.aiScenario && (
-                <div className="mt-6 space-y-4 p-6 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
-                  {currentQuestion.optionsJson.aiScenario.title && (
-                    <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-2">
-                      {currentQuestion.optionsJson.aiScenario.title}
-                    </h3>
-                  )}
-                  {currentQuestion.optionsJson.aiScenario.background && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Background</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.background} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.aiScenario.context && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Context</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.context} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.aiScenario.problemStatement && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Problem Statement</h4>
-                      <div className="text-sm text-slate-800 leading-relaxed font-semibold"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.problemStatement} /></div>
-                    </div>
-                  )}
-                  {currentQuestion.optionsJson.aiScenario.supportingInfo && (
-                    <div>
-                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Supporting Information</h4>
-                      <div className="text-sm text-slate-700 leading-relaxed bg-white p-4 rounded-xl border border-slate-100"><MarkdownRenderer content={currentQuestion.optionsJson.aiScenario.supportingInfo} /></div>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="inline-flex text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">
+                Points: {currentQuestion.points || 10}
+              </div>
+
             </div>
 
             {/* Answer Input */}
@@ -579,36 +491,7 @@ export function TestInterface({ testId }: { testId: string }) {
                 </div>
               )}
 
-              {currentQuestion.type === 'true_false' && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm font-semibold text-slate-600">Select one option:</span>
-                    {answers[currentQuestion.id] && (
-                      <button
-                        onClick={() => handleClearAnswer(currentQuestion.id)}
-                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
-                      >
-                        Clear Selection
-                      </button>
-                    )}
-                  </div>
-                  {['True', 'False'].map((option) => (
-                    <label key={option} className={`flex items-center p-3 border rounded-lg transition cursor-pointer ${
-                      answers[currentQuestion.id] === option ? 'border-blue-600 bg-blue-50/20' : 'hover:bg-slate-50 border-slate-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name={`question-${currentQuestion.id}`}
-                        value={option}
-                        checked={answers[currentQuestion.id] === option}
-                        onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                        className="mr-3 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-semibold text-slate-700">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+
 
               {currentQuestion.type === 'coding' && (
                 <div className="space-y-4">
@@ -666,59 +549,7 @@ export function TestInterface({ testId }: { testId: string }) {
                 </div>
               )}
 
-              {currentQuestion.type === 'essay' && (
-                <textarea
-                  value={answers[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                  className="w-full h-64 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                  placeholder="Enter your essay answer here..."
-                />
-              )}
 
-              {currentQuestion.type === 'descriptive' && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Your Answer</span>
-                    {answers[currentQuestion.id] && (
-                      <button
-                        onClick={() => handleClearAnswer(currentQuestion.id)}
-                        className="text-xs font-bold text-slate-500 hover:text-rose-600 transition underline underline-offset-2"
-                      >
-                        Clear Answer
-                      </button>
-                    )}
-                  </div>
-                  <textarea
-                    value={answers[currentQuestion.id] || ''}
-                    onChange={(e) => {
-                      e.target.style.height = 'auto';
-                      e.target.style.height = `${e.target.scrollHeight}px`;
-                      handleAnswerChange(currentQuestion.id, e.target.value);
-                    }}
-                    className="w-full min-h-[16rem] p-4 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans shadow-inner overflow-hidden"
-                    placeholder={`Type your answer here (minimum ${currentQuestion.optionsJson?.minCharacters || 50} characters)...`}
-                    aria-label={`Descriptive response for question ${currentQuestionIndex + 1}`}
-                    tabIndex={0}
-                  />
-                  <div className="flex justify-between items-center text-xs text-slate-500 font-medium mt-1">
-                    <div className="flex gap-4 items-center">
-                      <span className={saveStatus[currentQuestion.id] === '❌ Save failed' ? 'text-rose-600' : 'text-emerald-600 font-bold'}>
-                        {saveStatus[currentQuestion.id] || ''}
-                      </span>
-                      <span>Characters: {(answers[currentQuestion.id] || '').length}</span>
-                      <span>Words: {(answers[currentQuestion.id] || '').trim().split(/\s+/).filter(w => w.length > 0).length}</span>
-                      {currentQuestion.optionsJson?.maxCharacters && (
-                        <span className={(answers[currentQuestion.id] || '').length > currentQuestion.optionsJson.maxCharacters ? 'text-rose-600 font-bold' : ''}>
-                          Remaining: {currentQuestion.optionsJson.maxCharacters - (answers[currentQuestion.id] || '').length}
-                        </span>
-                      )}
-                    </div>
-                    {currentQuestion.optionsJson?.expectedAnswerLength && (
-                       <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Suggested: {currentQuestion.optionsJson.expectedAnswerLength} words</span>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

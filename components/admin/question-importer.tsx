@@ -129,8 +129,6 @@ export function QuestionImporter() {
     const headers = [
       'Question Text', 'Question Type', 'Section', 'Points', 'Time Limit', 'Difficulty', 'Correct Answer', 'Explanation',
       'Option 1', 'Option 2', 'Option 3', 'Option 4',
-      'Scenario', 'Assessment Dimension', 'Expected Answer Length', 'Expected Duration',
-      'Case Study Title', 'Case Study Background', 'Case Study Context', 'Case Study Problem Statement', 'Case Study Supporting Information',
       'Constraints', 'Sample Input', 'Sample Output', 'Starter Code', 'Language'
     ];
 
@@ -161,30 +159,6 @@ export function QuestionImporter() {
         'Sample Output': '"olleh"',
         'Starter Code': 'function reverse(s) { }',
         'Language': 'javascript'
-      },
-      {
-        'Question Text': 'Tell me about a time you faced a conflict.',
-        'Question Type': 'Behaviour',
-        'Section': 'Behaviour',
-        'Points': 0,
-        'Time Limit': 300,
-        'Assessment Dimension': 'COMMUNICATION',
-        'Expected Answer Length': 250,
-        'Expected Duration': 5,
-        'Scenario': 'You are a team lead and two members are arguing.'
-      },
-      {
-        'Question Text': 'Analyze the following architectural flaw.',
-        'Question Type': 'Case Study',
-        'Section': 'Learning',
-        'Points': 0,
-        'Time Limit': 600,
-        'Expected Duration': 10,
-        'Case Study Title': 'Microservices Migration',
-        'Case Study Background': 'Company X is migrating from monolith.',
-        'Case Study Context': 'They are experiencing high latency.',
-        'Case Study Problem Statement': 'Identify the bottleneck.',
-        'Case Study Supporting Information': 'Logs show 500ms delay in auth service.'
       }
     ];
 

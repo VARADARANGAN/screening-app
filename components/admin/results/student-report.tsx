@@ -86,10 +86,6 @@ export function StudentReport() {
               <span className="text-base font-medium uppercase">{data.status}</span>
             </div>
             <div>
-              <span className="block text-xs font-semibold text-gray-500 uppercase">Eligibility Status</span>
-              <span className="text-base font-medium uppercase">{data.eligibilityStatus}</span>
-            </div>
-            <div>
               <span className="block text-xs font-semibold text-gray-500 uppercase">Time Taken</span>
               <span className="text-base font-medium">{data.timeTaken ? `${Math.round(data.timeTaken / 60)} mins` : 'N/A'}</span>
             </div>
@@ -105,11 +101,8 @@ export function StudentReport() {
             <div>
               <ProgressBar label="Aptitude" score={data.scores.aptitudeScore} />
               <ProgressBar label="Coding" score={data.scores.codingScore} />
-              <ProgressBar label="Behaviour" score={data.scores.behaviourScore} />
             </div>
             <div>
-              <ProgressBar label="Learning" score={data.scores.learningScore} />
-              <ProgressBar label="AI Literacy" score={data.scores.aiLiteracyScore} />
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <ProgressBar label="OVERALL SCORE" score={data.scores.overallScore} />
               </div>
@@ -117,63 +110,6 @@ export function StudentReport() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Candidate Intelligence */}
-      <Card>
-        <CardHeader className="bg-blue-50 border-b border-blue-100">
-          <CardTitle className="text-blue-900">Candidate Intelligence Report</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {!data.aiReport || data.aiReport.status !== 'COMPLETED' ? (
-            <div className="text-center text-gray-500 py-4">AI Evaluation is {data.aiReport?.status || 'PENDING'}.</div>
-          ) : (
-            <div className="space-y-8">
-              <div className="flex justify-between items-start">
-                <div className="flex-1 pr-8">
-                  <h4 className="font-bold text-gray-900 mb-2">Executive Summary</h4>
-                  <p className="text-gray-700 leading-relaxed">{data.aiReport.executiveSummary}</p>
-                </div>
-                <div className={`px-4 py-3 rounded-lg text-center shadow-sm border ${
-                  data.aiReport.recommendation === 'Highly Recommended' ? 'bg-green-50 border-green-200 text-green-800' :
-                  data.aiReport.recommendation === 'Recommended' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                  data.aiReport.recommendation === 'Consider' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                  'bg-red-50 border-red-200 text-red-800'
-                }`}>
-                  <span className="block text-xs font-bold uppercase tracking-wider mb-1 opacity-70">Recommendation</span>
-                  <span className="font-black text-lg">{data.aiReport.recommendation}</span>
-                  <span className="block text-xs mt-1 font-medium">Confidence: {data.aiReport.confidence}%</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
-                  <h4 className="font-bold text-emerald-900 mb-2">Key Strengths</h4>
-                  <ul className="list-disc pl-5 space-y-1 text-emerald-800 text-sm">
-                    {data.aiReport.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
-                  </ul>
-                </div>
-                <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
-                  <h4 className="font-bold text-orange-900 mb-2">Development Areas</h4>
-                  <ul className="list-disc pl-5 space-y-1 text-orange-800 text-sm">
-                    {data.aiReport.developmentAreas.map((s: string, i: number) => <li key={i}>{s}</li>)}
-                  </ul>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-blue-900 mb-3">Suggested Interview Focus</h4>
-                <div className="flex flex-wrap gap-2">
-                  {data.aiReport.interviewFocus.map((f: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-white border border-blue-200 text-blue-800 rounded-full text-sm font-semibold shadow-sm">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
