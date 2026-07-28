@@ -87,6 +87,8 @@ model Question {
 model Test {
   id               String    @id @default(uuid()) @db.Uuid
   student_id       String    @db.Uuid
+  name             String?   @default("Assessment") @db.VarChar(255)
+  sections_config  Json?
   start_time       DateTime? @db.Timestamp(6)
   end_time         DateTime? @db.Timestamp(6)
   status           String?   @default("not_started") @db.VarChar(50)

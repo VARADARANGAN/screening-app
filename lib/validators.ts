@@ -41,7 +41,7 @@ export const AdminProfileSchema = z.object({
 // ==================== Question Schemas ====================
 export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
-  type: z.enum(['mcq', 'coding']),
+  type: z.enum(['mcq', 'coding', 'single_select', 'multi_select', 'ranking', 'open_text', 'structured_response', 'date']),
   timeLimitSeconds: z.number().optional().default(60),
   points: z.number().min(0, 'Points must be at least 0').default(0),
   isPublished: z.boolean().default(false),
@@ -59,12 +59,12 @@ export const QuestionSchema = z.object({
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),
 }).refine((data) => {
-  if (data.type === 'mcq') {
-    return !!data.optionsJson && data.correctAnswer !== undefined && data.correctAnswer !== '';
+  if (data.type === 'mcq' || data.type === 'single_select' || data.type === 'multi_select' || data.type === 'ranking') {
+    return !!data.optionsJson;
   }
   return true;
 }, {
-  message: 'MCQ questions require options and a correct answer',
+  message: 'This question type requires options configuration',
 });
 
 // ==================== Test Schemas ====================

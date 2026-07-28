@@ -6,6 +6,8 @@ import { z } from 'zod';
 const AssignTestSchema = z.object({
   questionIds: z.array(z.string()).min(1, 'Select at least one question'),
   totalDuration: z.number().optional(), // custom duration in minutes
+  name: z.string().optional().default("Assessment"),
+  sectionsConfig: z.any().optional(), // Expected format: Array of { id, name, displayOrder, questionOrder }
 });
 
 export async function POST(request: NextRequest) {
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { questionIds, totalDuration } = validation.data;
+    const { questionIds, totalDuration, name, sectionsConfig } = validation.data;
 
     // Fetch the questions to sum up the duration
     const questions = await prisma.question.findMany({
@@ -66,6 +68,8 @@ export async function POST(request: NextRequest) {
             total_duration: totalDurationMinutes,
             status: 'not_started',
             is_completed: false,
+            name: name,
+            sections_config: sectionsConfig ? sectionsConfig : null,
           }
         });
 

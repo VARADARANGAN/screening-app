@@ -16,6 +16,7 @@ export default function TestManagementPage() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [assignedTests, setAssignedTests] = useState<any[]>([]);
+  const [availableSections, setAvailableSections] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Selection State
@@ -24,10 +25,13 @@ export default function TestManagementPage() {
 
   // Custom configuration
   const [customDuration, setCustomDuration] = useState<number | ''>('');
+  const [assessmentName, setAssessmentName] = useState<string>('Assessment');
+  const [sectionsConfig, setSectionsConfig] = useState<{name: string, displayOrder: number}[]>([]);
 
   // Filters State for Questions
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState('all');
 
   // Action states
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
@@ -44,7 +48,7 @@ export default function TestManagementPage() {
       const token = localStorage.getItem('token');
       
       // Load questions
-      const questionsRes = await axios.get('/api/questions?limit=100', {
+      const questionsRes = await axios.get('/api/questions?limit=1000', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const fetchedQuestions = questionsRes.data.questions || [];
@@ -57,6 +61,12 @@ export default function TestManagementPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAssignedTests(evaluationRes.data.tests || []);
+
+      // Fetch distinct sections
+      const sectionsRes = await axios.get('/api/sections', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAvailableSections(sectionsRes.data.sections || []);
 
     } catch (e) {
       console.error('[Load Data Error]', e);
@@ -72,6 +82,24 @@ export default function TestManagementPage() {
     setSelectedQuestionIds(next);
   };
 
+  // Keep section config in sync with selected questions if not explicitly defined
+  useEffect(() => {
+    const selectedQuestions = questions.filter(q => selectedQuestionIds.has(q.id));
+    const uniqueSections = Array.from(new Set(selectedQuestions.map(q => q.section || 'Aptitude')));
+    
+    // Add new sections that were selected
+    setSectionsConfig(prev => {
+      const newConfig = [...prev];
+      uniqueSections.forEach(sec => {
+        if (!newConfig.find(c => c.name === sec)) {
+          newConfig.push({ name: sec, displayOrder: newConfig.length + 1 });
+        }
+      });
+      // Remove unselected ones
+      return newConfig.filter(c => uniqueSections.includes(c.name)).map((c, i) => ({ ...c, displayOrder: i + 1 }));
+    });
+  }, [selectedQuestionIds, questions]);
+
   const handleToggleBranch = (id: string) => {
     const next = new Set(selectedBranchIds);
     if (next.has(id)) next.delete(id);
@@ -86,6 +114,13 @@ export default function TestManagementPage() {
       setSelectedBranchIds(new Set(branches.map(b => b.id)));
     }
   };
+
+  const filteredQuestions = questions.filter(q => {
+    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = selectedType === 'all' || q.type === selectedType;
+    const matchesSection = selectedSectionFilter === 'all' || (q.section || 'Aptitude') === selectedSectionFilter;
+    return matchesSearch && matchesType && matchesSection;
+  });
 
   const handleSelectAllQuestions = () => {
     const allVisibleSelected = filteredQuestions.length > 0 && filteredQuestions.every(q => selectedQuestionIds.has(q.id));
@@ -116,6 +151,8 @@ export default function TestManagementPage() {
         questionIds: Array.from(selectedQuestionIds),
         branchIds: Array.from(selectedBranchIds),
         totalDuration: customDuration !== '' ? Number(customDuration) : totalDurationMinutes,
+        name: assessmentName,
+        sectionsConfig: sectionsConfig
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -124,6 +161,7 @@ export default function TestManagementPage() {
       setSelectedQuestionIds(new Set());
       setSelectedBranchIds(new Set());
       setCustomDuration('');
+      setAssessmentName('Assessment');
       setActiveTab('history');
       loadData();
     } catch (e: any) {
@@ -134,11 +172,16 @@ export default function TestManagementPage() {
     }
   };
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || q.type === selectedType;
-    return matchesSearch && matchesType;
-  });
+  const moveSection = (index: number, direction: 'up' | 'down') => {
+    const newConfig = [...sectionsConfig];
+    if (direction === 'up' && index > 0) {
+      [newConfig[index - 1], newConfig[index]] = [newConfig[index], newConfig[index - 1]];
+    } else if (direction === 'down' && index < newConfig.length - 1) {
+      [newConfig[index + 1], newConfig[index]] = [newConfig[index], newConfig[index + 1]];
+    }
+    newConfig.forEach((c, i) => c.displayOrder = i + 1);
+    setSectionsConfig(newConfig);
+  };
 
   // Calculate estimated total duration
   const totalDurationMinutes = Array.from(selectedQuestionIds).reduce((acc, qId) => {
@@ -192,11 +235,41 @@ export default function TestManagementPage() {
         </div>
         {activeTab === 'create' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            {/* Step 1: Select Questions from universal bank */}
             <div className="lg:col-span-2 space-y-4">
+              {/* Step 1: Settings */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                 <h2 className="text-lg font-bold text-slate-900">1. Assessment Settings</h2>
+                 <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-600">Assessment Name</label>
+                    <Input
+                      placeholder="e.g. Campus Recruitment Test 2026"
+                      value={assessmentName}
+                      onChange={(e) => setAssessmentName(e.target.value)}
+                      className="w-full bg-slate-50 border-slate-200"
+                    />
+                 </div>
+                 {sectionsConfig.length > 0 && (
+                   <div className="space-y-2 mt-4">
+                      <label className="block text-xs font-semibold text-slate-600">Section Order</label>
+                      <div className="space-y-2">
+                         {sectionsConfig.map((sec, idx) => (
+                           <div key={sec.name} className="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200">
+                              <span className="text-sm font-semibold text-slate-700">{sec.name}</span>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => moveSection(idx, 'up')} disabled={idx === 0}>↑</Button>
+                                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={() => moveSection(idx, 'down')} disabled={idx === sectionsConfig.length - 1}>↓</Button>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                 )}
+              </div>
+
+              {/* Step 2: Select Questions */}
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-slate-900">1. Select Questions</h2>
+                  <h2 className="text-lg font-bold text-slate-900">2. Select Questions</h2>
                   <span className="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-100">
                     {selectedQuestionIds.size} Selected
                   </span>
@@ -218,7 +291,24 @@ export default function TestManagementPage() {
                   >
                     <option value="all">All Types</option>
                     <option value="mcq">MCQ</option>
+                    <option value="single_select">Single Select</option>
+                    <option value="multi_select">Multi Select</option>
+                    <option value="ranking">Ranking</option>
+                    <option value="open_text">Open Text</option>
+                    <option value="structured_response">Structured Response</option>
+                    <option value="date">Date</option>
                     <option value="coding">Coding</option>
+                  </select>
+
+                  <select
+                    value={selectedSectionFilter}
+                    onChange={(e) => setSelectedSectionFilter(e.target.value)}
+                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 focus:bg-white"
+                  >
+                    <option value="all">All Sections</option>
+                    {availableSections.map(sec => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -236,6 +326,7 @@ export default function TestManagementPage() {
                             title="Select All Questions"
                           />
                         </TableHead>
+                        <TableHead>Section</TableHead>
                         <TableHead>Question Content</TableHead>
                         <TableHead className="w-24">Type</TableHead>
                         <TableHead className="w-20 text-center">Marks</TableHead>
@@ -267,6 +358,9 @@ export default function TestManagementPage() {
                                 className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
                               />
                             </TableCell>
+                            <TableCell className="text-xs font-semibold text-slate-500">
+                              {q.section || 'Aptitude'}
+                            </TableCell>
                             <TableCell className="font-medium text-slate-800 max-w-xs truncate">
                               {q.question_text}
                             </TableCell>
@@ -285,10 +379,10 @@ export default function TestManagementPage() {
               </div>
             </div>
 
-            {/* Step 2: Configure & Select Branches */}
+            {/* Step 3: Configure & Select Branches */}
             <div className="space-y-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                <h2 className="text-lg font-bold text-slate-900">2. Assign & Publish</h2>
+                <h2 className="text-lg font-bold text-slate-900">3. Assign & Publish</h2>
 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
@@ -395,7 +489,7 @@ export default function TestManagementPage() {
                     </TableRow>
                   ) : (
                     assignedTests.map(t => {
-                      const testName = "TEST";
+                      const testName = t.name || "Assessment";
                       const durationMinutes = t.totalDuration || Math.round(t.total_duration / 60) || 60;
                       return (
                         <TableRow key={t.id} className="hover:bg-slate-50/30 border-b border-slate-100 last:border-b-0 text-xs">
