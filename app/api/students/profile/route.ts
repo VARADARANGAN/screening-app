@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid or expired token' }, { status: 401 });
     }
 
-    if (decoded.role !== 'student') {
+    if (String(decoded.role).toLowerCase() !== 'student') {
       return NextResponse.json({ message: 'Only students can update their profile' }, { status: 403 });
     }
 
