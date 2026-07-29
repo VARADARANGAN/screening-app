@@ -94,7 +94,7 @@ export async function GET(
 
     // Extract submitted coding answers for the report
     const codingAnswers = test.test_responses
-      .filter(r => r.question.type === 'coding')
+      .filter(r => ['coding', 'coding_challenge', 'code_response', 'code_review'].includes(r.question.type))
       .map(r => ({
         question: r.question.question_text,
         studentAnswer: r.student_answer,

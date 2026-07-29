@@ -52,7 +52,7 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
     { id: 'open_text', label: 'Open Text' }
   ],
   ATTITUDE_AND_OWNERSHIP: [
-    { id: 'single_select', label: 'Single Select' },
+    { id: 'mcq', label: 'Multiple Choice (MCQ)' },
     { id: 'open_text', label: 'Open Text' },
     { id: 'ranking', label: 'Ranking' }
   ],
@@ -74,7 +74,7 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
     { id: 'open_text', label: 'Open Text' }
   ],
   INTEGRITY: [
-    { id: 'single_select', label: 'Single Select' },
+    { id: 'mcq', label: 'Multiple Choice (MCQ)' },
     { id: 'open_text', label: 'Open Text' }
   ],
   AI_LITERACY: [

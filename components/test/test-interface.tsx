@@ -64,6 +64,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   // Security and execution state
   const submittingRef = useRef(false);
@@ -227,6 +228,7 @@ export function TestInterface({ testId }: { testId: string }) {
 
   const handleStartTest = async () => {
     try {
+      setIsInitializing(true);
       // Request camera & microphone
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       stream.getTracks().forEach((track) => track.stop());
@@ -243,6 +245,8 @@ export function TestInterface({ testId }: { testId: string }) {
       setShowInstructions(false);
     } catch (err) {
       toast.error('Camera and Microphone permissions are required to start this assessment. Please allow them in your browser settings.');
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -506,41 +510,43 @@ export function TestInterface({ testId }: { testId: string }) {
   // Resolve branch name or fallback
   const studentBranch = (test as any).student?.branchName || 'General';
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Instructions Modal */}
-      {showInstructions && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 space-y-6">
-            <h2 className="text-2xl font-extrabold text-slate-900">Mandatory Assessment Instructions</h2>
-            <div className="space-y-3.5 text-slate-650 text-sm leading-relaxed">
-              <p>Welcome to the <strong>Campus Recruitment Assessment – {studentBranch} 2027</strong>. Please read the instructions below carefully before starting your test:</p>
-              <ul className="list-disc pl-5 space-y-2">
-                <li><strong>Duration:</strong> You have a total of <strong>{test.total_duration} minutes</strong> to complete the entire test.</li>
-                <li><strong>Questions:</strong> There are <strong>{test.questions.length} questions</strong>. You can navigate between questions freely.</li>
-                <li><strong>Auto-Save:</strong> Your answers are saved automatically as you progress. You can resume in case of interruptions.</li>
-                <li><strong>Proctoring Rules:</strong> 
-                  <ul className="list-circle pl-5 space-y-1.5 mt-1 text-xs text-rose-600 font-semibold">
-                    <li>• Switching tabs or minimizing the browser window is prohibited.</li>
-                    <li>• Copying, pasting, and right-clicking are disabled.</li>
-                    <li>• Multiple violations will result in automatic submission.</li>
-                  </ul>
-                </li>
-                <li><strong>Permissions:</strong> Starting the test requires Camera and Microphone access for proctoring.</li>
-              </ul>
-            </div>
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={handleStartTest}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-sm transition"
-              >
-                I Acknowledge & Start Test
-              </button>
-            </div>
+  if (showInstructions) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-slate-200 space-y-6">
+          <h2 className="text-2xl font-extrabold text-slate-900">Mandatory Assessment Instructions</h2>
+          <div className="space-y-3.5 text-slate-650 text-sm leading-relaxed">
+            <p>Welcome to the <strong>Campus Recruitment Assessment – {studentBranch} 2027</strong>. Please read the instructions below carefully before starting your test:</p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li><strong>Duration:</strong> You have a total of <strong>{test.total_duration} minutes</strong> to complete the entire test.</li>
+              <li><strong>Questions:</strong> There are <strong>{test.questions.length} questions</strong>. You can navigate between questions freely.</li>
+              <li><strong>Auto-Save:</strong> Your answers are saved automatically as you progress. You can resume in case of interruptions.</li>
+              <li><strong>Proctoring Rules:</strong> 
+                <ul className="list-circle pl-5 space-y-1.5 mt-1 text-xs text-rose-600 font-semibold">
+                  <li>• Switching tabs or minimizing the browser window is prohibited.</li>
+                  <li>• Copying, pasting, and right-clicking are disabled.</li>
+                  <li>• Multiple violations will result in automatic submission.</li>
+                </ul>
+              </li>
+              <li><strong>Permissions:</strong> Starting the test requires Camera and Microphone access for proctoring.</li>
+            </ul>
+          </div>
+          <div className="pt-4 border-t border-slate-100 flex justify-end">
+            <button
+              onClick={handleStartTest}
+              disabled={isInitializing}
+              className={`font-bold py-3 px-8 rounded-xl shadow-sm transition ${isInitializing ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+            >
+              {isInitializing ? 'Requesting Permissions...' : 'I Acknowledge & Start Test'}
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
+  return (
+    <div className="flex h-screen bg-gray-100">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4 font-bold text-sm flex items-center gap-3 border border-slate-700">
