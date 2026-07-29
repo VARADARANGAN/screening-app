@@ -38,26 +38,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'This USN is already registered.' }, { status: 400 });
     }
 
-    const student = await prisma.student.upsert({
-      where: { user_id: decoded.userId },
-      update: {
-        full_name: validatedData.fullName,
-        phone: validatedData.phone,
-        college: validatedData.college,
-        usn: validatedData.usn,
-        branch_name: validatedData.branchName,
-        profile_completed: true,
-      },
-      create: {
-        user_id: decoded.userId,
-        full_name: validatedData.fullName,
-        phone: validatedData.phone,
-        college: validatedData.college,
-        usn: validatedData.usn,
-        branch_name: validatedData.branchName,
-        profile_completed: true,
-      }
+    // Check Email Uniqueness
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email }
     });
+
+    if (existingUser && existingUser.id !== decoded.userId) {
+      return NextResponse.json({ message: 'This email is already registered.' }, { status: 400 });
+    }
+
+    const [updatedUser, student] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: decoded.userId },
+        data: { email: validatedData.email }
+      }),
+      prisma.student.upsert({
+        where: { user_id: decoded.userId },
+        update: {
+          full_name: validatedData.fullName,
+          phone: validatedData.phone,
+          college: validatedData.college,
+          usn: validatedData.usn,
+          branch_name: validatedData.branchName,
+          profile_completed: true,
+        },
+        create: {
+          user_id: decoded.userId,
+          full_name: validatedData.fullName,
+          phone: validatedData.phone,
+          college: validatedData.college,
+          usn: validatedData.usn,
+          branch_name: validatedData.branchName,
+          profile_completed: true,
+        }
+      })
+    ]);
 
     return NextResponse.json({
       message: 'Profile updated successfully',
@@ -101,19 +116,52 @@ export async function PATCH(request: NextRequest) {
     }
 
     const data = await request.json();
-    const PatchSchema = z.object({
-      fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-      phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
+    const validatedData = StudentProfileSchema.parse(data);
+
+    // Check USN Uniqueness
+    const existingStudent = await prisma.student.findUnique({
+      where: { usn: validatedData.usn }
+    });
+    
+    if (existingStudent && existingStudent.user_id !== decoded.userId) {
+      return NextResponse.json({ message: 'This USN is already registered.' }, { status: 400 });
+    }
+
+    // Check Email Uniqueness
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email }
     });
 
-    const validatedData = PatchSchema.parse(data);
-    const student = await prisma.student.update({
-      where: { user_id: decoded.userId },
-      data: {
-        full_name: validatedData.fullName,
-        phone: validatedData.phone,
-      }
-    });
+    if (existingUser && existingUser.id !== decoded.userId) {
+      return NextResponse.json({ message: 'This email is already registered.' }, { status: 400 });
+    }
+
+    const [updatedUser, student] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id: decoded.userId },
+        data: { email: validatedData.email }
+      }),
+      prisma.student.upsert({
+        where: { user_id: decoded.userId },
+        update: {
+          full_name: validatedData.fullName,
+          phone: validatedData.phone,
+          college: validatedData.college,
+          usn: validatedData.usn,
+          branch_name: validatedData.branchName,
+          profile_completed: true,
+        },
+        create: {
+          user_id: decoded.userId,
+          full_name: validatedData.fullName,
+          phone: validatedData.phone,
+          college: validatedData.college,
+          usn: validatedData.usn,
+          branch_name: validatedData.branchName,
+          profile_completed: true,
+        }
+      })
+    ]);
 
 
     return NextResponse.json({
@@ -158,7 +206,8 @@ export async function GET(request: NextRequest) {
     }
 
     const student = await prisma.student.findUnique({
-      where: { user_id: decoded.userId }
+      where: { user_id: decoded.userId },
+      include: { user: true }
     });
 
     if (!student) {
@@ -169,6 +218,7 @@ export async function GET(request: NextRequest) {
       message: 'Student profile retrieved',
       student: {
         fullName: student.full_name,
+        email: student.user?.email || '',
         phone: student.phone,
         college: student.college,
         usn: student.usn,

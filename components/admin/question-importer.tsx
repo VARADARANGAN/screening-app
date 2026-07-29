@@ -213,6 +213,7 @@ export function QuestionImporter() {
             <p className="text-xs text-red-600">Please fix these errors in your Excel file and try again.</p>
           </div>
           <div className="max-h-64 overflow-y-auto border border-t-0 border-red-200 rounded-b-lg">
+          <div className="w-full overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-600">
               <thead className="bg-slate-100 text-slate-700 sticky top-0">
                 <tr>
@@ -231,6 +232,7 @@ export function QuestionImporter() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       )}

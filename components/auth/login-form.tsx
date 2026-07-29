@@ -105,7 +105,7 @@ export function LoginForm() {
   if (!mounted) return null;
 
   return (
-    <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
+    <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
       <div className="space-y-2 text-center">
         <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl mx-auto shadow-sm">
           C

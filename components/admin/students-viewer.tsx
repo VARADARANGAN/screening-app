@@ -337,7 +337,8 @@ export function StudentsViewer() {
         {activeTab === 'students' ? (
           <Card className="border border-slate-150 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table>
                 <TableHeader className="bg-slate-50/70 border-b border-slate-100">
                   <TableRow>
                     <TableHead className="w-12 text-center"></TableHead>
@@ -431,14 +432,16 @@ export function StudentsViewer() {
                     })
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         ) : (
           /* Live attempts view */
           <Card className="border border-slate-150 shadow-sm rounded-2xl overflow-hidden bg-white">
             <CardContent className="p-0">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table>
                 <TableHeader className="bg-slate-50/70 border-b border-slate-100">
                   <TableRow>
                     <TableHead className="font-semibold text-slate-700">Student Name</TableHead>
@@ -514,7 +517,8 @@ export function StudentsViewer() {
                     })
                   )}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -524,7 +528,7 @@ export function StudentsViewer() {
       {selectedStudent && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-start">
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-2xl font-extrabold text-slate-950">{selectedStudent.fullName}</h2>
                 <p className="text-xs text-slate-500 font-mono mt-1">USN: {selectedStudent.usn} | {selectedStudent.branch} | {selectedStudent.college}</p>
@@ -538,7 +542,8 @@ export function StudentsViewer() {
               <h3 className="font-bold text-slate-800 text-sm">Completed & Assigned Test History</h3>
 
               <div className="bg-white rounded-xl border border-slate-150 shadow-sm overflow-hidden">
-                <Table>
+                <div className="w-full overflow-x-auto">
+                  <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
                       <TableHead>Test Name</TableHead>
@@ -602,7 +607,8 @@ export function StudentsViewer() {
                       })
                     )}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </div>
             </div>
           </div>
@@ -627,7 +633,7 @@ export function StudentsViewer() {
               </div>
             </div>
 
-            <div className="p-5 flex gap-4 bg-slate-50 border-b border-slate-100">
+            <div className="p-5 flex flex-col sm:flex-row gap-4 bg-slate-50 border-b border-slate-100">
               <div className="flex-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Search Questions</label>
                 <Input
@@ -637,7 +643,7 @@ export function StudentsViewer() {
                   className="bg-white border-slate-200"
                 />
               </div>
-              <div className="w-64">
+              <div className="w-full sm:w-64">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Section</label>
                 <select
                   value={selectedQuestionSection}
@@ -670,7 +676,8 @@ export function StudentsViewer() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-0 bg-white">
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table>
                 <TableHeader className="bg-slate-50/70 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
                   <TableRow>
                     <TableHead className="w-12 text-center">
@@ -722,6 +729,7 @@ export function StudentsViewer() {
                   )}
                 </TableBody>
               </Table>
+            </div>
             </div>
             
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">

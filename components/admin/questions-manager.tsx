@@ -292,6 +292,7 @@ export function QuestionsManager() {
         {/* Questions Table */}
         <Card className="border border-slate-150 shadow-sm rounded-2xl overflow-hidden bg-white">
           <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50/70 border-b border-slate-100">
                 <TableRow>
@@ -355,6 +356,7 @@ export function QuestionsManager() {
                 )}
               </TableBody>
             </Table>
+          </div>
           </CardContent>
         </Card>
       </main>

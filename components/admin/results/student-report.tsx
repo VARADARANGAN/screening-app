@@ -175,7 +175,7 @@ export function StudentReport() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                       AI Evaluation Breakdown
                     </h5>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                       <div>
                         <span className="font-semibold text-indigo-900">Detected Language:</span>{' '}
                         <span className="text-indigo-800 font-mono">

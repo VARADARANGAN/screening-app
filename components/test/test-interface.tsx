@@ -58,6 +58,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [violations, setViolations] = useState<string[]>([]);
   const [showWarning, setShowWarning] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -563,10 +564,21 @@ export function TestInterface({ testId }: { testId: string }) {
         </div>
       )}
 
+      {/* Mobile Backdrop */}
+      {isMobileNavOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" 
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+
       {/* Left Sidebar - Question Navigator */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0">
-        <div className="p-6 border-b border-slate-100 space-y-1">
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 transform transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
+        <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center">
           <h2 className="font-extrabold text-slate-900 text-base tracking-tight">Question Navigator</h2>
+          <button onClick={() => setIsMobileNavOpen(false)} className="md:hidden p-2 -mr-2 text-slate-400 hover:text-slate-900">
+            <XCircle className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
@@ -638,18 +650,26 @@ export function TestInterface({ testId }: { testId: string }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50 w-full">
         {/* Header */}
-        <div className="bg-white px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-10 shrink-0 shadow-sm">
-          <div className="space-y-1">
-            <h1 className="text-sm font-extrabold text-slate-800 tracking-tight uppercase">
-               {studentBranch} drive
-            </h1>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-               Question {currentQuestionIndex + 1} of {test.questions.length} • {currentQuestion.section || 'General'}
+        <div className="bg-white px-4 sm:px-8 py-4 flex justify-between items-center border-b border-slate-200 sticky top-0 z-10 shrink-0 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsMobileNavOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 focus:outline-none"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div className="space-y-1">
+              <h1 className="text-sm font-extrabold text-slate-800 tracking-tight uppercase hidden sm:block">
+                 {studentBranch} drive
+              </h1>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                 Q {currentQuestionIndex + 1} of {test.questions.length} <span className="hidden sm:inline">• {currentQuestion.section || 'General'}</span>
+              </div>
             </div>
           </div>
-          <div className={`text-lg font-bold font-mono px-4 py-1.5 rounded-xl border flex items-center gap-2 ${
+          <div className={`text-sm sm:text-lg font-bold font-mono px-3 sm:px-4 py-1.5 rounded-xl border flex items-center gap-1.5 sm:gap-2 ${
             timeRemaining < 300 
               ? 'text-rose-600 border-rose-100 bg-rose-50 animate-pulse shadow-sm' 
               : 'text-slate-800 border-slate-200 bg-slate-50 shadow-sm'
@@ -660,16 +680,16 @@ export function TestInterface({ testId }: { testId: string }) {
         </div>
 
         {/* Question */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="space-y-4 text-left">
-              <div className="flex justify-between items-start">
-                <div className="text-xl font-black text-slate-900 leading-relaxed flex-1 prose prose-slate">
+              <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-4">
+                <div className="text-lg sm:text-xl font-black text-slate-900 leading-relaxed flex-1 prose prose-slate w-full">
                   <MarkdownRenderer content={currentQuestion.questionText} />
                 </div>
                 <button
                   onClick={() => handleToggleFlag(currentQuestion.id)}
-                  className={`ml-6 px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 shadow-sm shrink-0 ${
+                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 shadow-sm shrink-0 ${
                     flags[currentQuestion.id] 
                       ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100'
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -686,7 +706,7 @@ export function TestInterface({ testId }: { testId: string }) {
             </div>
 
             {/* Answer Input */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-8 space-y-4">
               {validationError && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" /> {validationError}
@@ -1026,7 +1046,7 @@ export function TestInterface({ testId }: { testId: string }) {
         </div>
 
         {/* Navigation */}
-        <div className="bg-white border-t border-slate-200 p-6 flex justify-between items-center gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
+        <div className="bg-white border-t border-slate-200 p-4 sm:p-6 flex justify-between items-center gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
           <div className="flex gap-4">
             <button
               onClick={() => {
@@ -1034,7 +1054,7 @@ export function TestInterface({ testId }: { testId: string }) {
                 setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1));
               }}
               disabled={currentQuestionIndex === 0}
-              className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-bold py-3 px-8 rounded-xl transition-all shadow-sm"
+              className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-bold py-2.5 sm:py-3 px-6 sm:px-8 rounded-xl transition-all shadow-sm"
             >
               Previous
             </button>
@@ -1043,7 +1063,7 @@ export function TestInterface({ testId }: { testId: string }) {
           {currentQuestionIndex < test.questions.length - 1 ? (
             <button
               onClick={handleNext}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-6 sm:px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               Next
             </button>
@@ -1051,7 +1071,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <button
               onClick={handleConfirmSubmit}
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 px-10 rounded-xl shadow-sm hover:shadow transition-all"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2.5 sm:py-3 px-6 sm:px-10 rounded-xl shadow-sm hover:shadow transition-all"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Test'}
             </button>

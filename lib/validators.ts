@@ -23,6 +23,7 @@ export const LoginSchema = z.object({
 
 // ==================== Student Schemas ====================
 export const StudentProfileSchema = z.object({
+  email: z.string().email('Invalid email format'),
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
   college: z.string().min(2, 'College name is required'),
