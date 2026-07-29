@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertTriangle } from 'lucide-react';
 import { RegisterSchema, RegisterInput } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
 import Link from 'next/link';
 
@@ -40,9 +42,9 @@ export function RegisterForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-100 space-y-6">
+    <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
       <div className="space-y-2 text-center">
-        <div className="w-12 h-12 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-xl mx-auto shadow-md shadow-blue-900/10">
+        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl mx-auto shadow-sm">
           C
         </div>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create Account</h2>
@@ -51,7 +53,7 @@ export function RegisterForm() {
 
       {apiError && (
         <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold rounded-xl">
-          ⚠️ {apiError}
+          <AlertTriangle className="w-4 h-4 inline-block mr-1" /> {apiError}
         </div>
       )}
 
@@ -60,10 +62,10 @@ export function RegisterForm() {
           <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-500">
             Email Address
           </label>
-          <input
+          <Input
             {...register('email')}
             type="email"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+            className="w-full bg-slate-50"
             placeholder="you@example.com"
           />
           {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
@@ -74,10 +76,10 @@ export function RegisterForm() {
             Password
           </label>
           <div className="relative">
-            <input
+            <Input
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition pr-10"
+              className="w-full bg-slate-50 pr-10"
               placeholder="••••••••"
             />
             <button
@@ -106,10 +108,10 @@ export function RegisterForm() {
             Confirm Password
           </label>
           <div className="relative">
-            <input
+            <Input
               {...register('confirmPassword')}
               type={showConfirmPassword ? 'text' : 'password'}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition pr-10"
+              className="w-full bg-slate-50 pr-10"
               placeholder="••••••••"
             />
             <button
@@ -136,7 +138,7 @@ export function RegisterForm() {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-blue-900/10 transition mt-2 cursor-pointer"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-sm transition mt-2 cursor-pointer"
         >
           {isSubmitting ? 'Registering Account...' : 'Sign Up'}
         </Button>

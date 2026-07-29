@@ -223,8 +223,9 @@ export async function POST(
       
       const validationResult = SubmitTestResponseSchema.safeParse(data);
       if (!validationResult.success) {
+        const errorStr = validationResult.error.issues.map((e: any) => e.message).join('\n');
         return NextResponse.json(
-          { message: 'Invalid submission payload', errors: validationResult.error.issues },
+          { message: errorStr || 'Invalid submission payload', errors: validationResult.error.issues },
           { status: 400 }
         );
       }
@@ -275,6 +276,38 @@ export async function POST(
               questionId: response.questionId,
               studentAnswer: response.answer || ''
             });
+          } else if (q && q.type === 'ranking') {
+            try {
+              const studentObj = JSON.parse(response.answer || '{}');
+              const correctOrder = JSON.parse(q.correct_answer || '[]');
+              const allowPartial = !!q.options_json?.allowPartialMarks;
+              
+              // Convert studentObj mapping back to ordered array
+              // e.g., {"Design": 2, "Req": 1} => ["Req", "Design"]
+              const sortedKeys = Object.keys(studentObj).sort((a, b) => studentObj[a] - studentObj[b]);
+              
+              let pointsEarned = 0;
+              if (JSON.stringify(sortedKeys) === JSON.stringify(correctOrder)) {
+                pointsEarned = q.points;
+              } else if (allowPartial && correctOrder.length > 0) {
+                let correctPositions = 0;
+                for (let i = 0; i < correctOrder.length; i++) {
+                  if (sortedKeys[i] === correctOrder[i]) correctPositions++;
+                }
+                pointsEarned = parseFloat(((correctPositions / correctOrder.length) * q.points).toFixed(2));
+              }
+
+              // Update the response with graded marks
+              await prisma.testResponse.updateMany({
+                where: { test_id: test.id, question_id: response.questionId },
+                data: {
+                  points_earned: pointsEarned,
+                  is_correct: pointsEarned === q.points
+                }
+              });
+            } catch (e) {
+              console.error('[Ranking Eval Error]', e);
+            }
           }
         }
       }

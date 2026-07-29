@@ -44,7 +44,7 @@ export async function GET(
               question: true
             },
             orderBy: {
-              created_at: 'asc'
+              sequence_number: 'asc'
             }
           },
           test_responses: true
@@ -60,7 +60,7 @@ export async function GET(
               question: true
             },
             orderBy: {
-              created_at: 'asc'
+              sequence_number: 'asc'
             }
           },
           student: {
@@ -100,7 +100,7 @@ export async function GET(
                 question: true
               },
               orderBy: {
-                created_at: 'asc'
+                sequence_number: 'asc'
               }
             },
             test_responses: true

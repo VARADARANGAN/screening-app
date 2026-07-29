@@ -5,8 +5,12 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import Editor from '@monaco-editor/react';
+import { toast } from 'react-hot-toast';
+import { seededShuffle } from '@/lib/shuffle';
+import { XCircle, AlertTriangle, Flag, CheckCircle } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -58,6 +62,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [saveStatus, setSaveStatus] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Security and execution state
   const submittingRef = useRef(false);
@@ -89,14 +94,14 @@ export function TestInterface({ testId }: { testId: string }) {
       counterText = `Words: ${currentWordCount} / ${minWords} minimum`;
       counterColor = "text-orange-600 font-bold";
     } else if (minWords && currentWordCount >= minWords && (!maxWords || currentWordCount <= maxWords)) {
-      counterText = `✓ Minimum word requirement satisfied (${currentWordCount} words)`;
+      counterText = `Words: ${currentWordCount} ✓`;
       counterColor = "text-emerald-600 font-bold";
     }
 
     if (maxWords) {
       if (currentWordCount > maxWords) {
-        counterText = `Maximum word limit exceeded (${currentWordCount} / ${maxWords})`;
-        counterColor = "text-rose-600 font-bold bg-rose-50 px-2 py-1 rounded";
+        counterText = `Words: ${currentWordCount} / ${maxWords} max (Exceeded)`;
+        counterColor = "text-rose-600 font-bold";
       } else if (!minWords || currentWordCount >= minWords) {
         counterText = `Words: ${currentWordCount} / ${maxWords} max`;
         counterColor = "text-slate-600 font-bold";
@@ -105,9 +110,6 @@ export function TestInterface({ testId }: { testId: string }) {
 
     return (
       <div className="flex justify-between items-center text-xs mt-2 border-t border-slate-100 pt-2">
-        <div className="text-slate-500 font-medium">
-          {minWords && `Min: ${minWords} `} {minWords && maxWords && '| '} {maxWords && `Max: ${maxWords}`} words
-        </div>
         <div className={`transition-colors ${counterColor}`}>
           {counterText}
         </div>
@@ -239,7 +241,7 @@ export function TestInterface({ testId }: { testId: string }) {
       setTest(prev => prev ? { ...prev, status: 'in_progress' } : null);
       setShowInstructions(false);
     } catch (err) {
-      alert('Camera and Microphone permissions are required to start this assessment. Please allow them in your browser settings.');
+      toast.error('Camera and Microphone permissions are required to start this assessment. Please allow them in your browser settings.');
     }
   };
 
@@ -269,7 +271,7 @@ export function TestInterface({ testId }: { testId: string }) {
       setSaveStatus((prev) => ({ ...prev, [questionId]: '✓ Saved just now' }));
     }).catch((error) => {
       console.error('[Auto-save Error]', error);
-      setSaveStatus((prev) => ({ ...prev, [questionId]: '❌ Save failed' }));
+      setSaveStatus((prev) => ({ ...prev, [questionId]: 'failed' }));
     });
   }, [testId]);
 
@@ -291,7 +293,7 @@ export function TestInterface({ testId }: { testId: string }) {
       setSaveStatus((prev) => ({ ...prev, [questionId]: '✓ Saved just now' }));
     }).catch((error) => {
       console.error('[Auto-save Error]', error);
-      setSaveStatus((prev) => ({ ...prev, [questionId]: '❌ Save failed' }));
+      setSaveStatus((prev) => ({ ...prev, [questionId]: 'failed' }));
     });
   }, [testId]);
 
@@ -364,7 +366,7 @@ export function TestInterface({ testId }: { testId: string }) {
       }
     } catch (error) {
       console.error('[Submit Test Error]', error);
-      alert('Failed to submit test. Please try again.');
+      toast.error('Failed to submit test. Please try again.');
       submittingRef.current = false;
     } finally {
       setIsSubmitting(false);
@@ -378,15 +380,40 @@ export function TestInterface({ testId }: { testId: string }) {
     if (!currentQuestion) return true;
     
     const type = currentQuestion.type;
+
+    if (['structured_response', 'structured_plan'].includes(type)) {
+      let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.labels || currentQuestion.optionsJson?.steps;
+      if (!Array.isArray(fields) || fields.length === 0) {
+        fields = type === 'structured_plan' 
+          ? ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'] 
+          : [{ id: 1, label: 'Field 1' }];
+      }
+
+      let structuredAnswers: Record<string, string> = {};
+      if (answers[currentQuestion.id]) {
+        try { structuredAnswers = JSON.parse(answers[currentQuestion.id]); } catch {}
+      }
+
+      let hasEmptyField = false;
+      for (const field of fields) {
+        const isObj = typeof field === 'object' && field !== null;
+        const label = isObj ? field.label : String(field);
+        if (!structuredAnswers[label] || !structuredAnswers[label].trim()) {
+          hasEmptyField = true;
+          break;
+        }
+      }
+
+      if (hasEmptyField) {
+        return false;
+      }
+    }
+    
     if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
       const minWords = currentQuestion.optionsJson?.minWords;
       const maxWords = currentQuestion.optionsJson?.maxWords;
       if (minWords || maxWords) {
         const wordCount = calculateWordCount(type, answers[currentQuestion.id] || '');
-        if (minWords && wordCount < minWords) {
-          setValidationError(`Minimum required: ${minWords} words. Current: ${wordCount} words.`);
-          return false;
-        }
         if (maxWords && wordCount > maxWords) {
           setValidationError(`Maximum word limit exceeded. Maximum allowed: ${maxWords} words. Current: ${wordCount} words.`);
           return false;
@@ -397,12 +424,15 @@ export function TestInterface({ testId }: { testId: string }) {
   };
 
   const handleNext = () => {
+    setShowValidation(true);
     if (validateCurrentQuestion()) {
+      setShowValidation(false);
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
   const handleConfirmSubmit = () => {
+    setShowValidation(true);
     if (validateCurrentQuestion()) {
       setShowConfirmModal(true);
     }
@@ -415,10 +445,16 @@ export function TestInterface({ testId }: { testId: string }) {
   if (errorMsg) {
     return (
       <div className="flex flex-col justify-center items-center h-screen bg-slate-50 space-y-4">
-        <div className="text-4xl">⚠️</div>
+        <div className="text-rose-500 mb-4"><AlertTriangle className="w-12 h-12 mx-auto" /></div>
         <h2 className="text-xl font-bold text-slate-800">Assessment Not Available</h2>
         <p className="text-slate-600">{errorMsg}</p>
-        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+        <button onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push('/student/dashboard');
+          }
+        }} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
           Return to Dashboard
         </button>
       </div>
@@ -430,7 +466,13 @@ export function TestInterface({ testId }: { testId: string }) {
       <div className="flex flex-col justify-center items-center h-screen bg-slate-50 space-y-4">
         <div className="text-4xl">📭</div>
         <h2 className="text-xl font-bold text-slate-800">No Assessment Found</h2>
-        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+        <button onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push('/student/dashboard');
+          }
+        }} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
           Return to Dashboard
         </button>
       </div>
@@ -443,7 +485,13 @@ export function TestInterface({ testId }: { testId: string }) {
         <div className="text-4xl">📭</div>
         <h2 className="text-xl font-bold text-slate-800">No Questions Found</h2>
         <p className="text-slate-600">This assessment currently contains no questions. Please notify your administrator.</p>
-        <button onClick={() => router.push('/student/dashboard')} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
+        <button onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            router.push('/student/dashboard');
+          }
+        }} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition">
           Return to Dashboard
         </button>
       </div>
@@ -483,7 +531,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <div className="pt-4 border-t border-slate-100 flex justify-end">
               <button
                 onClick={handleStartTest}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-sm transition"
               >
                 I Acknowledge & Start Test
               </button>
@@ -495,7 +543,7 @@ export function TestInterface({ testId }: { testId: string }) {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4 font-bold text-sm flex items-center gap-3 border border-slate-700">
-          <span className="text-rose-400">⚠️</span> {toastMessage}
+          <AlertTriangle className="w-4 h-4 text-rose-400" /> {toastMessage}
         </div>
       )}
 
@@ -524,13 +572,21 @@ export function TestInterface({ testId }: { testId: string }) {
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {Object.entries(
             test.questions.reduce((acc, q, idx) => {
-              const sectionName = q.section || 'General';
+              const sectionName = q.section || 'general';
               const upperSection = sectionName.toUpperCase();
               if (!acc[upperSection]) acc[upperSection] = [];
               acc[upperSection].push({ ...q, originalIndex: idx });
               return acc;
             }, {} as Record<string, any[]>)
-          ).map(([sectionName, sectionQuestions]) => (
+          ).sort(([sectionA], [sectionB]) => {
+            const order = ['ELIGIBILITY', 'APTITUDE', 'CODING', 'ATTITUDE_OWNERSHIP', 'LEARNING_APTITUDE', 'PROBLEM_SOLVING', 'EXECUTION_RELIABILITY', 'COMMUNICATION_TEAMWORK', 'INTEGRITY', 'AI_LITERACY', 'GENERAL'];
+            const indexA = order.indexOf(sectionA);
+            const indexB = order.indexOf(sectionB);
+            if (indexA === -1 && indexB === -1) return sectionA.localeCompare(sectionB);
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+          }).map(([sectionName, sectionQuestions]) => (
             <div key={sectionName} className="space-y-4">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{sectionName.replace(/_/g, ' ')}</h3>
               <div className="grid grid-cols-5 gap-3">
@@ -554,7 +610,10 @@ export function TestInterface({ testId }: { testId: string }) {
                   return (
                     <button
                       key={q.id}
-                      onClick={() => setCurrentQuestionIndex(idx)}
+                      onClick={() => {
+                        setShowValidation(false);
+                        setCurrentQuestionIndex(idx);
+                      }}
                       className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center transition-all hover:-translate-y-0.5 hover:shadow-md ${bgClass}`}
                     >
                       {idx + 1}
@@ -616,7 +675,7 @@ export function TestInterface({ testId }: { testId: string }) {
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  🚩 {flags[currentQuestion.id] ? 'Remove Flag' : 'Flag for Review'}
+                  <Flag className="w-4 h-4" /> {flags[currentQuestion.id] ? 'Remove Flag' : 'Flag for Review'}
                 </button>
               </div>
               <div className="flex gap-3 mt-2">
@@ -630,7 +689,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-4">
               {validationError && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
-                  <span>⚠️</span> {validationError}
+                  <AlertTriangle className="w-4 h-4" /> {validationError}
                 </div>
               )}
               {(() => {
@@ -638,9 +697,11 @@ export function TestInterface({ testId }: { testId: string }) {
                 
                 // MCQ, Single Select, Multi Select, Yes/No
                 if (['mcq', 'coding_mcq', 'single_select', 'multi_select', 'yes_no'].includes(type)) {
-                  const optionsArray = Array.isArray(currentQuestion.optionsJson) 
+                  let optionsArray = Array.isArray(currentQuestion.optionsJson) 
                     ? currentQuestion.optionsJson 
                     : (currentQuestion.optionsJson?.options || []);
+                    
+                  optionsArray = seededShuffle([...optionsArray], test.id + currentQuestion.id);
                   
                   const isMultiSelect = type === 'multi_select';
                   let selectedAnswers: string[] = [];
@@ -743,14 +804,14 @@ export function TestInterface({ testId }: { testId: string }) {
                   return (
                     <div className="space-y-4">
                       <label className="text-sm font-bold text-slate-700">Your Response:</label>
-                      <textarea
+                      <Textarea
                         value={val}
                         onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                         onCopy={handleClipboardEvent}
                         onCut={handleClipboardEvent}
                         onPaste={handleClipboardEvent}
                         onDrop={handleClipboardEvent}
-                        className="w-full min-h-[250px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y"
+                        className="w-full min-h-[250px] p-4 bg-slate-50 focus:bg-white resize-y text-base"
                         placeholder="Type your response here..."
                       />
                       {renderWordLimitIndicator(type, currentQuestion)}
@@ -761,47 +822,61 @@ export function TestInterface({ testId }: { testId: string }) {
                   );
                 }
 
-                // Ranking (Simple Array Reordering)
+                // Ranking (Dropdown Selection)
                 if (type === 'ranking') {
-                  const optionsArray = Array.isArray(currentQuestion.optionsJson) 
+                  let optionsArray = Array.isArray(currentQuestion.optionsJson) 
                     ? currentQuestion.optionsJson 
                     : (currentQuestion.optionsJson?.options || []);
                   
-                  let ordered: string[] = [];
-                  if (answers[currentQuestion.id]) {
-                    try { ordered = JSON.parse(answers[currentQuestion.id]); } catch {}
-                  }
+                  // Keep options stable during the session
+                  optionsArray = seededShuffle([...optionsArray], test.id + currentQuestion.id);
+                  const optionTexts = optionsArray.map((o: any) => typeof o === 'object' && o !== null && 'text' in o ? o.text : String(o));
                   
-                  // Initialize if empty
-                  if (ordered.length === 0 && optionsArray.length > 0) {
-                    ordered = optionsArray.map((o: any) => typeof o === 'object' && o !== null && 'text' in o ? o.text : String(o));
+                  // studentAnswer maps optionText -> rank (1, 2, 3...)
+                  let studentAnswer: Record<string, number> = {};
+                  if (answers[currentQuestion.id]) {
+                    try { studentAnswer = JSON.parse(answers[currentQuestion.id]); } catch {}
                   }
 
-                  const moveItem = (index: number, dir: number) => {
-                    if (index + dir < 0 || index + dir >= ordered.length) return;
-                    const newOrdered = [...ordered];
-                    const temp = newOrdered[index];
-                    newOrdered[index] = newOrdered[index + dir];
-                    newOrdered[index + dir] = temp;
-                    handleAnswerChange(currentQuestion.id, JSON.stringify(newOrdered));
+                  const handleRankSelect = (item: string, rank: string) => {
+                    const newAnswer = { ...studentAnswer };
+                    if (!rank) {
+                      delete newAnswer[item];
+                    } else {
+                      newAnswer[item] = Number(rank);
+                    }
+                    handleAnswerChange(currentQuestion.id, JSON.stringify(newAnswer));
                   };
 
-                  if (ordered.length === 0) {
+                  const selectedRanks = Object.values(studentAnswer);
+
+                  if (optionTexts.length === 0) {
                     return <div className="text-slate-400 italic">No ranking options provided for this question.</div>;
                   }
 
                   return (
                     <div className="space-y-4">
-                      <p className="text-sm font-bold text-slate-700 mb-4">Rank the items in order (1 is highest):</p>
+                      <p className="text-sm font-bold text-slate-700 mb-4">Assign a unique rank to each item (1 is highest):</p>
                       <div className="space-y-2">
-                        {ordered.map((item, idx) => (
+                        {optionTexts.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
-                            <div className="font-bold text-slate-400 w-6 text-center">{idx + 1}</div>
+                            <select
+                              value={studentAnswer[item] ? String(studentAnswer[item]) : ''}
+                              onChange={(e) => handleRankSelect(item, e.target.value)}
+                              className="h-10 px-3 border border-slate-200 rounded-lg text-sm bg-white font-bold text-slate-700 outline-none focus:border-blue-500 w-24"
+                            >
+                              <option value="">Rank ▼</option>
+                              {optionTexts.map((_, i) => {
+                                const rankVal = i + 1;
+                                const isUsed = selectedRanks.includes(rankVal) && studentAnswer[item] !== rankVal;
+                                return (
+                                  <option key={rankVal} value={String(rankVal)} disabled={isUsed}>
+                                    {rankVal}
+                                  </option>
+                                );
+                              })}
+                            </select>
                             <div className="flex-1 font-semibold text-slate-800">{item}</div>
-                            <div className="flex gap-2">
-                              <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-100 shadow-sm font-bold">↑</button>
-                              <button onClick={() => moveItem(idx, 1)} disabled={idx === ordered.length - 1} className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-100 shadow-sm font-bold">↓</button>
-                            </div>
                           </div>
                         ))}
                       </div>
@@ -833,26 +908,29 @@ export function TestInterface({ testId }: { testId: string }) {
                       {fields.map((field: any, idx: number) => {
                         const isObj = typeof field === 'object' && field !== null;
                         const label = isObj ? field.label : String(field);
-                        const placeholder = isObj && field.placeholder ? field.placeholder : `Enter ${label}...`;
-                        const helpText = isObj && field.helpText ? field.helpText : '';
-                        const required = isObj && field.required;
+                        const isEmpty = showValidation && (!structuredAnswers[label] || !structuredAnswers[label].trim());
 
                         return (
                           <div key={idx} className="space-y-2">
                             <label className="text-sm font-bold text-slate-700">
-                              {label} {required && <span className="text-rose-500">*</span>}
+                              {label}
                             </label>
-                            {helpText && <p className="text-xs text-slate-500">{helpText}</p>}
-                            <textarea
+                            <Textarea
                               value={structuredAnswers[label] || ''}
-                              onChange={(e) => updateField(label, e.target.value)}
+                              onChange={(e) => {
+                                updateField(label, e.target.value);
+                                setShowValidation(false);
+                              }}
                               onCopy={handleClipboardEvent}
                               onCut={handleClipboardEvent}
                               onPaste={handleClipboardEvent}
                               onDrop={handleClipboardEvent}
-                              className="w-full min-h-[100px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y text-sm"
-                              placeholder={placeholder}
+                              className={`w-full min-h-[100px] p-4 bg-slate-50 focus:bg-white resize-y text-sm ${isEmpty ? 'border-rose-500 border-2' : ''}`}
+                              placeholder={`Enter ${label}...`}
                             />
+                            {isEmpty && (
+                              <p className="text-sm text-rose-500 font-semibold mt-1">This field is required.</p>
+                            )}
                           </div>
                         );
                       })}
@@ -951,7 +1029,10 @@ export function TestInterface({ testId }: { testId: string }) {
         <div className="bg-white border-t border-slate-200 p-6 flex justify-between items-center gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
           <div className="flex gap-4">
             <button
-              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+              onClick={() => {
+                setShowValidation(false);
+                setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1));
+              }}
               disabled={currentQuestionIndex === 0}
               className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-bold py-3 px-8 rounded-xl transition-all shadow-sm"
             >
@@ -970,7 +1051,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <button
               onClick={handleConfirmSubmit}
               disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 px-10 rounded-xl shadow-sm hover:shadow transition-all"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Test'}
             </button>
@@ -988,12 +1069,12 @@ export function TestInterface({ testId }: { testId: string }) {
               <p>Total Questions: <strong className="text-slate-900">{test.questions.length}</strong></p>
               <p>Answered: <strong className="text-emerald-600">{Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
               <p>Unanswered: <strong className="text-rose-600">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
-              <p>Remaining Time: <strong className="text-indigo-600">{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong></p>
+              <p>Remaining Time: <strong className="text-blue-600">{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong></p>
             </div>
             <p className="text-xs text-amber-600 font-semibold pt-1">Are you sure you want to submit your test? You cannot change your answers after submission.</p>
             <div className="flex justify-end gap-3 pt-3 border-t">
               <Button variant="outline" className="border-slate-200" onClick={() => setShowConfirmModal(false)}>Cancel</Button>
-              <Button className="bg-green-600 hover:bg-green-700 text-white font-bold" onClick={() => submitTest(false)} disabled={isSubmitting}>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => submitTest(false)} disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Test'}
               </Button>
             </div>
@@ -1015,7 +1096,7 @@ export function TestInterface({ testId }: { testId: string }) {
               <p>Unanswered: <strong className="text-rose-600">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
             </div>
             <div className="pt-2">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold" onClick={() => router.push('/student/success')}>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => router.push('/student/success')}>
                 Continue
               </Button>
             </div>

@@ -8,19 +8,22 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 
-const ProgressBar = ({ label, score }: { label: string, score: number | null }) => {
-  const displayScore = score ?? 0;
+const SectionScoreCard = ({
+  sectionName, marksObtained, totalMarks, isCompleted
+}: {
+  sectionName: string, marksObtained: number, totalMarks: number, isCompleted: boolean
+}) => {
   return (
-    <div className="mb-4">
-      <div className="flex justify-between mb-1">
-        <span className="text-sm font-semibold text-gray-700">{label}</span>
-        <span className="text-sm font-bold">{score !== null ? `${score}%` : 'N/A'}</span>
+    <div className="flex flex-col p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-bold text-gray-800">{sectionName}</span>
+        {isCompleted && (
+          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase tracking-wider border border-emerald-100">Completed</span>
+        )}
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2.5">
-        <div 
-          className={`h-2.5 rounded-full ${displayScore >= 80 ? 'bg-green-600' : displayScore >= 60 ? 'bg-yellow-500' : 'bg-red-600'}`} 
-          style={{ width: `${displayScore}%` }}
-        ></div>
+      <div className="flex items-end gap-2 mt-1">
+        <span className="text-2xl font-black text-gray-900">{marksObtained}</span>
+        <span className="text-sm font-bold text-gray-500 mb-1">/ {totalMarks} Marks</span>
       </div>
     </div>
   );
@@ -64,10 +67,24 @@ export function StudentReport() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => router.push('/admin/results')}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Results
+      {/* Top Navbar / Back Button */}
+      <div className="mb-6 flex items-center">
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.back();
+            } else {
+              router.push('/admin/results');
+            }
+          }}
+          className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center cursor-pointer border-none"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back
         </Button>
+      </div>
+
+      <div className="flex items-center gap-4 mb-4">
         <h2 className="text-2xl font-bold text-gray-900">Student Report</h2>
       </div>
 
@@ -100,16 +117,27 @@ export function StudentReport() {
         {/* Category Scores */}
         <Card className="col-span-2">
           <CardHeader className="bg-gray-50 border-b">
-            <CardTitle>Assessment Scores</CardTitle>
+            <CardTitle>Assessment Sections</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
-            <div>
-              <ProgressBar label="Aptitude" score={data.scores.aptitudeScore} />
-              <ProgressBar label="Coding" score={data.scores.codingScore} />
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.scores?.sectionScores?.map((sec: any, idx: number) => (
+                <SectionScoreCard
+                  key={idx}
+                  sectionName={sec.sectionName}
+                  marksObtained={sec.marksObtained}
+                  totalMarks={sec.totalMarks}
+                  isCompleted={sec.isCompleted}
+                />
+              ))}
             </div>
-            <div>
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <ProgressBar label="OVERALL SCORE" score={data.scores.overallScore} />
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="flex flex-col p-6 bg-blue-50 border border-blue-100 rounded-xl shadow-sm">
+                <span className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-2">Overall Assessment Score</span>
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-black text-blue-700">{data.scores?.overallScore || 0}</span>
+                  <span className="text-lg font-bold text-blue-400 mb-1.5">/ {data.scores?.overallTotalMarks || 0} Marks</span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -140,7 +168,7 @@ export function StudentReport() {
                     {answer.studentAnswer || '// No code submitted'}
                   </pre>
                 </div>
-                
+
                 {answer.aiEvaluation && answer.aiEvaluation.evaluation_status === 'COMPLETED' && (
                   <div className="mt-4 p-4 bg-indigo-50/50 border border-indigo-100 rounded-lg space-y-3">
                     <h5 className="font-bold text-xs text-indigo-900 uppercase tracking-wider flex items-center gap-2">
@@ -177,7 +205,7 @@ export function StudentReport() {
                     )}
                   </div>
                 )}
-                
+
                 {answer.aiEvaluation && (answer.aiEvaluation.evaluation_status === 'FAILED' || answer.aiEvaluation.evaluationStatus === 'failed') && (
                   <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-lg">
                     <h5 className="font-bold text-xs text-rose-800 uppercase tracking-wider flex items-center gap-2 mb-2">
@@ -225,7 +253,7 @@ export function StudentReport() {
                     {answer.fields.map((field: any, fieldIdx: number) => {
                       const isObj = typeof field === 'object' && field !== null;
                       const label = isObj ? field.label : String(field);
-                      
+
                       return (
                         <div key={fieldIdx}>
                           <div className="text-xs font-bold text-gray-500 uppercase mb-1">{label}</div>
@@ -280,6 +308,73 @@ export function StudentReport() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+      {/* Ranking Responses Section */}
+      {data.rankingAnswers && data.rankingAnswers.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader className="bg-gray-50 border-b">
+            <CardTitle>Ranking Responses</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-8">
+            {data.rankingAnswers.map((answer: any, idx: number) => {
+              let parsedAnswers: Record<string, number> = {};
+              let correctOrder: string[] = [];
+              try {
+                if (answer.studentAnswer) {
+                  parsedAnswers = JSON.parse(answer.studentAnswer);
+                }
+                if (answer.correctAnswer) {
+                  correctOrder = JSON.parse(answer.correctAnswer);
+                }
+              } catch (e) {
+                console.error("Failed to parse student answer for ranking response", e);
+              }
+
+              const studentSortedKeys = Object.keys(parsedAnswers).sort((a, b) => parsedAnswers[a] - parsedAnswers[b]);
+
+              return (
+                <div key={idx} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-sm font-bold text-gray-500 uppercase">Ranking Response {idx + 1}</div>
+                    <div className="text-sm font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                      Score: {answer.pointsEarned !== null ? answer.pointsEarned : '0'} / {answer.maxPoints}
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <MarkdownRenderer content={answer.question || 'No question text available.'} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-100 pt-4">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Student's Order</h4>
+                      <div className="space-y-2">
+                        {studentSortedKeys.length > 0 ? studentSortedKeys.map((item, i) => (
+                          <div key={i} className="flex gap-3 items-center bg-slate-50 p-2 px-3 rounded-lg border border-slate-100">
+                            <span className="font-bold text-slate-400 w-4">{i + 1}.</span>
+                            <span className="font-semibold text-slate-700">{item}</span>
+                          </div>
+                        )) : (
+                          <div className="text-sm italic text-slate-400">No response provided</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-600 uppercase mb-3">Correct Order</h4>
+                      <div className="space-y-2">
+                        {correctOrder.map((item, i) => (
+                          <div key={i} className="flex gap-3 items-center bg-emerald-50/50 p-2 px-3 rounded-lg border border-emerald-100">
+                            <span className="font-bold text-emerald-400 w-4">{i + 1}.</span>
+                            <span className="font-semibold text-emerald-800">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

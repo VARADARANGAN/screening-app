@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '@/context/auth-context';
+import { toast } from 'react-hot-toast';
+import { User } from 'lucide-react';
+import Link from 'next/link';
 
 interface Test {
   id: string;
@@ -69,7 +72,7 @@ export function StudentDashboard() {
       await loadDashboardData();
     } catch (error: any) {
       console.error('[Generate Assessment Error]', error);
-      alert(error.response?.data?.message || 'Failed to generate assessment. Please ensure there are published questions available.');
+      toast.error(error.response?.data?.message || 'Failed to generate assessment. Please ensure there are published questions available.');
     } finally {
       setIsGenerating(false);
     }
@@ -101,6 +104,10 @@ export function StudentDashboard() {
             <span className="font-extrabold text-slate-900 tracking-tight">Candidate Portal</span>
           </div>
           <div className="flex items-center gap-6">
+            <Link href="/student/profile" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
+              <User className="w-4 h-4" />
+              My Profile
+            </Link>
             <span className="text-sm font-medium text-slate-500 hidden sm:block">{user?.email}</span>
             <button
               onClick={handleLogout}
@@ -196,7 +203,7 @@ export function StudentDashboard() {
                     setIsLoading(true);
                     window.location.href = `/student/test/${tests[0].id}`;
                   }}
-                  className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-bold text-base px-10 py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-base px-10 py-4 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2"
                 >
                   {isInProgress ? 'Resume Assessment' : 'Start Assessment'}
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>

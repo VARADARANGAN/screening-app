@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { StudentProfileSchema } from '@/lib/validators';
 import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
 /**
  * POST /api/students/profile
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Student Profile Error]', error);
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { message: error.errors[0].message },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { 
         message: 'Failed to update profile',
@@ -71,6 +78,63 @@ export async function POST(request: NextRequest) {
         stack: error.stack
       },
       { status: 400 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/students/profile
+ * Update specific fields of student profile (fullName, phone)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const token = authHeader.slice(7);
+    const decoded = verifyToken(token);
+
+    if (!decoded || String(decoded.role).toLowerCase() !== 'student') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const data = await request.json();
+    const PatchSchema = z.object({
+      fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+      phone: z.string().regex(/^[0-9]{10}$/, 'Phone must be 10 digits'),
+    });
+
+    const validatedData = PatchSchema.parse(data);
+    const student = await prisma.student.update({
+      where: { user_id: decoded.userId },
+      data: {
+        full_name: validatedData.fullName,
+        phone: validatedData.phone,
+      }
+    });
+
+
+    return NextResponse.json({
+      message: 'Profile updated successfully',
+      student,
+    });
+  } catch (error: any) {
+    console.error('[Student Profile Patch Error]', error);
+    if (error instanceof z.ZodError || error.name === 'ZodError') {
+      return NextResponse.json(
+        { message: error.errors?.[0]?.message || 'Validation error' },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { 
+        message: 'Failed to update profile',
+        error: error.message,
+        stack: error.stack
+      },
+      { status: 500 }
     );
   }
 }

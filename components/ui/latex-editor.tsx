@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
-import { MarkdownRenderer } from './markdown-renderer';
-import { Button } from './button';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 interface LatexEditorProps {
   value: string;
@@ -63,13 +64,13 @@ export function LatexEditor({ value, onChange, placeholder, className = '', rows
         {/* Editor */}
         <div className="space-y-1">
           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Editor</label>
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             rows={rows}
-            className="w-full p-4 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 font-mono text-sm shadow-sm transition"
+            className="w-full p-4 font-mono text-sm shadow-sm transition"
           />
         </div>
 

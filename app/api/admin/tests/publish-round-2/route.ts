@@ -2,6 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+const SECTION_ORDER = [
+  'Eligibility',
+  'Aptitude',
+  'Coding',
+  'Attitude & Ownership',
+  'Learning Aptitude',
+  'Problem Solving',
+  'Execution & Reliability',
+  'Communication & Teamwork',
+  'Integrity',
+  'AI Literacy'
+];
+
+function sortAndShuffleQuestions(questions: any[]) {
+  const grouped: Record<string, any[]> = {};
+  questions.forEach(q => {
+    const s = q.section || 'General';
+    if (!grouped[s]) grouped[s] = [];
+    grouped[s].push(q);
+  });
+
+  Object.keys(grouped).forEach(s => {
+    grouped[s].sort(() => 0.5 - Math.random());
+  });
+
+  const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  const finalQuestions: any[] = [];
+  
+  SECTION_ORDER.forEach(orderedSection => {
+    const matchingKey = Object.keys(grouped).find(k => normalize(k) === normalize(orderedSection));
+    if (matchingKey) {
+      finalQuestions.push(...grouped[matchingKey]);
+      delete grouped[matchingKey];
+    }
+  });
+
+  Object.keys(grouped).forEach(remainingSection => {
+    finalQuestions.push(...grouped[remainingSection]);
+  });
+
+  return finalQuestions;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -33,9 +77,15 @@ export async function POST(request: NextRequest) {
 
     let publishedCount = 0;
 
+    // Fetch question details for sections
+    const questions = await prisma.question.findMany({
+      where: { id: { in: questionIds } },
+      select: { id: true, section: true }
+    });
+
     for (const studentId of studentIds) {
-      // Shuffle the selected questions for each student to prevent cheating
-      const shuffled = [...questionIds].sort(() => 0.5 - Math.random());
+      // Shuffle the selected questions by section order for each student
+      const shuffled = sortAndShuffleQuestions(questions);
 
       await prisma.$transaction(async (tx) => {
         const test = await tx.test.create({
@@ -48,9 +98,9 @@ export async function POST(request: NextRequest) {
 
         // Link questions
         await tx.testQuestion.createMany({
-          data: shuffled.map((qId, index) => ({
+          data: shuffled.map((q, index) => ({
             test_id: test.id,
-            question_id: qId,
+            question_id: q.id,
             sequence_number: index + 1
           }))
         });

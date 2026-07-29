@@ -5,10 +5,12 @@ import axios from 'axios';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'react-hot-toast';
 
 interface Student {
   id: string;
@@ -162,7 +164,7 @@ export function StudentsViewer() {
       setAvailableQuestions(res.data.questions || []);
     } catch (e) {
       console.error('Failed to load questions', e);
-      alert('Failed to load available questions.');
+      toast.error('Failed to load available questions.');
     } finally {
       setIsQuestionsLoading(false);
     }
@@ -188,11 +190,11 @@ export function StudentsViewer() {
 
   const submitRound2Publish = async () => {
     if (selectedRound2QuestionIds.size === 0) {
-      alert('Please select at least one question for the test.');
+      toast.error('Please select at least one question for the test.');
       return;
     }
     if (round2Duration <= 0) {
-      alert('Please enter a valid test duration.');
+      toast.error('Please enter a valid test duration.');
       return;
     }
     if (!confirm(`Publish Round 2 Test for ${selectedStudentIds.size} student(s) with ${selectedRound2QuestionIds.size} question(s)?`)) return;
@@ -208,13 +210,13 @@ export function StudentsViewer() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Round 2 tests successfully generated!');
+      toast.success('Round 2 tests successfully generated!');
       setIsRound2ModalOpen(false);
       setSelectedStudentIds(new Set());
       loadData();
     } catch (error: any) {
       console.error('[Publish Round 2 Error]', error);
-      alert(error.response?.data?.message || 'Failed to publish Round 2 tests');
+      toast.error(error.response?.data?.message || 'Failed to publish Round 2 tests');
     } finally {
       setIsPublishing(false);
     }
@@ -253,7 +255,7 @@ export function StudentsViewer() {
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
               C
             </div>
             <Link href="/admin/dashboard" className="font-extrabold text-slate-900 tracking-tight text-lg hover:opacity-90 transition">
@@ -264,8 +266,10 @@ export function StudentsViewer() {
             </span>
           </div>
           <div>
-            <Link href="/admin/dashboard" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition">
-              ← Dashboard
+            <Link href="/admin/dashboard">
+              <Button variant="outline" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center border-none">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
+              </Button>
             </Link>
           </div>
         </div>
@@ -317,7 +321,7 @@ export function StudentsViewer() {
           <div className="flex gap-3 shrink-0 mt-3 md:mt-0 items-center">
             {activeTab === 'students' && selectedStudentIds.size > 0 && (
               <Button 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
                 onClick={openRound2Modal}
               >
                 Configure Round 2 Test
@@ -414,7 +418,7 @@ export function StudentsViewer() {
                             {latestAttempt ? (
                               <button
                                 onClick={() => handleViewCodingAnswers(latestAttempt.id)}
-                                className="text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold px-3 py-1 rounded transition"
+                                className="text-[11px] bg-slate-50 border border-slate-200 text-blue-600 hover:bg-blue-50 hover:border-blue-200 font-bold px-3 py-1 rounded transition"
                               >
                                 View Answer
                               </button>
@@ -525,8 +529,8 @@ export function StudentsViewer() {
                 <h2 className="text-2xl font-extrabold text-slate-950">{selectedStudent.fullName}</h2>
                 <p className="text-xs text-slate-500 font-mono mt-1">USN: {selectedStudent.usn} | {selectedStudent.branch} | {selectedStudent.college}</p>
               </div>
-              <Button variant="outline" className="border-slate-200 hover:bg-slate-50 text-xs" onClick={() => setSelectedStudent(null)}>
-                Close
+              <Button variant="outline" onClick={() => setSelectedStudent(null)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center cursor-pointer border-none">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
             </div>
 
@@ -617,8 +621,8 @@ export function StudentsViewer() {
                     Publishing to <strong className="text-indigo-600">{selectedStudentIds.size} student(s)</strong>
                   </p>
                 </div>
-                <Button variant="outline" className="border-slate-200" onClick={() => setIsRound2ModalOpen(false)}>
-                  Cancel
+                <Button variant="outline" onClick={() => setIsRound2ModalOpen(false)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center cursor-pointer border-none">
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back
                 </Button>
               </div>
             </div>
@@ -727,7 +731,7 @@ export function StudentsViewer() {
               <Button 
                 onClick={submitRound2Publish}
                 disabled={isPublishing || selectedRound2QuestionIds.size === 0}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-8"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-8"
               >
                 {isPublishing ? 'Publishing...' : 'Publish Test Now'}
               </Button>

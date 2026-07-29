@@ -5,6 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, ClipboardList, Target, AlertTriangle, Folder, Settings, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function AdminDashboard() {
@@ -45,7 +46,7 @@ export function AdminDashboard() {
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
               C
             </div>
             <span className="font-extrabold text-slate-900 tracking-tight text-lg">
@@ -64,7 +65,7 @@ export function AdminDashboard() {
             </Link>
             <button
               onClick={handleLogout}
-              className="bg-rose-50 text-rose-700 hover:bg-rose-100/70 border border-rose-100 text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+              className="bg-white text-slate-700 hover:bg-slate-50 hover:text-rose-600 border border-slate-200 text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
             >
               Logout
             </button>
@@ -84,7 +85,7 @@ export function AdminDashboard() {
           <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6 flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-650 flex items-center justify-center text-xl font-bold">
-                👥
+                <Users className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Students</p>
@@ -96,7 +97,7 @@ export function AdminDashboard() {
           <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6 flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center text-xl font-bold">
-                📝
+                <ClipboardList className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Tests</p>
@@ -108,11 +109,11 @@ export function AdminDashboard() {
           <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6 flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-xl font-bold">
-                🎯
+                <Target className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Average score</p>
-                <p className="text-2xl font-black text-slate-900 mt-0.5">{analytics?.averageScore || 0}%</p>
+                <p className="text-2xl font-black text-slate-900 mt-0.5">{analytics?.averageScore || 0} Pts</p>
               </div>
             </CardContent>
           </Card>
@@ -120,7 +121,7 @@ export function AdminDashboard() {
           <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6 flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-xl font-bold">
-                ⚠️
+                <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Violations flagged</p>
@@ -137,8 +138,8 @@ export function AdminDashboard() {
             <Link href="/admin/questions">
               <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
                 <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-900 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-900 group-hover:text-white transition">
-                    📂
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
+                    <Folder className="w-5 h-5" />
                   </div>
                   <CardTitle className="text-base font-extrabold text-slate-900">Question Bank</CardTitle>
                   <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -151,8 +152,8 @@ export function AdminDashboard() {
             <Link href="/admin/test-settings">
               <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
                 <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-800 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-purple-700 group-hover:text-white transition">
-                    ⚙️
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
+                    <Settings className="w-5 h-5" />
                   </div>
                   <CardTitle className="text-base font-extrabold text-slate-900">Test Settings</CardTitle>
                   <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -165,8 +166,8 @@ export function AdminDashboard() {
             <Link href="/admin/students">
               <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
                 <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-750 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-indigo-750 group-hover:text-white transition">
-                    👁️
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
+                    <Eye className="w-5 h-5" />
                   </div>
                   <CardTitle className="text-base font-extrabold text-slate-900">Student Directory</CardTitle>
                   <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">

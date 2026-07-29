@@ -219,7 +219,7 @@ export function AdminProfileForm() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition cursor-pointer"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition cursor-pointer"
                   >
                     {isSubmitting ? 'Saving...' : 'Save Changes'}
                   </Button>
@@ -304,7 +304,7 @@ export function AdminProfileForm() {
                   <Button
                     type="submit"
                     disabled={isResetting}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl shadow-md transition cursor-pointer"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-sm transition cursor-pointer"
                   >
                     {isResetting ? 'Updating...' : 'Update Password'}
                   </Button>

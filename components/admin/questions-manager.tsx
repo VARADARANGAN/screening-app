@@ -8,8 +8,10 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import * as XLSX from 'xlsx';
+import { toast } from 'react-hot-toast';
 
 export function QuestionsManager() {
   const { logout } = useAuth();
@@ -58,8 +60,9 @@ export function QuestionsManager() {
         headers: { Authorization: `Bearer ${token}` }
       });
       loadQuestions();
+      toast.success('Question deleted successfully');
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to delete question');
+      toast.error(e.response?.data?.message || 'Failed to delete question');
     }
   };
 
@@ -84,8 +87,9 @@ export function QuestionsManager() {
       );
       setSelectedQuestionIds(new Set());
       loadQuestions();
+      toast.success('Selected questions deleted successfully');
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to delete questions');
+      toast.error(e.response?.data?.message || 'Failed to delete questions');
     }
   };
 
@@ -99,8 +103,9 @@ export function QuestionsManager() {
       );
       setSelectedQuestionIds(new Set());
       loadQuestions();
+      toast.success('All questions deleted successfully');
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to delete all questions');
+      toast.error(e.response?.data?.message || 'Failed to delete all questions');
     }
   };
 
@@ -177,13 +182,13 @@ export function QuestionsManager() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert(`Successfully imported ${parsedQuestions.length} questions to the Universal Question Bank!`);
+      toast.success(`Successfully imported ${parsedQuestions.length} questions!`);
       setIsUploadOpen(false);
       setUploadFile(null);
       loadQuestions();
     } catch (e: any) {
       console.error(e);
-      alert(e.response?.data?.message || e.message || 'Failed to upload and parse file');
+      toast.error(e.response?.data?.message || e.message || 'Failed to upload and parse file');
     } finally {
       setIsUploading(false);
     }
@@ -210,7 +215,7 @@ export function QuestionsManager() {
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
               C
             </div>
             <Link href="/admin/dashboard" className="font-extrabold text-slate-900 tracking-tight text-lg hover:opacity-90 transition">
@@ -222,8 +227,10 @@ export function QuestionsManager() {
           </div>
           <div>
 
-            <Link href="/admin/dashboard" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition">
-              ← Dashboard
+            <Link href="/admin/dashboard">
+              <Button variant="outline" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center border-none">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+              </Button>
             </Link>
           </div>
         </div>
@@ -264,7 +271,7 @@ export function QuestionsManager() {
             {selectedQuestionIds.size > 0 && (
               <Button 
                 variant="destructive" 
-                className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
+                className="bg-white border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-600 font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
                 onClick={handleBulkDelete}
               >
                 Delete Selected ({selectedQuestionIds.size})
@@ -276,7 +283,7 @@ export function QuestionsManager() {
             <Button variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition cursor-pointer" onClick={() => setIsUploadOpen(true)}>
               Import Questions
             </Button>
-            <Button className="bg-blue-900 hover:bg-blue-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition cursor-pointer" onClick={() => router.push('/admin/questions/create')}>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition cursor-pointer" onClick={() => router.push('/admin/questions/create')}>
               Create Question
             </Button>
           </div>

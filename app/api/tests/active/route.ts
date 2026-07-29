@@ -2,6 +2,58 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+const SECTION_ORDER = [
+  'Eligibility',
+  'Aptitude',
+  'Coding',
+  'Attitude & Ownership',
+  'Learning Aptitude',
+  'Problem Solving',
+  'Execution & Reliability',
+  'Communication & Teamwork',
+  'Integrity',
+  'AI Literacy'
+];
+
+function sortAndShuffleQuestions(questions: any[]) {
+  // Group by section
+  const grouped: Record<string, any[]> = {};
+  questions.forEach(q => {
+    const s = q.section || 'General';
+    if (!grouped[s]) grouped[s] = [];
+    grouped[s].push(q);
+  });
+
+  // Shuffle within each section
+  Object.keys(grouped).forEach(s => {
+    grouped[s].sort(() => 0.5 - Math.random());
+  });
+
+  // Normalize section names for sorting
+  const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizedOrder = SECTION_ORDER.map(normalize);
+
+  // Flatten based on exact section order
+  const finalQuestions: any[] = [];
+  
+  // First add sections that exist in the predefined order
+  SECTION_ORDER.forEach(orderedSection => {
+    // Find matching key in grouped
+    const matchingKey = Object.keys(grouped).find(k => normalize(k) === normalize(orderedSection));
+    if (matchingKey) {
+      finalQuestions.push(...grouped[matchingKey]);
+      delete grouped[matchingKey];
+    }
+  });
+
+  // Add any remaining sections that weren't in the predefined list
+  Object.keys(grouped).forEach(remainingSection => {
+    finalQuestions.push(...grouped[remainingSection]);
+  });
+
+  return finalQuestions;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -48,18 +100,12 @@ export async function GET(request: NextRequest) {
       where: { is_published: true },
     });
 
-    // 3. Shuffle and limit
-    const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-    const selectedQuestions = shuffled.slice(0, totalQuestions);
+    // 3. Shuffle inside sections and enforce section order, then limit
+    const orderedAndShuffled = sortAndShuffleQuestions(allQuestions);
+    const selectedQuestions = orderedAndShuffled.slice(0, totalQuestions);
 
-    console.log('[Dev] Assessment Auto-Assignment Audit:');
-    console.log(`- Filter applied: is_published = true`);
-    console.log(`- Total published questions found: ${allQuestions.length}`);
-    console.log(`- Target questions per test: ${totalQuestions}`);
-    console.log(`- Final mapped questions for this test: ${selectedQuestions.length}`);
 
     if (selectedQuestions.length === 0) {
-      console.log('❌ Auto-Assignment Failed: No published questions available.');
       return NextResponse.json({ message: 'No questions available in the question bank. Contact admin.' }, { status: 400 });
     }
 
@@ -85,8 +131,6 @@ export async function GET(request: NextRequest) {
       return test;
     });
 
-    console.log(`✅ Auto-Assignment Success! Test ID: ${newTest.id} created for student: ${student.id}`);
-    
     return NextResponse.json({ testId: newTest.id });
   } catch (error: any) {
     console.error('[Generate Active Test Error]', error);

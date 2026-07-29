@@ -49,11 +49,13 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
     optionsJson.options = options;
     
     // Correct Answer parsing
-    const rawAnswer = String(rawData.correctAnswer || rawData['Correct Answer'] || '').trim();
-    if (rawType === 'yes_no' && !rawAnswer) {
-      correctAnswer = '0';
-    } else {
-      correctAnswer = rawAnswer;
+    if (type !== 'single_select') {
+      const rawAnswer = String(rawData.correctAnswer || rawData['Correct Answer'] || '').trim();
+      if (rawType === 'yes_no' && !rawAnswer) {
+        correctAnswer = '0';
+      } else {
+        correctAnswer = rawAnswer;
+      }
     }
   } else if (type === 'coding') {
     // Support wizard structure or Excel structure
@@ -74,6 +76,26 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
       days: Number(rawData.planDays) || 5,
       labels: Array.isArray(rawData.planLabels) ? rawData.planLabels : []
     };
+  } else if (type === 'ranking') {
+    const options: { text: string }[] = [];
+    if (Array.isArray(rawData.options)) {
+      rawData.options.forEach((opt: any) => {
+        if (opt && typeof opt.text === 'string' && opt.text.trim()) {
+          options.push({ text: opt.text.trim() });
+        }
+      });
+    }
+    optionsJson = {
+      options,
+      allowPartialMarks: !!rawData.allowPartialMarks
+    };
+    
+    // Sort options by rank to determine the correct answer array
+    if (Array.isArray(rawData.options)) {
+      const sorted = [...rawData.options].sort((a: any, b: any) => Number(a.rank) - Number(b.rank));
+      const correctOrder = sorted.map(o => o.text.trim()).filter(Boolean);
+      correctAnswer = JSON.stringify(correctOrder);
+    }
   }
 
   // Add min/max words for all descriptive types
@@ -90,7 +112,7 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
     questionText: String(rawData.questionText || rawData['Question Text'] || ''),
     type,
     section,
-    points: showsMarks ? (Number(rawData.points || rawData['Points']) || 0) : 0,
+    points: type === 'single_select' ? 0 : (showsMarks ? (Number(rawData.points || rawData['Points']) || 0) : 0),
     timeLimitSeconds: (Number(rawData.expectedDuration || rawData['Expected Duration']) ? Number(rawData.expectedDuration || rawData['Expected Duration']) * 60 : Number(rawData.timeLimitSeconds || rawData['Time Limit'])) || 60,
     isPublished: rawData.isPublished !== undefined ? rawData.isPublished : true,
     explanation: (rawData.explanation || rawData['Explanation']) ? String(rawData.explanation || rawData['Explanation']) : undefined,

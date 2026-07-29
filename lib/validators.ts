@@ -59,12 +59,24 @@ export const QuestionSchema = z.object({
   optionsJson: z.any().optional(),
   correctAnswer: z.string().optional(),
 }).refine((data) => {
-  if (data.type === 'mcq' || data.type === 'single_select' || data.type === 'multi_select') {
+  if (data.type === 'mcq') {
+    return !!data.optionsJson && !!data.correctAnswer;
+  }
+  if (data.type === 'single_select') {
     return !!data.optionsJson;
+  }
+  if (data.type === 'multi_select' || data.type === 'ranking') {
+    return !!data.optionsJson && !!data.correctAnswer;
+  }
+  if (data.type === 'coding') {
+    return !!data.optionsJson; // coding uses optionsJson for starter code and test cases
+  }
+  if (data.type === 'structured_response' || data.type === 'structured_plan') {
+    return !!data.optionsJson; // uses optionsJson for fields/steps
   }
   return true;
 }, {
-  message: 'This question type requires options configuration',
+  message: 'Missing required configuration for the selected question type',
 });
 
 // ==================== Test Schemas ====================

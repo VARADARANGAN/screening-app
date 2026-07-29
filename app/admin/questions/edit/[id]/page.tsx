@@ -6,7 +6,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 import { LatexEditor } from '@/components/ui/latex-editor';
+import { mapQuestionPayload } from '@/lib/questionMapper';
+import { toast } from 'react-hot-toast';
 
 export default function EditQuestionPage() {
   const router = useRouter();
@@ -28,11 +31,11 @@ export default function EditQuestionPage() {
   const [displayOrder, setDisplayOrder] = useState(0);
 
   // MCQ Specific State
-  const [options, setOptions] = useState([{ text: '' }, { text: '' }]);
+  const [options, setOptions] = useState<any[]>([{ text: '' }, { text: '' }]);
   const [correctAnswer, setCorrectAnswer] = useState('0');
 
   // Structured Response Specific State
-  const [structuredFields, setStructuredFields] = useState([{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+  const [structuredFields, setStructuredFields] = useState([{ id: 1, label: '' }, { id: 2, label: '' }, { id: 3, label: '' }]);
 
   // Structured Plan Specific State
   const [planMode, setPlanMode] = useState('day');
@@ -42,6 +45,19 @@ export default function EditQuestionPage() {
   // Word Limits Specifics
   const [minWords, setMinWords] = useState('');
   const [maxWords, setMaxWords] = useState('');
+  const [minCharacters, setMinCharacters] = useState('');
+  const [maxCharacters, setMaxCharacters] = useState('');
+
+  // Ranking Specific State
+  const [allowPartialMarks, setAllowPartialMarks] = useState(false);
+
+  // Scenario Specifics
+  const [scenario, setScenario] = useState('');
+  const [caseStudyTitle, setCaseStudyTitle] = useState('');
+  const [caseStudyBackground, setCaseStudyBackground] = useState('');
+  const [caseStudyContext, setCaseStudyContext] = useState('');
+  const [caseStudyProblemStatement, setCaseStudyProblemStatement] = useState('');
+  const [caseStudySupportingInfo, setCaseStudySupportingInfo] = useState('');
 
   // Coding Specific State
   const [constraints, setConstraints] = useState('');
@@ -96,22 +112,32 @@ export default function EditQuestionPage() {
       setIsRequired(q.is_required !== false);
       setDisplayOrder(q.display_order || 0);
 
-      if (q.type === 'mcq') {
+      if (['mcq', 'yes_no', 'single_select', 'multi_select', 'coding_mcq', 'ranking'].includes(q.type)) {
         let parsedOptions = [{ text: '' }, { text: '' }];
         const optionsArray = Array.isArray(q.options_json) 
           ? q.options_json 
           : (q.options_json?.options || null);
 
         if (Array.isArray(optionsArray)) {
-          parsedOptions = optionsArray.map((opt: any) => 
-            typeof opt === 'object' && opt !== null && 'text' in opt ? opt : { text: String(opt) }
-          );
+          if (q.type === 'ranking') {
+            const correctOrder = q.correct_answer ? JSON.parse(q.correct_answer) : [];
+            parsedOptions = optionsArray.map((opt: any) => {
+              const text = typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
+              const rank = correctOrder.indexOf(text) !== -1 ? String(correctOrder.indexOf(text) + 1) : '';
+              return { text, rank };
+            });
+            setAllowPartialMarks(!!q.options_json?.allowPartialMarks);
+          } else {
+            parsedOptions = optionsArray.map((opt: any) => 
+              typeof opt === 'object' && opt !== null && 'text' in opt ? opt : { text: String(opt) }
+            );
+          }
         }
         setOptions(parsedOptions);
         setCorrectAnswer(q.correct_answer || '0');
       } else if (q.type === 'structured_response') {
         const opts = q.options_json || {};
-        setStructuredFields(Array.isArray(opts.fields) && opts.fields.length > 0 ? opts.fields : [{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+        setStructuredFields(Array.isArray(opts.fields) && opts.fields.length > 0 ? opts.fields : [{ id: 1, label: '' }, { id: 2, label: '' }, { id: 3, label: '' }]);
       } else if (q.type === 'structured_plan') {
         const opts = q.options_json || {};
         setPlanMode(opts.mode || 'day');
@@ -139,7 +165,7 @@ export default function EditQuestionPage() {
       }
     } catch (e) {
       console.error('Failed to fetch question', e);
-      alert('Failed to load question details.');
+      toast.error('Failed to load question details.');
     } finally {
       setIsLoading(false);
     }
@@ -163,65 +189,122 @@ export default function EditQuestionPage() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (status: 'published' | 'draft') => {
     try {
       const token = localStorage.getItem('token');
       
-      let payload: any = {
-        questionText,
+      const rawData: any = {
         type,
         section,
-        points: Number(points),
-        timeLimitSeconds: 60,
-        isPublished: true
+        questionText,
+        points,
+        weight,
+        isPublished: status === 'published'
       };
 
-      if (type === 'mcq') {
-        payload.optionsJson = options;
-        payload.correctAnswer = correctAnswer;
-      } else if (type === 'coding') {
-        payload.optionsJson = {
-          constraints,
-          sampleInput,
-          sampleOutput,
-          starterCode: '',
-          supportedLanguages,
-          publicTestCases: testCases.filter(t => t.isPublic).map(({ isPublic, ...rest }) => rest),
-          hiddenTestCases: testCases.filter(t => !t.isPublic).map(({ isPublic, ...rest }) => rest),
-          language: supportedLanguages.length > 0 ? supportedLanguages[0] : 'javascript'
-        };
-        payload.correctAnswer = '';
-      } else if (type === 'structured_response') {
-        payload.optionsJson = { fields: structuredFields };
-        payload.correctAnswer = '';
-      } else if (type === 'structured_plan') {
-        payload.optionsJson = { mode: planMode, days: planDays, labels: planLabels };
-        payload.correctAnswer = '';
-      } else if (type === 'descriptive') {
-        payload.optionsJson = {};
-        payload.correctAnswer = '';
-        payload.assessmentDimension = assessmentDimension;
-        payload.weight = Number(weight);
-        payload.expectedDuration = Number(expectedDuration);
-        payload.expectedAnswerLength = Number(expectedAnswerLength);
-        payload.isRequired = isRequired;
-        payload.displayOrder = Number(displayOrder);
+      if (['mcq', 'yes_no', 'single_select', 'multi_select', 'coding_mcq', 'ranking'].includes(type)) {
+        rawData.options = options;
+        if (type !== 'single_select' && type !== 'ranking') {
+          if (type === 'multi_select') {
+            try {
+              const parsed = JSON.parse(correctAnswer);
+              if (!Array.isArray(parsed) || parsed.length === 0) {
+                toast.error('At least one correct answer must be selected for Multi Select.');
+                return;
+              }
+            } catch {
+              toast.error('At least one correct answer must be selected for Multi Select.');
+              return;
+            }
+          }
+          rawData.correctAnswer = correctAnswer;
+        }
+        if (type === 'ranking') {
+           rawData.allowPartialMarks = allowPartialMarks;
+           const ranks = options.map(o => o.rank).filter(Boolean);
+           const uniqueRanks = new Set(ranks);
+           if (ranks.length !== options.length || uniqueRanks.size !== options.length) {
+              toast.error('Every option must have a unique rank before saving.');
+              return;
+           }
+           const expectedRanks = Array.from({length: options.length}, (_, i) => String(i + 1));
+           const sortedRanks = [...ranks].sort((a: any, b: any) => Number(a) - Number(b));
+           if (JSON.stringify(sortedRanks) !== JSON.stringify(expectedRanks)) {
+              toast.error('Ranks must be exactly 1 to ' + options.length);
+              return;
+           }
+        }
+      }
+
+      if (type === 'coding') {
+        rawData.constraints = constraints;
+        rawData.sampleInput = sampleInput;
+        rawData.sampleOutput = sampleOutput;
+        rawData.starterCode = '';
+        rawData.language = 'javascript';
+      }
+
+      if (['scenario', 'ai_scenario'].includes(type)) {
+        rawData.scenario = scenario;
+      }
+
+      if (['case_study', 'ai_scenario'].includes(type)) {
+        rawData.caseStudyTitle = caseStudyTitle;
+        rawData.caseStudyBackground = caseStudyBackground;
+        rawData.caseStudyContext = caseStudyContext;
+        rawData.caseStudyProblemStatement = caseStudyProblemStatement;
+        rawData.caseStudySupportingInfo = caseStudySupportingInfo;
+      }
+
+      if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
+        rawData.minCharacters = minCharacters;
+        rawData.maxCharacters = maxCharacters;
+        rawData.expectedDuration = expectedDuration;
+        rawData.expectedAnswerLength = expectedAnswerLength;
+        rawData.isRequired = isRequired;
+      }
+
+      if (type === 'structured_response') {
+        rawData.fields = structuredFields;
+      }
+
+      if (type === 'structured_plan') {
+        rawData.planMode = planMode;
+        rawData.planDays = planDays;
+        rawData.planLabels = planLabels;
       }
 
       if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
-        payload.optionsJson = payload.optionsJson || {};
-        payload.optionsJson.minWords = minWords;
-        payload.optionsJson.maxWords = maxWords;
+        rawData.minWords = minWords;
+        rawData.maxWords = maxWords;
       }
+
+      const payload = mapQuestionPayload(rawData);
+      
+      // Clean undefined/null fields
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined || payload[key] === null) {
+          delete payload[key];
+        }
+      });
+
+      console.log('Outgoing payload:', payload);
 
       await axios.put(`/api/questions/${id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      toast.success('Question updated successfully');
       router.push('/admin/questions');
-    } catch (e) {
-      alert('Failed to update question');
+    } catch (e: any) {
       console.error(e);
+      const errorMsg = e.response?.data?.message || 'Failed to update question';
+      if (e.response?.data?.errors) {
+        const validationErrors = e.response.data.errors.map((err: any) => err.message).join('\n');
+        toast.error(`Validation Error: ${validationErrors}`);
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 
@@ -232,14 +315,22 @@ export default function EditQuestionPage() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-4xl mx-auto px-6">
+        {/* Top Navbar / Back Button */}
+        <div className="mb-6 flex items-center">
+          <Button 
+            variant="outline"
+            onClick={() => router.back()} 
+            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center cursor-pointer border-none"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Edit Question</h1>
             <p className="text-slate-500 text-xs mt-1">Modify properties of this global repository question</p>
           </div>
-          <button onClick={() => router.back()} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition cursor-pointer">
-            ← Back
-          </button>
         </div>
 
         <Card className="border border-slate-150 rounded-2xl shadow-sm overflow-hidden bg-white">
@@ -273,8 +364,11 @@ export default function EditQuestionPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white"
                 >
                   <option value="mcq">Multiple Choice (MCQ)</option>
+                  <option value="single_select">Single Select</option>
+                  <option value="multi_select">Multi Select</option>
                   <option value="coding">Coding Challenge</option>
                   <option value="descriptive">Descriptive Assessment</option>
+                  <option value="ranking">Ranking</option>
                   <option value="structured_response">Structured Response</option>
                   <option value="structured_plan">Structured Plan</option>
                 </select>
@@ -300,19 +394,53 @@ export default function EditQuestionPage() {
               />
             </div>
 
-            {/* MCQ SECTION */}
-            {type === 'mcq' && (
+            {/* MCQ & SELECT OPTIONS SECTION */}
+            {['mcq', 'single_select', 'multi_select'].includes(type) && (
               <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm">MCQ Options Configuration</h3>
+                <h3 className="font-bold text-slate-800 text-sm">
+                  {type === 'single_select' ? 'Options Configuration' : 'Options & Correct Answer Configuration'}
+                </h3>
                 {options.map((opt, i) => (
                   <div key={i} className="flex gap-4 items-center">
-                    <input 
-                      type="radio" 
-                      name="correct" 
-                      checked={correctAnswer === String(i)}
-                      onChange={() => setCorrectAnswer(String(i))}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                    />
+                    {type !== 'single_select' && (
+                      type === 'multi_select' ? (
+                        <input 
+                          type="checkbox" 
+                          checked={(() => {
+                            try {
+                              const parsed = JSON.parse(correctAnswer);
+                              return Array.isArray(parsed) && parsed.includes(String(i));
+                            } catch {
+                              return false;
+                            }
+                          })()}
+                          onChange={(e) => {
+                            try {
+                              const parsed = JSON.parse(correctAnswer);
+                              const arr = Array.isArray(parsed) ? parsed : [];
+                              let newArr;
+                              if (e.target.checked) {
+                                newArr = [...arr, String(i)];
+                              } else {
+                                newArr = arr.filter(v => v !== String(i));
+                              }
+                              setCorrectAnswer(JSON.stringify(newArr));
+                            } catch {
+                              setCorrectAnswer(JSON.stringify([String(i)]));
+                            }
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                        />
+                      ) : (
+                        <input 
+                          type="radio" 
+                          name="correct" 
+                          checked={correctAnswer === String(i)}
+                          onChange={() => setCorrectAnswer(String(i))}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                        />
+                      )
+                    )}
                     <Input 
                       value={opt.text} 
                       onChange={(e) => updateOption(i, e.target.value)} 
@@ -327,83 +455,82 @@ export default function EditQuestionPage() {
               </div>
             )}
 
+              {/* RANKING SECTION */}
+              {type === 'ranking' && (
+                <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 text-sm">Options & Correct Rank</h3>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs">
+                       <input type="checkbox" checked={allowPartialMarks} onChange={e => setAllowPartialMarks(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                       <span className="font-semibold text-slate-700">Allow Partial Marks</span>
+                    </label>
+                  </div>
+                  {options.map((opt, i) => (
+                    <div key={i} className="flex gap-4 items-center">
+                      <select 
+                        value={opt.rank || ''} 
+                        onChange={(e) => {
+                          const newOpts = [...options];
+                          newOpts[i].rank = e.target.value;
+                          setOptions(newOpts);
+                        }}
+                        className="h-10 px-3 border border-slate-200 rounded-lg text-sm bg-white min-w-[100px] outline-none focus:border-blue-500"
+                      >
+                        <option value="">Rank ▼</option>
+                        {options.map((_, idx) => (
+                          <option key={idx + 1} value={String(idx + 1)}>{idx + 1}</option>
+                        ))}
+                      </select>
+                      <Input 
+                        value={opt.text} 
+                        onChange={(e) => updateOption(i, e.target.value)} 
+                        placeholder={`Option ${i + 1}`}
+                        className="bg-white border-slate-200"
+                      />
+                      {options.length > 2 && (
+                        <button type="button" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-rose-500 font-bold px-2">×</button>
+                      )}
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addOption} className="border-slate-200 text-slate-700 bg-white">
+                    + Add Option
+                  </Button>
+                </div>
+              )}
+
             {/* STRUCTURED RESPONSE SECTION */}
             {type === 'structured_response' && (
               <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm">Response Structure</h3>
+                <h3 className="font-bold text-slate-800 text-sm">Response Fields</h3>
                 <div className="space-y-4">
                   {structuredFields.map((field, i) => (
-                    <div key={i} className="p-4 border border-slate-200 rounded-xl bg-white space-y-4 relative">
-                      {structuredFields.length > 1 && (
-                        <button 
-                          type="button" 
-                          onClick={() => setStructuredFields(structuredFields.filter((_, idx) => idx !== i))}
-                          className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"
-                        >
-                          ✕
-                        </button>
-                      )}
-                      <h4 className="font-bold text-slate-700 text-sm">Field {i + 1}</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 mb-1">Field Label *</label>
-                          <Input 
-                            value={field.label} 
-                            onChange={(e) => {
-                              const newFields = [...structuredFields];
-                              newFields[i].label = e.target.value;
-                              setStructuredFields(newFields);
-                            }} 
-                            placeholder="e.g. Topic Learned"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 mb-1">Placeholder</label>
-                          <Input 
-                            value={field.placeholder} 
-                            onChange={(e) => {
-                              const newFields = [...structuredFields];
-                              newFields[i].placeholder = e.target.value;
-                              setStructuredFields(newFields);
-                            }} 
-                            placeholder="e.g. Enter the topic..."
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-600 mb-1">Help Text (Optional)</label>
-                          <Input 
-                            value={field.helpText} 
-                            onChange={(e) => {
-                              const newFields = [...structuredFields];
-                              newFields[i].helpText = e.target.value;
-                              setStructuredFields(newFields);
-                            }} 
-                            placeholder="e.g. Provide details about..."
-                          />
-                        </div>
-                        <div className="flex items-center justify-between border border-slate-200 p-3 rounded-md">
-                           <div className="text-xs font-bold text-slate-600">Required Field</div>
-                           <label className="relative inline-flex items-center cursor-pointer">
-                             <input 
-                               type="checkbox" 
-                               className="sr-only peer" 
-                               checked={field.required} 
-                               onChange={(e) => {
-                                 const newFields = [...structuredFields];
-                                 newFields[i].required = e.target.checked;
-                                 setStructuredFields(newFields);
-                               }} 
-                             />
-                             <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                           </label>
-                        </div>
-                      </div>
+                    <div key={i}>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Field {i + 1} Label</label>
+                      <Input 
+                        value={field.label} 
+                        onChange={(e) => {
+                          const newFields = [...structuredFields];
+                          newFields[i].label = e.target.value;
+                          setStructuredFields(newFields);
+                        }} 
+                        placeholder={`e.g. Field ${i + 1}`}
+                        className="bg-white border-slate-200 max-w-sm"
+                      />
                     </div>
                   ))}
+                  <div className="flex gap-2">
+                    {structuredFields.length < 6 && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields([...structuredFields, { id: structuredFields.length + 1, label: '' }])} className="border-slate-200 text-slate-700 bg-white hover:bg-slate-50">
+                        + Add Field
+                      </Button>
+                    )}
+                    {structuredFields.length > 2 && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields(structuredFields.slice(0, -1))} className="border-slate-200 text-slate-700 bg-white hover:bg-rose-50 hover:text-rose-600">
+                        - Remove Last Field
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields([...structuredFields, { label: '', placeholder: '', helpText: '', required: true, maxLength: '' }])} className="border-slate-200 text-slate-700 bg-white">
-                  + Add Field
-                </Button>
               </div>
             )}
 
@@ -594,7 +721,7 @@ export default function EditQuestionPage() {
             </div>
 
             <div className="flex gap-4 pt-4 border-t border-slate-100">
-              <Button onClick={handleSave} className="bg-blue-900 hover:bg-blue-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer">
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
                 Update Question
               </Button>
             </div>

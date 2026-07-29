@@ -101,7 +101,7 @@ export async function PUT(
     const validationResult = QuestionSchema.safeParse(data);
     
     if (!validationResult.success) {
-      const errorStr = validationResult.error.issues.map((e: any) => e.message).join(', ');
+      const errorStr = validationResult.error.issues.map((e: any) => e.message).join('\n');
       return NextResponse.json(
         { 
           message: errorStr || 'Validation failed', 
@@ -112,7 +112,6 @@ export async function PUT(
     }
     
     const validatedData = validationResult.data;
-
     const question = await prisma.question.update({
       where: { id },
       data: {

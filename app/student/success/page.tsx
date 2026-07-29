@@ -1,22 +1,22 @@
-import React from 'react';
 import Link from 'next/link';
+import { BadgeCheck } from 'lucide-react';
 
 export const metadata = {
-  title: 'Test Submitted - Aptitude Portal',
-  description: 'Test submission success page',
+  title: 'Assessment Completed - Aptitude Portal',
+  description: 'Assessment completion success page',
 };
 
 export default function SuccessPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/80 shadow-xl shadow-slate-100 p-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center text-4xl mx-auto shadow-inner shadow-emerald-100">
-          ✅
+        <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center text-4xl mx-auto shadow-inner shadow-emerald-100 text-emerald-500">
+          <BadgeCheck className="w-10 h-10" />
         </div>
         
         <div className="space-y-2">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Test Submitted Successfully
+            Assessment Completed
           </h1>
           <p className="text-sm text-slate-500 font-medium">
             Your aptitude assessment has been recorded. Thank you for participating.

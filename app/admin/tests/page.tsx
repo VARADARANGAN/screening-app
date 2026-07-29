@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function TestManagementPage() {
@@ -172,7 +173,7 @@ export default function TestManagementPage() {
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-900 flex items-center justify-center text-white font-black text-lg shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
               C
             </div>
             <Link href="/admin/dashboard" className="font-extrabold text-slate-900 tracking-tight text-lg hover:opacity-90 transition">
@@ -183,8 +184,10 @@ export default function TestManagementPage() {
             </span>
           </div>
           <div>
-            <Link href="/admin/dashboard" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition">
-              ← Dashboard
+            <Link href="/admin/dashboard">
+              <Button variant="outline" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center border-none">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
+              </Button>
             </Link>
           </div>
         </div>
@@ -196,7 +199,7 @@ export default function TestManagementPage() {
           <button
             onClick={() => setActiveTab('create')}
             className={`py-3.5 px-6 font-bold border-b-2 text-xs uppercase tracking-wider transition ${
-              activeTab === 'create' ? 'border-blue-900 text-blue-900' : 'border-transparent text-slate-400 hover:text-slate-700'
+              activeTab === 'create' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
             Create & Publish Test
@@ -204,7 +207,7 @@ export default function TestManagementPage() {
           <button
             onClick={() => setActiveTab('history')}
             className={`py-3.5 px-6 font-bold border-b-2 text-xs uppercase tracking-wider transition ${
-              activeTab === 'history' ? 'border-blue-900 text-blue-900' : 'border-transparent text-slate-400 hover:text-slate-700'
+              activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
           >
             Assignment History & Status
@@ -217,7 +220,7 @@ export default function TestManagementPage() {
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-bold text-slate-900">1. Select Questions</h2>
-                  <span className="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-100">
+                  <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 font-semibold rounded-full border border-blue-100">
                     {selectedQuestionIds.size} Selected
                   </span>
                 </div>
@@ -269,7 +272,7 @@ export default function TestManagementPage() {
                             type="checkbox"
                             checked={filteredQuestions.length > 0 && filteredQuestions.every(q => selectedQuestionIds.has(q.id))}
                             onChange={handleSelectAllQuestions}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
                             title="Select All Questions"
                           />
                         </TableHead>
@@ -293,7 +296,7 @@ export default function TestManagementPage() {
                           <TableRow 
                             key={q.id} 
                             className={`hover:bg-slate-50/50 cursor-pointer ${
-                              selectedQuestionIds.has(q.id) ? 'bg-indigo-50/30' : ''
+                              selectedQuestionIds.has(q.id) ? 'bg-blue-50/30' : ''
                             }`}
                             onClick={() => handleToggleQuestion(q.id)}
                           >
@@ -302,7 +305,7 @@ export default function TestManagementPage() {
                                 type="checkbox"
                                 checked={selectedQuestionIds.has(q.id)}
                                 onChange={() => handleToggleQuestion(q.id)}
-                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
                               />
                             </TableCell>
                             <TableCell className="text-xs font-semibold text-slate-500">
@@ -336,7 +339,7 @@ export default function TestManagementPage() {
                     <span className="text-slate-500 font-medium">Select Target Branches</span>
                     <button 
                       onClick={handleSelectAllBranches}
-                      className="text-xs text-indigo-600 hover:text-indigo-700 font-semibold"
+                      className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
                     >
                       {selectedBranchIds.size === branches.length ? 'Deselect All' : 'Select All'}
                     </button>
@@ -344,7 +347,7 @@ export default function TestManagementPage() {
                   
                   <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 space-y-2 max-h-48 overflow-y-auto">
                     {branches.map(b => (
-                      <label key={b.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-100 shadow-sm cursor-pointer hover:bg-indigo-50/20 transition">
+                      <label key={b.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-100 shadow-sm cursor-pointer hover:bg-blue-50/20 transition">
                         <input
                           type="checkbox"
                           checked={selectedBranchIds.has(b.id)}
@@ -378,7 +381,7 @@ export default function TestManagementPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500 font-medium">Assigned Duration:</span>
-                    <span className="font-bold text-indigo-600">
+                    <span className="font-bold text-blue-600">
                       {customDuration !== '' ? customDuration : totalDurationMinutes} mins
                     </span>
                   </div>
@@ -391,7 +394,7 @@ export default function TestManagementPage() {
                 <Button 
                   onClick={handlePublishTest}
                   disabled={selectedQuestionIds.size === 0 || selectedBranchIds.size === 0 || isPublishing}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow-md transition"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-sm transition"
                 >
                   {isPublishing ? 'Publishing Test...' : 'Publish Test Now'}
                 </Button>

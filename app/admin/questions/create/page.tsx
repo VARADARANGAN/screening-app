@@ -6,21 +6,36 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { LatexEditor } from '@/components/ui/latex-editor';
 import { mapQuestionPayload } from '@/lib/questionMapper';
+import { toast } from 'react-hot-toast';
+import { 
+  Brain, 
+  Code, 
+  ClipboardList, 
+  Users, 
+  GraduationCap, 
+  Settings, 
+  MessageSquare, 
+  Shield, 
+  Bot,
+  ArrowLeft,
+  ArrowRight 
+} from 'lucide-react';
 
 // --- Configuration Data ---
 const ASSESSMENTS = [
-  { id: 'APTITUDE', title: 'Aptitude', desc: 'Quantitative Ability, Logical Reasoning, Verbal Ability.', icon: '🧠' },
-  { id: 'CODING', title: 'Coding', desc: 'Programming Challenges and Coding MCQs.', icon: '💻' },
-  { id: 'ELIGIBILITY', title: 'Eligibility', desc: 'Screening questions to determine candidate eligibility.', icon: '📋' },
-  { id: 'ATTITUDE_AND_OWNERSHIP', title: 'Attitude & Ownership', desc: 'Evaluate candidate ownership and attitude.', icon: '🤝' },
-  { id: 'LEARNING_APTITUDE', title: 'Learning Aptitude', desc: 'Evaluate learning agility and comprehension.', icon: '📚' },
-  { id: 'PROBLEM_SOLVING', title: 'Problem Solving', desc: 'Assess problem solving strategies and logic.', icon: '🧩' },
-  { id: 'EXECUTION_AND_RELIABILITY', title: 'Execution & Reliability', desc: 'Evaluate task execution and planning.', icon: '⚙️' },
-  { id: 'COMMUNICATION_AND_TEAMWORK', title: 'Communication & Teamwork', desc: 'Assess written communication and teamwork.', icon: '🗣️' },
-  { id: 'INTEGRITY', title: 'Integrity', desc: 'Evaluate ethical behavior and integrity.', icon: '⚖️' },
-  { id: 'AI_LITERACY', title: 'AI Literacy', desc: 'Assess prompt engineering and AI tool proficiency.', icon: '🤖' }
+  { id: 'APTITUDE', title: 'Aptitude', desc: 'Quantitative Ability, Logical Reasoning, Verbal Ability.', icon: <Brain className="w-8 h-8" /> },
+  { id: 'CODING', title: 'Coding', desc: 'Programming Challenges and Coding MCQs.', icon: <Code className="w-8 h-8" /> },
+  { id: 'ELIGIBILITY', title: 'Eligibility', desc: 'Screening questions to determine candidate eligibility.', icon: <ClipboardList className="w-8 h-8" /> },
+  { id: 'ATTITUDE_AND_OWNERSHIP', title: 'Attitude & Ownership', desc: 'Evaluate candidate ownership and attitude.', icon: <Users className="w-8 h-8" /> },
+  { id: 'LEARNING_APTITUDE', title: 'Learning Aptitude', desc: 'Evaluate learning agility and comprehension.', icon: <GraduationCap className="w-8 h-8" /> },
+  { id: 'PROBLEM_SOLVING', title: 'Problem Solving', desc: 'Assess problem solving strategies and logic.', icon: <Brain className="w-8 h-8" /> },
+  { id: 'EXECUTION_AND_RELIABILITY', title: 'Execution & Reliability', desc: 'Evaluate task execution and planning.', icon: <Settings className="w-8 h-8" /> },
+  { id: 'COMMUNICATION_AND_TEAMWORK', title: 'Communication & Teamwork', desc: 'Assess written communication and teamwork.', icon: <MessageSquare className="w-8 h-8" /> },
+  { id: 'INTEGRITY', title: 'Integrity', desc: 'Evaluate ethical behavior and integrity.', icon: <Shield className="w-8 h-8" /> },
+  { id: 'AI_LITERACY', title: 'AI Literacy', desc: 'Assess prompt engineering and AI tool proficiency.', icon: <Bot className="w-8 h-8" /> }
 ];
 
 const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
@@ -84,7 +99,7 @@ export default function CreateQuestionPage() {
   // Question Fields
   const [questionText, setQuestionText] = useState('');
   const [points, setPoints] = useState(10);
-  const [options, setOptions] = useState([{ text: '' }, { text: '' }]);
+  const [options, setOptions] = useState<any[]>([{ text: '' }, { text: '' }]);
   const [correctAnswer, setCorrectAnswer] = useState('0');
   
   // Descriptive / Behaviour / Eligibility specifics
@@ -110,7 +125,7 @@ export default function CreateQuestionPage() {
   const [sampleOutput, setSampleOutput] = useState('');
   
   // Structured Response Specifics
-  const [structuredFields, setStructuredFields] = useState([{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+  const [structuredFields, setStructuredFields] = useState([{ id: 1, label: '' }, { id: 2, label: '' }, { id: 3, label: '' }]);
   
   // Structured Plan Specifics
   const [planMode, setPlanMode] = useState('day');
@@ -120,6 +135,9 @@ export default function CreateQuestionPage() {
   // Word Limits Specifics
   const [minWords, setMinWords] = useState('');
   const [maxWords, setMaxWords] = useState('');
+
+  // Ranking Specifics
+  const [allowPartialMarks, setAllowPartialMarks] = useState(false);
 
   // Resets state when starting over
   const resetForm = () => {
@@ -145,12 +163,13 @@ export default function CreateQuestionPage() {
     setConstraints('');
     setSampleInput('');
     setSampleOutput('');
-    setStructuredFields([{ label: '', placeholder: '', helpText: '', required: true, maxLength: '' }]);
+    setStructuredFields([{ id: 1, label: '' }, { id: 2, label: '' }, { id: 3, label: '' }]);
     setPlanMode('day');
     setPlanDays(5);
     setPlanLabels(['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']);
     setMinWords('');
     setMaxWords('');
+    setAllowPartialMarks(false);
   };
 
   const handleNext = () => setStep(prev => prev + 1);
@@ -170,16 +189,42 @@ export default function CreateQuestionPage() {
         section,
         questionText,
         points,
-        expectedDuration,
-        expectedAnswerLength,
         weight,
-        isRequired,
         isPublished: status === 'published'
       };
 
-      if (type === 'mcq' || type === 'yes_no' || type === 'single_select' || type === 'multi_select' || type === 'coding_mcq') {
+      if (['mcq', 'yes_no', 'single_select', 'multi_select', 'coding_mcq', 'ranking'].includes(type)) {
         rawData.options = options;
-        rawData.correctAnswer = correctAnswer;
+        if (type !== 'single_select' && type !== 'ranking') {
+          if (type === 'multi_select') {
+            try {
+              const parsed = JSON.parse(correctAnswer);
+              if (!Array.isArray(parsed) || parsed.length === 0) {
+                toast.error('At least one correct answer must be selected for Multi Select.');
+                return;
+              }
+            } catch {
+              toast.error('At least one correct answer must be selected for Multi Select.');
+              return;
+            }
+          }
+          rawData.correctAnswer = correctAnswer;
+        }
+        if (type === 'ranking') {
+           rawData.allowPartialMarks = allowPartialMarks;
+           const ranks = options.map(o => o.rank).filter(Boolean);
+           const uniqueRanks = new Set(ranks);
+           if (ranks.length !== options.length || uniqueRanks.size !== options.length) {
+              toast.error('Every option must have a unique rank before saving.');
+              return;
+           }
+           const expectedRanks = Array.from({length: options.length}, (_, i) => String(i + 1));
+           const sortedRanks = [...ranks].sort((a: any, b: any) => Number(a) - Number(b));
+           if (JSON.stringify(sortedRanks) !== JSON.stringify(expectedRanks)) {
+              toast.error('Ranks must be exactly 1 to ' + options.length);
+              return;
+           }
+        }
       }
 
       if (type === 'coding') {
@@ -190,11 +235,11 @@ export default function CreateQuestionPage() {
         rawData.language = 'javascript';
       }
 
-      if (type === 'scenario' || type === 'ai_scenario') {
+      if (['scenario', 'ai_scenario'].includes(type)) {
         rawData.scenario = scenario;
       }
 
-      if (type === 'case_study' || type === 'ai_scenario') {
+      if (['case_study', 'ai_scenario'].includes(type)) {
         rawData.caseStudyTitle = caseStudyTitle;
         rawData.caseStudyBackground = caseStudyBackground;
         rawData.caseStudyContext = caseStudyContext;
@@ -205,6 +250,9 @@ export default function CreateQuestionPage() {
       if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
         rawData.minCharacters = minCharacters;
         rawData.maxCharacters = maxCharacters;
+        rawData.expectedDuration = expectedDuration;
+        rawData.expectedAnswerLength = expectedAnswerLength;
+        rawData.isRequired = isRequired;
       }
 
       if (type === 'structured_response') {
@@ -223,18 +271,31 @@ export default function CreateQuestionPage() {
       }
 
       const payload = mapQuestionPayload(rawData);
+      
+      // Clean undefined/null fields
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined || payload[key] === null) {
+          delete payload[key];
+        }
+      });
+
+      console.log('Outgoing payload:', payload);
 
       await axios.post('/api/questions', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      toast.success('Question saved successfully');
       setIsSaved(true);
     } catch (e: any) {
-      const errorMsg = e.response?.data?.errors 
-        ? e.response.data.errors.map((err: any) => err.message).join('\n') 
-        : e.response?.data?.message || 'Failed to save question';
-      alert(`Error saving question:\n${errorMsg}`);
       console.error(e);
+      const errorMsg = e.response?.data?.message || 'Failed to save question';
+      if (e.response?.data?.errors) {
+        const validationErrors = e.response.data.errors.map((err: any) => err.message).join('\n');
+        toast.error(`Validation Error: ${validationErrors}`);
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 
@@ -246,7 +307,7 @@ export default function CreateQuestionPage() {
     return (
       <div className="min-h-screen bg-slate-50 py-12 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center space-y-6">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           </div>
           <div>
@@ -254,7 +315,7 @@ export default function CreateQuestionPage() {
             <p className="text-slate-500 text-sm mt-2">The question has been added to the global repository.</p>
           </div>
           <div className="flex flex-col gap-3 pt-4">
-            <Button onClick={resetForm} className="bg-blue-900 hover:bg-blue-800 text-white w-full">Create Another Question</Button>
+            <Button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700 text-white w-full shadow-sm">Create Another Question</Button>
             <Button variant="outline" onClick={() => router.push('/admin/questions')} className="w-full">Go to Question Bank</Button>
             <Button variant="ghost" onClick={() => setIsSaved(false)} className="text-slate-500 hover:bg-slate-100">Preview Saved Question</Button>
           </div>
@@ -267,6 +328,17 @@ export default function CreateQuestionPage() {
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-5xl mx-auto px-6">
         
+        {/* Top Navbar / Back Button */}
+        <div className="mb-6 flex items-center">
+          <Button 
+            variant="outline"
+            onClick={() => router.push('/admin/questions')}
+            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center cursor-pointer border-none"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+        </div>
+
         {/* Breadcrumb & Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -301,8 +373,8 @@ export default function CreateQuestionPage() {
           ].map((s, i) => (
             <div key={s.num} className="flex flex-col items-center gap-2 relative z-10 flex-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                step > s.num ? 'bg-emerald-500 text-white' : 
-                step === s.num ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 text-slate-400'
+                step > s.num ? 'bg-blue-600 text-white' : 
+                step === s.num ? 'bg-blue-600 text-white shadow-md ring-4 ring-blue-100' : 'bg-slate-200 text-slate-400'
               }`}>
                 {step > s.num ? '✓' : s.num}
               </div>
@@ -311,7 +383,7 @@ export default function CreateQuestionPage() {
               </span>
               {i < 3 && (
                 <div className={`absolute top-4 left-1/2 w-full h-[2px] -z-10 ${
-                  step > s.num ? 'bg-emerald-500' : 'bg-slate-200'
+                  step > s.num ? 'bg-blue-600' : 'bg-slate-200'
                 }`} style={{ width: '100%', left: '50%' }} />
               )}
             </div>
@@ -333,7 +405,7 @@ export default function CreateQuestionPage() {
                   }}
                   className={`border ${section === item.id ? 'bg-blue-50 border-blue-500 shadow-sm' : 'bg-white border-slate-200 hover:border-blue-300'} p-6 rounded-2xl cursor-pointer transition-all group`}
                 >
-                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <div className={`mb-3 ${section === item.id ? 'text-blue-600' : 'text-slate-500'}`}>{item.icon}</div>
                   <h3 className={`text-lg font-bold transition-colors ${section === item.id ? 'text-blue-900' : 'text-slate-900 group-hover:text-blue-700'}`}>{item.title}</h3>
                   <p className="text-sm text-slate-500 mt-2 leading-relaxed">{item.desc}</p>
                 </div>
@@ -362,17 +434,17 @@ export default function CreateQuestionPage() {
                     handleNext();
                   }}
                   className={`border p-5 rounded-2xl cursor-pointer transition-all flex items-center justify-between ${
-                    type === t.id ? 'bg-indigo-50 border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-300'
+                    type === t.id ? 'bg-blue-50 border-blue-600' : 'bg-white border-slate-200 hover:border-blue-300'
                   }`}
                 >
-                  <span className={`font-semibold ${type === t.id ? 'text-indigo-900' : 'text-slate-700'}`}>{t.label}</span>
-                  <span className={type === t.id ? 'text-indigo-600' : 'text-slate-300'}>→</span>
+                  <span className={`font-semibold ${type === t.id ? 'text-blue-900' : 'text-slate-700'}`}>{t.label}</span>
+                  <span className={type === t.id ? 'text-blue-600' : 'text-slate-300'}><ArrowRight className="w-5 h-5" /></span>
                 </div>
               ))}
             </div>
 
             <div className="pt-6 border-t border-slate-100">
-              <Button variant="outline" onClick={handleBack} className="text-slate-600 border-slate-200">← Back to Sections</Button>
+              <Button variant="outline" onClick={handleBack} className="text-slate-600 border-slate-200 border-none"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Sections</Button>
             </div>
           </div>
         )}
@@ -398,10 +470,10 @@ export default function CreateQuestionPage() {
                       rows={6}
                     />
                   ) : (
-                    <textarea 
+                    <Textarea 
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
-                      className="w-full min-h-[150px] p-4 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-y text-sm"
+                      className="w-full min-h-[150px] p-4 bg-slate-50 focus:bg-white resize-y text-sm"
                       placeholder="Type your question here..."
                     />
                   )}
@@ -424,17 +496,53 @@ export default function CreateQuestionPage() {
                 {/* MCQ Options */}
                 {['mcq', 'coding_mcq', 'single_select', 'multi_select'].includes(type) && (
                   <div className="space-y-4">
-                    <h3 className="font-bold text-slate-800 text-sm">Options & Correct Answer</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      {type === 'single_select' ? 'Options' : 'Options & Correct Answer'}
+                    </h3>
                     <div className="space-y-3">
                       {options.map((opt, i) => (
                         <div key={i} className="flex gap-4 items-center">
-                          <input 
-                            type="radio" 
-                            name="correct" 
-                            checked={correctAnswer === String(i)}
-                            onChange={() => setCorrectAnswer(String(i))}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
-                          />
+                          {type !== 'single_select' && (
+                            type === 'multi_select' ? (
+                              <input 
+                                type="checkbox" 
+                                checked={(() => {
+                                  try {
+                                    const parsed = JSON.parse(correctAnswer);
+                                    return Array.isArray(parsed) && parsed.includes(String(i));
+                                  } catch {
+                                    return false;
+                                  }
+                                })()}
+                                onChange={(e) => {
+                                  try {
+                                    const parsed = JSON.parse(correctAnswer);
+                                    const arr = Array.isArray(parsed) ? parsed : [];
+                                    let newArr;
+                                    if (e.target.checked) {
+                                      newArr = [...arr, String(i)];
+                                    } else {
+                                      newArr = arr.filter(v => v !== String(i));
+                                    }
+                                    setCorrectAnswer(JSON.stringify(newArr));
+                                  } catch {
+                                    setCorrectAnswer(JSON.stringify([String(i)]));
+                                  }
+                                }}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
+                                title="Mark as correct answer"
+                              />
+                            ) : (
+                              <input 
+                                type="radio" 
+                                name="correct" 
+                                checked={correctAnswer === String(i)}
+                                onChange={() => setCorrectAnswer(String(i))}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                                title="Mark as correct answer"
+                              />
+                            )
+                          )}
                           {requiresLatex ? (
                             <div className="flex-1">
                               <LatexEditor 
@@ -472,7 +580,58 @@ export default function CreateQuestionPage() {
                         </div>
                       ))}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setOptions([...options, { text: '' }])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setOptions([...options, { text: '' }])} className="border-slate-200 text-slate-700 bg-white">
+                      + Add Option
+                    </Button>
+                  </div>
+                )}
+
+                {/* Ranking Options */}
+                {type === 'ranking' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-slate-800 text-sm">Options & Correct Rank</h3>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs">
+                         <input type="checkbox" checked={allowPartialMarks} onChange={e => setAllowPartialMarks(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                         <span className="font-semibold text-slate-700">Allow Partial Marks</span>
+                      </label>
+                    </div>
+                    <div className="space-y-3">
+                      {options.map((opt, i) => (
+                        <div key={i} className="flex gap-4 items-center">
+                          <select 
+                            value={opt.rank || ''} 
+                            onChange={(e) => {
+                              const newOpts = [...options];
+                              newOpts[i].rank = e.target.value;
+                              setOptions(newOpts);
+                            }}
+                            className="h-10 px-3 border border-slate-200 rounded-lg text-sm bg-white min-w-[100px] outline-none focus:border-blue-500"
+                          >
+                            <option value="">Rank ▼</option>
+                            {options.map((_, idx) => (
+                              <option key={idx + 1} value={String(idx + 1)}>{idx + 1}</option>
+                            ))}
+                          </select>
+                          <div className="flex-1">
+                             <Input 
+                                value={opt.text} 
+                                onChange={(e) => {
+                                  const newOpts = [...options];
+                                  newOpts[i].text = e.target.value;
+                                  setOptions(newOpts);
+                                }} 
+                                placeholder={`Option ${i + 1}`}
+                                className="bg-white border-slate-200"
+                             />
+                          </div>
+                          {options.length > 2 && (
+                            <button type="button" onClick={() => setOptions(options.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-rose-500 font-bold px-2">×</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setOptions([...options, { text: '', rank: '' }])} className="border-slate-200 text-slate-700 bg-white">
                       + Add Option
                     </Button>
                   </div>
@@ -481,83 +640,36 @@ export default function CreateQuestionPage() {
                 {/* Structured Response Fields */}
                 {type === 'structured_response' && (
                   <div className="space-y-4">
-                    <h3 className="font-bold text-slate-800 text-sm">Response Structure</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">Response Fields</h3>
                     <div className="space-y-4">
                       {structuredFields.map((field, i) => (
-                        <div key={i} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-4 relative">
-                          {structuredFields.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => setStructuredFields(structuredFields.filter((_, idx) => idx !== i))}
-                              className="absolute top-4 right-4 text-slate-400 hover:text-rose-500 transition-colors"
-                            >
-                              ✕
-                            </button>
-                          )}
-                          <h4 className="font-bold text-slate-700 text-sm">Field {i + 1}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-600 mb-1">Field Label *</label>
-                              <Input 
-                                value={field.label} 
-                                onChange={(e) => {
-                                  const newFields = [...structuredFields];
-                                  newFields[i].label = e.target.value;
-                                  setStructuredFields(newFields);
-                                }} 
-                                placeholder="e.g. Topic Learned"
-                                className="bg-white border-slate-200"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-600 mb-1">Placeholder</label>
-                              <Input 
-                                value={field.placeholder} 
-                                onChange={(e) => {
-                                  const newFields = [...structuredFields];
-                                  newFields[i].placeholder = e.target.value;
-                                  setStructuredFields(newFields);
-                                }} 
-                                placeholder="e.g. Enter the topic..."
-                                className="bg-white border-slate-200"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-600 mb-1">Help Text (Optional)</label>
-                              <Input 
-                                value={field.helpText} 
-                                onChange={(e) => {
-                                  const newFields = [...structuredFields];
-                                  newFields[i].helpText = e.target.value;
-                                  setStructuredFields(newFields);
-                                }} 
-                                placeholder="e.g. Provide details about..."
-                                className="bg-white border-slate-200"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-md">
-                               <div className="text-xs font-bold text-slate-600">Required Field</div>
-                               <label className="relative inline-flex items-center cursor-pointer">
-                                 <input 
-                                   type="checkbox" 
-                                   className="sr-only peer" 
-                                   checked={field.required} 
-                                   onChange={(e) => {
-                                     const newFields = [...structuredFields];
-                                     newFields[i].required = e.target.checked;
-                                     setStructuredFields(newFields);
-                                   }} 
-                                 />
-                                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                               </label>
-                            </div>
-                          </div>
+                        <div key={field.id}>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Field {i + 1} Label</label>
+                          <Input 
+                            value={field.label} 
+                            onChange={(e) => {
+                              const newFields = [...structuredFields];
+                              newFields[i].label = e.target.value;
+                              setStructuredFields(newFields);
+                            }} 
+                            placeholder={`e.g. Field ${i + 1}`}
+                            className="bg-white border-slate-200 max-w-sm"
+                          />
                         </div>
                       ))}
+                      <div className="flex gap-2">
+                        {structuredFields.length < 6 && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields([...structuredFields, { id: structuredFields.length + 1, label: '' }])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
+                            + Add Field
+                          </Button>
+                        )}
+                        {structuredFields.length > 2 && (
+                          <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields(structuredFields.slice(0, -1))} className="text-slate-600 bg-slate-50 hover:bg-rose-50 hover:text-rose-600">
+                            - Remove Last Field
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setStructuredFields([...structuredFields, { label: '', placeholder: '', helpText: '', required: true, maxLength: '' }])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
-                      + Add Field
-                    </Button>
                   </div>
                 )}
 
@@ -686,10 +798,10 @@ export default function CreateQuestionPage() {
                 {type === 'scenario' && (
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Scenario Context (Optional)</label>
-                    <textarea 
+                    <Textarea 
                       value={scenario}
                       onChange={(e) => setScenario(e.target.value)}
-                      className="w-full min-h-[100px] p-4 border border-slate-200 rounded-xl bg-slate-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className="w-full min-h-[100px] p-4 bg-slate-50 text-sm focus:bg-white"
                       placeholder="Provide background context for the situation..."
                     />
                   </div>
@@ -760,8 +872,8 @@ export default function CreateQuestionPage() {
             </Card>
 
             <div className="flex justify-between items-center pt-4">
-              <Button variant="outline" onClick={handleBack} className="text-slate-600 px-6 border-slate-200">← Back</Button>
-              <Button onClick={handleNext} className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 py-2.5 rounded-xl shadow-md transition-colors">Continue to Review →</Button>
+              <Button variant="outline" onClick={handleBack} className="text-slate-600 px-6 border-slate-200 border-none"><ArrowLeft className="w-4 h-4 mr-2" /> Back</Button>
+              <Button onClick={handleNext} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-xl shadow-sm transition-colors">Continue to Review <ArrowRight className="w-4 h-4 ml-2" /></Button>
             </div>
           </div>
         )}
@@ -810,17 +922,28 @@ export default function CreateQuestionPage() {
                     <div>
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Options</h3>
                       <div className="space-y-2">
-                        {options.map((opt, i) => (
-                          <div key={i} className={`p-4 rounded-xl border ${correctAnswer === String(i) ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-100 text-slate-700'}`}>
-                            <div className="flex items-center gap-3">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${correctAnswer === String(i) ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                                {String.fromCharCode(65 + i)}
-                              </span>
-                              <span className="text-sm font-medium">{opt.text || <span className="italic opacity-50">Empty option</span>}</span>
-                              {correctAnswer === String(i) && <span className="ml-auto text-xs font-bold text-emerald-600 uppercase tracking-wider">Correct Answer</span>}
+                        {options.map((opt, i) => {
+                          let isCorrect = false;
+                          if (type === 'multi_select') {
+                            try {
+                              const parsed = JSON.parse(correctAnswer);
+                              isCorrect = Array.isArray(parsed) && parsed.includes(String(i));
+                            } catch {}
+                          } else {
+                            isCorrect = correctAnswer === String(i);
+                          }
+                          return (
+                            <div key={i} className={`p-4 rounded-xl border ${isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-100 text-slate-700'}`}>
+                              <div className="flex items-center gap-3">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                  {String.fromCharCode(65 + i)}
+                                </span>
+                                <span className="text-sm font-medium">{opt.text || <span className="italic opacity-50">Empty option</span>}</span>
+                                {isCorrect && <span className="ml-auto text-xs font-bold text-emerald-600 uppercase tracking-wider">Correct Answer</span>}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -839,10 +962,10 @@ export default function CreateQuestionPage() {
 
             {/* Action Bar */}
             <div className="flex justify-between items-center pt-6 pb-12">
-              <Button variant="outline" onClick={handleBack} className="text-slate-600 px-6 border-slate-200">← Back to Edit</Button>
+              <Button variant="outline" onClick={handleBack} className="text-slate-600 px-6 border-slate-200 border-none"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Edit</Button>
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => handleSave('draft')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-xl border border-slate-200 shadow-sm transition-colors">Save as Draft</Button>
-                <Button onClick={() => handleSave('published')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-xl shadow-md transition-colors">Publish & Save Question</Button>
+                <Button onClick={() => handleSave('published')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-2.5 rounded-xl shadow-sm transition-colors">Publish & Save Question</Button>
               </div>
             </div>
           </div>

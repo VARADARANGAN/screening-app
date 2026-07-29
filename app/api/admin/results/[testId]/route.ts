@@ -37,18 +37,59 @@ export async function GET(
       return NextResponse.json({ error: 'Test not found' }, { status: 404 });
     }
 
-    const codingScore = test.test_responses
-      .filter(r => r.question.type === 'coding' && r.points_earned !== null)
-      .reduce((sum, r) => sum + Number(r.points_earned), 0);
+    const SECTIONS = [
+      { id: 'ELIGIBILITY', label: 'Eligibility' },
+      { id: 'APTITUDE', label: 'Aptitude' },
+      { id: 'CODING', label: 'Coding' },
+      { id: 'ATTITUDE_AND_OWNERSHIP', label: 'Attitude & Ownership' },
+      { id: 'LEARNING_APTITUDE', label: 'Learning Aptitude' },
+      { id: 'PROBLEM_SOLVING', label: 'Problem Solving' },
+      { id: 'EXECUTION_AND_RELIABILITY', label: 'Execution & Reliability' },
+      { id: 'COMMUNICATION_AND_TEAMWORK', label: 'Communication & Teamwork' },
+      { id: 'INTEGRITY', label: 'Integrity' },
+      { id: 'AI_LITERACY', label: 'AI Literacy' },
+    ];
 
-    const aptitudeScore = test.test_responses
-      .filter(r => r.question.type === 'mcq' && r.points_earned !== null)
-      .reduce((sum, r) => sum + Number(r.points_earned), 0);
+    const sectionScores = SECTIONS.map(sec => {
+      const responsesInSection = test.test_responses.filter(r => r.question.section === sec.id);
+      
+      const totalMarks = responsesInSection.reduce((sum, r) => sum + (r.question.points || 0), 0);
+      const marksObtained = responsesInSection.reduce((sum, r) => sum + (Number(r.points_earned) || 0), 0);
+      
+      return {
+        sectionName: sec.label,
+        marksObtained,
+        totalMarks,
+        isCompleted: test.status === 'submitted' || test.status === 'auto_submitted',
+        hasQuestions: responsesInSection.length > 0
+      };
+    }).filter(sec => sec.hasQuestions); // Only return sections they actually had questions for, or should we return all? The prompt said "Display the report section-wise in this exact order... Each section should display..." If they have no questions, maybe we shouldn't display it. Wait, the prompt says "Display the report section-wise in this exact order: 1...10". I will return all 10 sections, but maybe the frontend will handle it. No, returning all 10 is safest, but with 0/0. Wait, actually I'll just return all 10.
+    
+    // Removing the filter to always return all 10 sections as requested.
+    const finalSectionScores = SECTIONS.map(sec => {
+      const responsesInSection = test.test_responses.filter(r => r.question.section === sec.id);
+      const totalMarks = responsesInSection.reduce((sum, r) => sum + (r.question.points || 0), 0);
+      const marksObtained = responsesInSection.reduce((sum, r) => sum + (Number(r.points_earned) || 0), 0);
+      return {
+        sectionName: sec.label,
+        marksObtained,
+        totalMarks,
+        isCompleted: test.status === 'submitted' || test.status === 'auto_submitted'
+      };
+    });
+
+    let overallTotalMarks = 0;
+    let overallMarksObtained = 0;
+    
+    test.test_responses.forEach(r => {
+      overallTotalMarks += (r.question.points || 0);
+      overallMarksObtained += (Number(r.points_earned) || 0);
+    });
 
     const scores = {
-      aptitudeScore: aptitudeScore,
-      codingScore: codingScore,
-      overallScore: test.score ? Number(test.score) : (aptitudeScore + codingScore),
+      overallScore: test.score ? Number(test.score) : overallMarksObtained,
+      overallTotalMarks,
+      sectionScores: finalSectionScores
     };
 
     // Extract submitted coding answers for the report
@@ -85,6 +126,17 @@ export async function GET(
         maxPoints: r.question.points,
       }));
 
+    // Extract ranking answers
+    const rankingAnswers = test.test_responses
+      .filter(r => r.question.type === 'ranking')
+      .map(r => ({
+        question: r.question.question_text,
+        studentAnswer: r.student_answer,
+        correctAnswer: r.question.correct_answer,
+        pointsEarned: r.points_earned,
+        maxPoints: r.question.points,
+      }));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -99,7 +151,8 @@ export async function GET(
         scores,
         codingAnswers,
         structuredAnswers,
-        structuredPlanAnswers
+        structuredPlanAnswers,
+        rankingAnswers
       }
     });
 

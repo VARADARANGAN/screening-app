@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TestSettingsPage() {
@@ -59,17 +60,20 @@ export default function TestSettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Top Navbar / Back Button */}
+      <div className="mb-2 flex items-center">
+        <Link href="/admin/dashboard">
+          <Button variant="outline" className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg transition flex items-center border-none">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+        </Link>
+      </div>
+
+      <div className="flex justify-between items-center mb-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Master Test Settings</h1>
           <p className="text-xs text-slate-500 font-medium">Configure the global aptitude test duration and limits.</p>
         </div>
-        <Link href="/admin/dashboard">
-          <Button variant="outline" className="flex items-center gap-2 text-slate-700 bg-white hover:bg-slate-50 border border-slate-200">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Back to Dashboard
-          </Button>
-        </Link>
       </div>
 
       <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
@@ -120,7 +124,7 @@ export default function TestSettingsPage() {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" disabled={isSaving} className="bg-blue-900 hover:bg-blue-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-blue-900/10 transition cursor-pointer">
+              <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
                 {isSaving ? 'Saving...' : 'Save Settings'}
               </Button>
             </div>
