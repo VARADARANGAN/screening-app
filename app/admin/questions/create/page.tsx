@@ -48,7 +48,6 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
   ],
   ELIGIBILITY: [
     { id: 'single_select', label: 'Single Select' },
-    { id: 'date', label: 'Date' },
     { id: 'open_text', label: 'Open Text' }
   ],
   ATTITUDE_AND_OWNERSHIP: [
@@ -58,16 +57,14 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
   ],
   LEARNING_APTITUDE: [
     { id: 'open_text', label: 'Open Text' },
-    { id: 'structured_response', label: 'Structured Response' },
-    { id: 'code_response', label: 'Code Response' }
+    { id: 'structured_response', label: 'Structured Response' }
   ],
   PROBLEM_SOLVING: [
     { id: 'structured_response', label: 'Structured Response' },
-    { id: 'open_text', label: 'Open Text' },
-    { id: 'code_review', label: 'Code Review' }
+    { id: 'open_text', label: 'Open Text' }
   ],
   EXECUTION_AND_RELIABILITY: [
-    { id: 'structured_plan', label: 'Structured Plan' },
+    { id: 'structured_response', label: 'Structured Response' },
     { id: 'open_text', label: 'Open Text' }
   ],
   COMMUNICATION_AND_TEAMWORK: [
@@ -79,8 +76,6 @@ const QUESTION_TYPES: Record<string, Array<{ id: string, label: string }>> = {
   ],
   AI_LITERACY: [
     { id: 'multi_select', label: 'Multi Select' },
-    { id: 'prompt_writing', label: 'Prompt Writing' },
-    { id: 'code_review', label: 'Code Review' },
     { id: 'open_text', label: 'Open Text' }
   ]
 };
@@ -195,7 +190,7 @@ export default function CreateQuestionPage() {
 
       if (['mcq', 'yes_no', 'single_select', 'multi_select', 'coding_mcq', 'ranking'].includes(type)) {
         rawData.options = options;
-        if (type !== 'single_select' && type !== 'ranking') {
+        if (type !== 'ranking') {
           if (type === 'multi_select') {
             try {
               const parsed = JSON.parse(correctAnswer);
@@ -247,7 +242,7 @@ export default function CreateQuestionPage() {
         rawData.caseStudySupportingInfo = caseStudySupportingInfo;
       }
 
-      if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
+      if (['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'ranking'].includes(type)) {
         rawData.minCharacters = minCharacters;
         rawData.maxCharacters = maxCharacters;
         rawData.expectedDuration = expectedDuration;
@@ -259,13 +254,7 @@ export default function CreateQuestionPage() {
         rawData.fields = structuredFields;
       }
 
-      if (type === 'structured_plan') {
-        rawData.planMode = planMode;
-        rawData.planDays = planDays;
-        rawData.planLabels = planLabels;
-      }
-
-      if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+      if (['open_text', 'structured_response'].includes(type)) {
         rawData.minWords = minWords;
         rawData.maxWords = maxWords;
       }
@@ -480,7 +469,7 @@ export default function CreateQuestionPage() {
                 </div>
 
                 {/* Eligibility / Descriptive toggles */}
-                {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type) && (
+                {['yes_no', 'numeric', 'scenario', 'case_study', 'ai_scenario', 'practical_prompt', 'practical_task', 'open_text', 'structured_response', 'ranking'].includes(type) && (
                   <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                     <div>
                       <h4 className="font-bold text-sm text-slate-800">Required Question</h4>
@@ -492,18 +481,16 @@ export default function CreateQuestionPage() {
                     </label>
                   </div>
                 )}
-
                 {/* MCQ Options */}
                 {['mcq', 'coding_mcq', 'single_select', 'multi_select'].includes(type) && (
                   <div className="space-y-4">
                     <h3 className="font-bold text-slate-800 text-sm">
-                      {type === 'single_select' ? 'Options' : 'Options & Correct Answer'}
+                      Options & Correct Answer
                     </h3>
                     <div className="space-y-3">
                       {options.map((opt, i) => (
                         <div key={i} className="flex gap-4 items-center">
-                          {type !== 'single_select' && (
-                            type === 'multi_select' ? (
+                          {(type === 'multi_select') ? (
                               <input 
                                 type="checkbox" 
                                 checked={(() => {
@@ -542,7 +529,7 @@ export default function CreateQuestionPage() {
                                 title="Mark as correct answer"
                               />
                             )
-                          )}
+                          }
                           {requiresLatex ? (
                             <div className="flex-1">
                               <LatexEditor 
@@ -673,78 +660,9 @@ export default function CreateQuestionPage() {
                   </div>
                 )}
 
-                {/* Structured Plan Fields */}
-                {type === 'structured_plan' && (
-                  <div className="space-y-4">
-                    <h3 className="font-bold text-slate-800 text-sm">Planning Mode</h3>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="planMode" checked={planMode === 'day'} onChange={() => {
-                          setPlanMode('day');
-                          setPlanLabels(Array.from({ length: planDays }, (_, i) => `Day ${i + 1}`));
-                        }} className="text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm font-semibold text-slate-700">Day-wise Plan</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="planMode" checked={planMode === 'step'} onChange={() => {
-                          setPlanMode('step');
-                          setPlanLabels(['Step 1', 'Step 2', 'Step 3']);
-                        }} className="text-blue-600 focus:ring-blue-500" />
-                        <span className="text-sm font-semibold text-slate-700">Step-wise Plan</span>
-                      </label>
-                    </div>
-
-                    {planMode === 'day' && (
-                      <div className="mt-4">
-                        <label className="block text-xs font-bold text-slate-600 mb-1">Number of Days (1-30)</label>
-                        <Input 
-                          type="number"
-                          min="1" max="30"
-                          value={planDays}
-                          onChange={(e) => {
-                            const days = Math.max(1, Math.min(30, Number(e.target.value)));
-                            setPlanDays(days);
-                            setPlanLabels(Array.from({ length: days }, (_, i) => `Day ${i + 1}`));
-                          }}
-                          className="bg-white border-slate-200 max-w-[150px]"
-                        />
-                      </div>
-                    )}
-
-                    <div className="mt-6 space-y-3">
-                      <h4 className="font-bold text-slate-700 text-sm">{planMode === 'day' ? 'Day Labels' : 'Step Labels'}</h4>
-                      {planLabels.map((label, i) => (
-                        <div key={i} className="flex gap-2 items-center">
-                          <Input
-                            value={label}
-                            onChange={(e) => {
-                              const newLabels = [...planLabels];
-                              newLabels[i] = e.target.value;
-                              setPlanLabels(newLabels);
-                            }}
-                            className="bg-white border-slate-200 max-w-sm"
-                            placeholder={planMode === 'day' ? `Day ${i + 1}` : `Step ${i + 1}`}
-                          />
-                          {planMode === 'step' && planLabels.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setPlanLabels(planLabels.filter((_, idx) => idx !== i))}
-                              className="text-slate-400 hover:text-rose-500 font-bold p-2 transition-colors"
-                            >✕</button>
-                          )}
-                        </div>
-                      ))}
-                      {planMode === 'step' && (
-                        <Button type="button" variant="outline" size="sm" onClick={() => setPlanLabels([...planLabels, `Step ${planLabels.length + 1}`])} className="text-slate-600 bg-slate-50 hover:bg-slate-100">
-                          + Add Step
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Word Limits Section */}
-                {['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type) && (
+                {['open_text', 'structured_response'].includes(type) && (
                   <div className="space-y-4 pt-4 border-t border-slate-100">
                     <h3 className="font-bold text-slate-800 text-sm">Word Limits</h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -835,7 +753,7 @@ export default function CreateQuestionPage() {
                 )}
 
                 {/* Config Metadata (Duration/Length) */}
-                {['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type) && (
+                {['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'code_review', 'prompt_writing', 'ranking', 'date', 'open_response', 'essay'].includes(type) && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-5 bg-slate-50 border border-slate-100 rounded-xl">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Duration (mins)</label>
@@ -901,7 +819,7 @@ export default function CreateQuestionPage() {
                       <span className="font-bold text-indigo-600">{points} Pts</span>
                     </div>
                   )}
-                  {['yes_no', 'numeric', 'short_answer', 'descriptive', 'scenario', 'case_study', 'ai_scenario'].includes(type) && (
+                  {['yes_no', 'numeric', 'scenario', 'case_study', 'ai_scenario'].includes(type) && (
                     <div>
                       <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Requirement</span>
                       <span className={`font-semibold ${isRequired ? 'text-rose-600' : 'text-slate-500'}`}>{isRequired ? 'Required' : 'Optional'}</span>
@@ -918,13 +836,13 @@ export default function CreateQuestionPage() {
                     </div>
                   </div>
 
-                  {['mcq', 'coding_mcq', 'single_select', 'multi_select'].includes(type) && (
+                  {['mcq', 'coding_mcq', 'single_select', 'multi_select', 'multiple_select'].includes(type) && (
                     <div>
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Options</h3>
                       <div className="space-y-2">
                         {options.map((opt, i) => {
                           let isCorrect = false;
-                          if (type === 'multi_select') {
+                          if (type === 'multi_select' || type === 'multiple_select') {
                             try {
                               const parsed = JSON.parse(correctAnswer);
                               isCorrect = Array.isArray(parsed) && parsed.includes(String(i));

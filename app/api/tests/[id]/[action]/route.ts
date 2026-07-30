@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { processBackgroundEvaluations } from '@/lib/services/evaluation-pipeline';
+import { enqueueEvaluationJob } from '@/lib/queue/evaluation-queue';
 import { recalculateTestScore } from '@/lib/services/score-calculation';
 import { SubmitTestResponseSchema } from '@/lib/validators';
 import vm from 'vm';
@@ -126,12 +126,13 @@ export async function POST(
         }
       });
 
-      processBackgroundEvaluations([{
-        testId: id,
-        questionId: questionId,
-        studentAnswer: testResponse.student_answer || ''
-      }]).catch(err => {
-        console.error(`[Re-Evaluation Spawn Error]`, err);
+      after(() => {
+        enqueueEvaluationJob(id, [{
+          questionId: questionId,
+          studentAnswer: testResponse.student_answer || ''
+        }]).catch(err => {
+          console.error(`[Re-Evaluation Queue Error]`, err);
+        });
       });
 
       return NextResponse.json({
@@ -270,7 +271,7 @@ export async function POST(
           }
 
           const q = questionMap.get(response.questionId);
-          const aiEvaluableTypes = ['coding', 'coding_challenge', 'code_response', 'code_review'];
+          const aiEvaluableTypes = ['coding', 'structured_response', 'open_text'];
           if (q && aiEvaluableTypes.includes(q.type)) {
             console.log(`[Submission] Routing question ${response.questionId} (type: ${q.type}) to AI Evaluator`);
             evalPayloads.push({
@@ -310,6 +311,56 @@ export async function POST(
             } catch (e) {
               console.error('[Ranking Eval Error]', e);
             }
+          } else if (q && ['mcq', 'single_select'].includes(q.type)) {
+            let correctText = q.correct_answer;
+            const optsArr = Array.isArray(q.options_json) ? q.options_json : (q.options_json?.options || []);
+            const parsedIdx = parseInt(q.correct_answer, 10);
+            if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < optsArr.length) {
+              const opt = optsArr[parsedIdx];
+              correctText = typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
+            }
+            
+            const pointsEarned = (response.answer === correctText || response.answer === q.correct_answer) ? q.points : 0;
+            await prisma.testResponse.updateMany({
+              where: { test_id: test.id, question_id: response.questionId },
+              data: {
+                points_earned: pointsEarned,
+                is_correct: pointsEarned === q.points
+              }
+            });
+          } else if (q && q.type === 'multi_select') {
+            let pointsEarned = 0;
+            try {
+               const studentArr = JSON.parse(response.answer || '[]');
+               const correctIndices = JSON.parse(q.correct_answer || '[]');
+               
+               const optsArr = Array.isArray(q.options_json) ? q.options_json : (q.options_json?.options || []);
+               const correctTexts = correctIndices.map((idxVal: any) => {
+                 const parsedIdx = parseInt(String(idxVal), 10);
+                 if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < optsArr.length) {
+                   const opt = optsArr[parsedIdx];
+                   return typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
+                 }
+                 return String(idxVal);
+               });
+
+               if (Array.isArray(studentArr)) {
+                   const isExactMatch = studentArr.length === correctTexts.length && 
+                                        studentArr.every((v: string) => correctTexts.includes(v));
+                   if (isExactMatch) {
+                       pointsEarned = q.points;
+                   }
+               }
+            } catch (e) {
+                console.error('[Multi Select Eval Error]', e);
+            }
+            await prisma.testResponse.updateMany({
+              where: { test_id: test.id, question_id: response.questionId },
+              data: {
+                points_earned: pointsEarned,
+                is_correct: pointsEarned === q.points
+              }
+            });
           }
         }
       }
@@ -325,9 +376,32 @@ export async function POST(
       });
 
       if (evalPayloads.length > 0) {
-        processBackgroundEvaluations(evalPayloads).catch(err => {
-          console.error('[Background Evaluation Error]', err);
-        });
+        // Set all to PENDING immediately before queueing
+        for (const payload of evalPayloads) {
+          await prisma.testResponse.updateMany({
+            where: { test_id: test.id, question_id: payload.questionId },
+            data: {
+              ai_evaluation_json: { evaluationStatus: 'PENDING', evaluatedAt: new Date().toISOString() }
+            }
+          });
+        }
+
+        try {
+          after(() => {
+            enqueueEvaluationJob(test.id, evalPayloads).catch(err => {
+              console.error('[Background Evaluation Error]', err);
+            });
+          });
+        } catch (err) {
+          console.error('[Queueing Error]', err);
+        }
+      }
+
+      // ALWAYS recalculate score immediately so objective questions contribute instantly
+      try {
+        await recalculateTestScore(test.id);
+      } catch (e) {
+        console.error('[Score Calculation Error]', e);
       }
 
       return NextResponse.json({ message: 'Test submitted successfully' });

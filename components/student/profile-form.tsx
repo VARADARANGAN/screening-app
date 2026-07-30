@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { StudentProfileSchema, StudentProfileInput } from '@/lib/validators';
@@ -13,6 +14,7 @@ import { toast } from 'react-hot-toast';
 
 export function ProfileForm() {
   const { user } = useAuth();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   
@@ -93,6 +95,7 @@ export function ProfileForm() {
       
       reset(data); // reset the form with the new data so isDirty becomes false
       toast.success('Profile updated successfully');
+      router.push('/student/dashboard');
     } catch (error: any) {
       console.error('[Frontend] API Error:', error.response?.data || error.message || error);
       const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save profile';

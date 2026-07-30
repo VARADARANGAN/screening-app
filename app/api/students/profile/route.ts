@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
           college: validatedData.college,
           usn: validatedData.usn,
           branch_name: validatedData.branchName,
+          camera_permission: validatedData.cameraPermission,
+          microphone_permission: validatedData.microphonePermission,
           profile_completed: true,
         },
         create: {
@@ -69,6 +71,8 @@ export async function POST(request: NextRequest) {
           college: validatedData.college,
           usn: validatedData.usn,
           branch_name: validatedData.branchName,
+          camera_permission: validatedData.cameraPermission,
+          microphone_permission: validatedData.microphonePermission,
           profile_completed: true,
         }
       })
@@ -149,6 +153,8 @@ export async function PATCH(request: NextRequest) {
           college: validatedData.college,
           usn: validatedData.usn,
           branch_name: validatedData.branchName,
+          camera_permission: validatedData.cameraPermission,
+          microphone_permission: validatedData.microphonePermission,
           profile_completed: true,
         },
         create: {
@@ -158,6 +164,8 @@ export async function PATCH(request: NextRequest) {
           college: validatedData.college,
           usn: validatedData.usn,
           branch_name: validatedData.branchName,
+          camera_permission: validatedData.cameraPermission,
+          microphone_permission: validatedData.microphonePermission,
           profile_completed: true,
         }
       })

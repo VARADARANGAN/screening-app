@@ -9,8 +9,8 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
   let type = rawType;
   if (['yes_no', 'coding_mcq'].includes(rawType)) {
     type = 'mcq';
-  } else if (!['mcq', 'coding', 'single_select', 'date', 'open_text', 'ranking', 'structured_response', 'code_response', 'code_review', 'structured_plan', 'multi_select', 'prompt_writing'].includes(type)) {
-    type = 'descriptive'; // fallback for unknown types
+  } else if (!['mcq', 'coding', 'single_select', 'open_text', 'ranking', 'structured_response', 'multi_select'].includes(type)) {
+    type = 'open_text'; // fallback for unknown types
   }
 
   // 2. Map to strict sections
@@ -70,12 +70,6 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
     optionsJson = {
       fields: Array.isArray(rawData.fields) ? rawData.fields : []
     };
-  } else if (type === 'structured_plan') {
-    optionsJson = {
-      mode: String(rawData.planMode || 'day'),
-      days: Number(rawData.planDays) || 5,
-      labels: Array.isArray(rawData.planLabels) ? rawData.planLabels : []
-    };
   } else if (type === 'ranking') {
     const options: { text: string }[] = [];
     if (Array.isArray(rawData.options)) {
@@ -98,14 +92,13 @@ export function mapQuestionPayload(rawData: any, rowIndex?: number) {
     }
   }
 
-  // Add min/max words for all descriptive types
-  if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+  if (['open_text', 'structured_response'].includes(type)) {
     if (rawData.minWords) optionsJson.minWords = Number(rawData.minWords);
     if (rawData.maxWords) optionsJson.maxWords = Number(rawData.maxWords);
   }
 
   // 4. Construct Final Payload
-  const showsMarks = section === 'APTITUDE' || section === 'CODING';
+  const showsMarks = section !== 'ELIGIBILITY';
   
   const payload = {
     ...(rowIndex !== undefined ? { _rowIndex: rowIndex } : {}),

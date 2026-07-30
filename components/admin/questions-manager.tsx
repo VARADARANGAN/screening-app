@@ -305,6 +305,7 @@ export function QuestionsManager() {
                     />
                   </TableHead>
                   <TableHead className="font-semibold text-slate-700">Question Content</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-44">Type</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-44">Section</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-28 text-center">Marks</TableHead>
                   <TableHead className="font-semibold text-slate-700 w-36 text-right">Actions</TableHead>
@@ -332,6 +333,11 @@ export function QuestionsManager() {
                       </TableCell>
                       <TableCell className="font-medium text-slate-800 max-w-lg">
                         <div className="truncate" title={q.question_text}>{q.question_text}</div>
+                      </TableCell>
+                      <TableCell className="w-44">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200">
+                          {q.type || 'mcq'}
+                        </span>
                       </TableCell>
                       <TableCell className="w-44">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-blue-50 text-blue-700 border border-blue-100">

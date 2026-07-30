@@ -7,7 +7,7 @@ export async function GET() {
       where: {
         type: 'single_select',
         section: {
-          in: ['INTEGRITY', 'ATTITUDE_AND_OWNERSHIP']
+          not: 'ELIGIBILITY'
         }
       },
       data: {

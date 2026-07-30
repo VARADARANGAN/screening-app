@@ -138,11 +138,6 @@ export default function EditQuestionPage() {
       } else if (q.type === 'structured_response') {
         const opts = q.options_json || {};
         setStructuredFields(Array.isArray(opts.fields) && opts.fields.length > 0 ? opts.fields : [{ id: 1, label: '' }, { id: 2, label: '' }, { id: 3, label: '' }]);
-      } else if (q.type === 'structured_plan') {
-        const opts = q.options_json || {};
-        setPlanMode(opts.mode || 'day');
-        setPlanDays(opts.days || 5);
-        setPlanLabels(Array.isArray(opts.labels) && opts.labels.length > 0 ? opts.labels : ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5']);
       } else if (q.type === 'coding') {
         const opts = q.options_json || {};
         setConstraints(opts.constraints || '');
@@ -158,7 +153,7 @@ export default function EditQuestionPage() {
         setSupportedLanguages(opts.supportedLanguages || ['javascript', 'python', 'cpp', 'java']);
       }
 
-      if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(q.type)) {
+      if (['open_text', 'structured_response'].includes(q.type)) {
         const opts = q.options_json || {};
         setMinWords(opts.minWords || '');
         setMaxWords(opts.maxWords || '');
@@ -204,7 +199,7 @@ export default function EditQuestionPage() {
 
       if (['mcq', 'yes_no', 'single_select', 'multi_select', 'coding_mcq', 'ranking'].includes(type)) {
         rawData.options = options;
-        if (type !== 'single_select' && type !== 'ranking') {
+        if (type !== 'ranking') {
           if (type === 'multi_select') {
             try {
               const parsed = JSON.parse(correctAnswer);
@@ -256,11 +251,10 @@ export default function EditQuestionPage() {
         rawData.caseStudySupportingInfo = caseStudySupportingInfo;
       }
 
-      if (['descriptive', 'scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'structured_plan', 'code_response', 'code_review', 'prompt_writing', 'ranking', 'date'].includes(type)) {
-        rawData.minCharacters = minCharacters;
-        rawData.maxCharacters = maxCharacters;
+      if (['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'ranking'].includes(type)) {
         rawData.expectedDuration = expectedDuration;
         rawData.expectedAnswerLength = expectedAnswerLength;
+        rawData.assessmentDimension = assessmentDimension;
         rawData.isRequired = isRequired;
       }
 
@@ -268,13 +262,7 @@ export default function EditQuestionPage() {
         rawData.fields = structuredFields;
       }
 
-      if (type === 'structured_plan') {
-        rawData.planMode = planMode;
-        rawData.planDays = planDays;
-        rawData.planLabels = planLabels;
-      }
-
-      if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+      if (['open_text', 'structured_response'].includes(type)) {
         rawData.minWords = minWords;
         rawData.maxWords = maxWords;
       }
@@ -364,13 +352,11 @@ export default function EditQuestionPage() {
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white"
                 >
                   <option value="mcq">Multiple Choice (MCQ)</option>
-                  <option value="single_select">Single Select</option>
+                  {section === 'ELIGIBILITY' && <option value="single_select">Single Select</option>}
                   <option value="multi_select">Multi Select</option>
                   <option value="coding">Coding Challenge</option>
-                  <option value="descriptive">Descriptive Assessment</option>
                   <option value="ranking">Ranking</option>
                   <option value="structured_response">Structured Response</option>
-                  <option value="structured_plan">Structured Plan</option>
                 </select>
               </div>
             </div>
@@ -396,14 +382,14 @@ export default function EditQuestionPage() {
 
             {/* MCQ & SELECT OPTIONS SECTION */}
             {['mcq', 'single_select', 'multi_select'].includes(type) && (
-              <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm">
-                  {type === 'single_select' ? 'Options Configuration' : 'Options & Correct Answer Configuration'}
+              <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50">
+                <h3 className="font-bold text-slate-800 text-sm mb-4">
+                  Options & Correct Answer Configuration
                 </h3>
-                {options.map((opt, i) => (
-                  <div key={i} className="flex gap-4 items-center">
-                    {type !== 'single_select' && (
-                      type === 'multi_select' ? (
+                <div className="space-y-3">
+                  {options.map((opt, i) => (
+                    <div key={i} className="flex gap-4 items-center">
+                      {(type === 'multi_select') ? (
                         <input 
                           type="checkbox" 
                           checked={(() => {
@@ -439,8 +425,7 @@ export default function EditQuestionPage() {
                           onChange={() => setCorrectAnswer(String(i))}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
                         />
-                      )
-                    )}
+                      )}
                     <Input 
                       value={opt.text} 
                       onChange={(e) => updateOption(i, e.target.value)} 
@@ -452,6 +437,7 @@ export default function EditQuestionPage() {
                 <Button type="button" variant="outline" size="sm" onClick={addOption} className="border-slate-200 text-slate-700 bg-white">
                   + Add Option
                 </Button>
+              </div>
               </div>
             )}
 
@@ -534,78 +520,9 @@ export default function EditQuestionPage() {
               </div>
             )}
 
-            {/* STRUCTURED PLAN SECTION */}
-            {type === 'structured_plan' && (
-              <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
-                <h3 className="font-bold text-slate-800 text-sm">Planning Mode</h3>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="planMode" checked={planMode === 'day'} onChange={() => {
-                      setPlanMode('day');
-                      setPlanLabels(Array.from({ length: planDays }, (_, i) => `Day ${i + 1}`));
-                    }} className="text-blue-600 focus:ring-blue-500" />
-                    <span className="text-sm font-semibold text-slate-700">Day-wise Plan</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="planMode" checked={planMode === 'step'} onChange={() => {
-                      setPlanMode('step');
-                      setPlanLabels(['Step 1', 'Step 2', 'Step 3']);
-                    }} className="text-blue-600 focus:ring-blue-500" />
-                    <span className="text-sm font-semibold text-slate-700">Step-wise Plan</span>
-                  </label>
-                </div>
 
-                {planMode === 'day' && (
-                  <div className="mt-4">
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Number of Days (1-30)</label>
-                    <Input 
-                      type="number"
-                      min="1" max="30"
-                      value={planDays}
-                      onChange={(e) => {
-                        const days = Math.max(1, Math.min(30, Number(e.target.value)));
-                        setPlanDays(days);
-                        setPlanLabels(Array.from({ length: days }, (_, i) => `Day ${i + 1}`));
-                      }}
-                      className="bg-white border-slate-200 max-w-[150px]"
-                    />
-                  </div>
-                )}
-
-                <div className="mt-6 space-y-3">
-                  <h4 className="font-bold text-slate-700 text-sm">{planMode === 'day' ? 'Day Labels' : 'Step Labels'}</h4>
-                  {planLabels.map((label, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <Input
-                        value={label}
-                        onChange={(e) => {
-                          const newLabels = [...planLabels];
-                          newLabels[i] = e.target.value;
-                          setPlanLabels(newLabels);
-                        }}
-                        className="bg-white border-slate-200 max-w-sm"
-                        placeholder={planMode === 'day' ? `Day ${i + 1}` : `Step ${i + 1}`}
-                      />
-                      {planMode === 'step' && planLabels.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setPlanLabels(planLabels.filter((_, idx) => idx !== i))}
-                          className="text-slate-400 hover:text-rose-500 font-bold p-2 transition-colors"
-                        >✕</button>
-                      )}
-                    </div>
-                  ))}
-                  {planMode === 'step' && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => setPlanLabels([...planLabels, `Step ${planLabels.length + 1}`])} className="text-slate-600 bg-white border-slate-200 hover:bg-slate-50">
-                      + Add Step
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* DESCRIPTIVE SECTION */}
-            {type === 'descriptive' && (
+            {/* OPEN TEXT SETTINGS SECTION */}
+            {type === 'open_text' && (
               <div className="p-5 border border-slate-150 rounded-xl bg-slate-50/50 space-y-4">
                 <h3 className="font-bold text-slate-800 text-sm">Descriptive Settings</h3>
                 
@@ -674,7 +591,7 @@ export default function EditQuestionPage() {
 
 
             {/* Word Limits Section */}
-            {['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type) && (
+            {['open_text', 'structured_response'].includes(type) && (
               <div className="space-y-4 pt-4 border-t border-slate-100">
                 <h3 className="font-bold text-slate-800 text-sm">Word Limits</h3>
                 <div className="grid grid-cols-2 gap-4">

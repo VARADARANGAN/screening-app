@@ -42,7 +42,7 @@ export const AdminProfileSchema = z.object({
 // ==================== Question Schemas ====================
 export const QuestionSchema = z.object({
   questionText: z.string().min(3, 'Question text must be at least 3 characters'),
-  type: z.enum(['mcq', 'coding', 'single_select', 'date', 'open_text', 'ranking', 'structured_response', 'code_response', 'code_review', 'structured_plan', 'multi_select', 'prompt_writing']),
+  type: z.enum(['mcq', 'coding', 'single_select', 'open_text', 'ranking', 'structured_response', 'multi_select']),
   timeLimitSeconds: z.number().optional().default(60),
   points: z.number().min(0, 'Points must be at least 0').default(0),
   isPublished: z.boolean().default(false),
@@ -72,7 +72,7 @@ export const QuestionSchema = z.object({
   if (data.type === 'coding') {
     return !!data.optionsJson; // coding uses optionsJson for starter code and test cases
   }
-  if (data.type === 'structured_response' || data.type === 'structured_plan') {
+  if (data.type === 'structured_response') {
     return !!data.optionsJson; // uses optionsJson for fields/steps
   }
   return true;

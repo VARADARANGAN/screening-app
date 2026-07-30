@@ -31,10 +31,10 @@ interface TestData {
 
 const calculateWordCount = (type: string, answerStr: string): number => {
   if (!answerStr) return 0;
-  if (['open_text', 'descriptive', 'prompt_writing', 'code_review', 'short_answer'].includes(type)) {
+  if (['open_text', 'prompt_writing', 'code_review'].includes(type)) {
      return answerStr.trim() ? answerStr.trim().split(/\s+/).length : 0;
   }
-  if (['structured_response', 'structured_plan'].includes(type)) {
+  if (type === 'structured_response') {
      try {
        const parsed = JSON.parse(answerStr);
        return Object.values(parsed).reduce((acc: number, val: any) => {
@@ -78,7 +78,7 @@ export function TestInterface({ testId }: { testId: string }) {
 
   const handleClipboardEvent = (e: React.ClipboardEvent | React.DragEvent) => {
     e.preventDefault();
-    setToastMessage("Copying and pasting is not allowed in descriptive answers.");
+    setToastMessage("Copying and pasting is not allowed in text answers.");
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -345,7 +345,7 @@ export function TestInterface({ testId }: { testId: string }) {
         return {
           questionId: qId,
           section: qObj?.section || 'Uncategorized',
-          questionType: qObj?.type || 'descriptive',
+          questionType: qObj?.type || 'open_text',
           answer: ans
         };
       });
@@ -386,12 +386,10 @@ export function TestInterface({ testId }: { testId: string }) {
     
     const type = currentQuestion.type;
 
-    if (['structured_response', 'structured_plan'].includes(type)) {
+    if (type === 'structured_response') {
       let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.labels || currentQuestion.optionsJson?.steps;
       if (!Array.isArray(fields) || fields.length === 0) {
-        fields = type === 'structured_plan' 
-          ? ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'] 
-          : [{ id: 1, label: 'Field 1' }];
+        fields = [{ id: 1, label: 'Field 1' }];
       }
 
       let structuredAnswers: Record<string, string> = {};
@@ -414,7 +412,7 @@ export function TestInterface({ testId }: { testId: string }) {
       }
     }
     
-    if (['open_text', 'structured_response', 'structured_plan', 'prompt_writing', 'code_review', 'descriptive', 'short_answer'].includes(type)) {
+    if (['open_text', 'structured_response', 'prompt_writing', 'code_review'].includes(type)) {
       const minWords = currentQuestion.optionsJson?.minWords;
       const maxWords = currentQuestion.optionsJson?.maxWords;
       if (minWords || maxWords) {
@@ -808,23 +806,10 @@ export function TestInterface({ testId }: { testId: string }) {
                   );
                 }
 
-                // Date Picker
-                if (type === 'date') {
-                  return (
-                    <div className="space-y-4">
-                      <label className="text-sm font-bold text-slate-700">Select Date:</label>
-                      <Input
-                        type="date"
-                        value={answers[currentQuestion.id] || ''}
-                        onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                        className="max-w-xs text-lg py-6 bg-slate-50 border-slate-200"
-                      />
-                    </div>
-                  );
-                }
 
-                // Textareas (Open Text, Descriptive, Prompt Writing, Code Review, Short Answer)
-                if (['open_text', 'descriptive', 'prompt_writing', 'code_review', 'short_answer'].includes(type)) {
+
+                // Textareas (Open Text)
+                if (type === 'open_text') {
                   const val = answers[currentQuestion.id] || '';
                   const wordCount = val.trim() ? val.trim().split(/\s+/).length : 0;
                   return (
@@ -841,9 +826,7 @@ export function TestInterface({ testId }: { testId: string }) {
                         placeholder="Type your response here..."
                       />
                       {renderWordLimitIndicator(type, currentQuestion)}
-                      {type === 'prompt_writing' && !currentQuestion.optionsJson?.minWords && !currentQuestion.optionsJson?.maxWords && (
-                        <div className="text-xs text-slate-400 font-bold text-right">Word Count: {wordCount}</div>
-                      )}
+
                     </div>
                   );
                 }
@@ -910,13 +893,15 @@ export function TestInterface({ testId }: { testId: string }) {
                   );
                 }
 
-                // Structured Response / Structured Plan
-                if (['structured_response', 'structured_plan'].includes(type)) {
-                  let fields = currentQuestion.optionsJson?.fields || currentQuestion.optionsJson?.labels || currentQuestion.optionsJson?.steps;
+                // Structured Response
+                if (type === 'structured_response') {
+                  let optionsObj = currentQuestion.optionsJson;
+                  if (typeof optionsObj === 'string') {
+                    try { optionsObj = JSON.parse(optionsObj); } catch {}
+                  }
+                  let fields = optionsObj?.fields || optionsObj?.labels || optionsObj?.steps;
                   if (!Array.isArray(fields) || fields.length === 0) {
-                    fields = type === 'structured_plan' 
-                      ? ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'] 
-                      : ['Field 1'];
+                    fields = ['Field 1'];
                   }
 
                   let structuredAnswers: Record<string, string> = {};
@@ -965,8 +950,8 @@ export function TestInterface({ testId }: { testId: string }) {
                   );
                 }
 
-                // Coding / Code Response
-                if (['coding', 'coding_challenge', 'code_response'].includes(type)) {
+                // Coding
+                if (type === 'coding') {
                   return (
                     <div className="space-y-6">
                       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
@@ -1002,7 +987,7 @@ export function TestInterface({ testId }: { testId: string }) {
                           }}
                           onMount={(editor, monaco) => {
                             const preventAction = () => {
-                              setToastMessage("Copying and pasting is not allowed in descriptive answers.");
+                              setToastMessage("Copying and pasting is not allowed in text answers.");
                               setTimeout(() => setToastMessage(null), 3000);
                               recordViolation('Copy/Paste attempted in editor');
                             };

@@ -27,6 +27,12 @@ export async function GET(
         analytics: true,
         test_responses: {
           include: {
+            question: true,
+            ai_evaluation: true
+          }
+        },
+        test_questions: {
+          include: {
             question: true
           }
         }
@@ -65,11 +71,19 @@ export async function GET(
       };
     }).filter(sec => sec.hasQuestions); // Only return sections they actually had questions for, or should we return all? The prompt said "Display the report section-wise in this exact order... Each section should display..." If they have no questions, maybe we shouldn't display it. Wait, the prompt says "Display the report section-wise in this exact order: 1...10". I will return all 10 sections, but maybe the frontend will handle it. No, returning all 10 is safest, but with 0/0. Wait, actually I'll just return all 10.
     
-    // Removing the filter to always return all 10 sections as requested.
     const finalSectionScores = SECTIONS.map(sec => {
+      const questionsInSection = test.test_questions.filter((tq: any) => tq.question.section === sec.id);
       const responsesInSection = test.test_responses.filter(r => r.question.section === sec.id);
-      const totalMarks = responsesInSection.reduce((sum, r) => sum + (r.question.points || 0), 0);
-      const marksObtained = responsesInSection.reduce((sum, r) => sum + (Number(r.points_earned) || 0), 0);
+      
+      const totalMarks = sec.id === 'ELIGIBILITY' ? null : questionsInSection.reduce((sum: number, tq: any) => sum + (tq.question.points || 0), 0);
+      const marksObtained = sec.id === 'ELIGIBILITY' ? null : responsesInSection.reduce((sum: number, r: any) => {
+        const ai = r.ai_evaluation as any;
+        const earned = ai && ai.obtained_marks !== null && ai.obtained_marks !== undefined 
+          ? Number(ai.obtained_marks) 
+          : (Number(r.points_earned) || 0);
+        return sum + earned;
+      }, 0);
+      
       return {
         sectionName: sec.label,
         marksObtained,
@@ -81,9 +95,20 @@ export async function GET(
     let overallTotalMarks = 0;
     let overallMarksObtained = 0;
     
-    test.test_responses.forEach(r => {
-      overallTotalMarks += (r.question.points || 0);
-      overallMarksObtained += (Number(r.points_earned) || 0);
+    test.test_questions.forEach((tq: any) => {
+      if (tq.question.section !== 'ELIGIBILITY') {
+        overallTotalMarks += (tq.question.points || 0);
+      }
+    });
+
+    test.test_responses.forEach((r: any) => {
+      if (r.question.section !== 'ELIGIBILITY') {
+        const ai = r.ai_evaluation as any;
+        const earned = ai && ai.obtained_marks !== null && ai.obtained_marks !== undefined 
+          ? Number(ai.obtained_marks) 
+          : (Number(r.points_earned) || 0);
+        overallMarksObtained += earned;
+      }
     });
 
     const scores = {
@@ -91,51 +116,42 @@ export async function GET(
       overallTotalMarks,
       sectionScores: finalSectionScores
     };
+    // Group AI Evaluations by Section
+    const REVIEWABLE_TYPES = ['coding', 'structured_response', 'open_text'];
+    const aiEvaluationsBySection = SECTIONS.map(sec => {
+      const responsesInSection = test.test_responses.filter(r => 
+        r.question.section === sec.id && 
+        (REVIEWABLE_TYPES.includes(r.question.type) || r.question.section === 'ELIGIBILITY')
+      );
+      
+      return {
+        sectionName: sec.label,
+        evaluations: responsesInSection.map(r => {
+          const ai = r.ai_evaluation as any; // Cast safely since we included it
+          const isEligibility = r.question.section === 'ELIGIBILITY';
 
-    // Extract submitted coding answers for the report
-    const codingAnswers = test.test_responses
-      .filter(r => ['coding', 'coding_challenge', 'code_response', 'code_review'].includes(r.question.type))
-      .map(r => ({
-        question: r.question.question_text,
-        studentAnswer: r.student_answer,
-        pointsEarned: r.points_earned,
-        maxPoints: r.question.points,
-        aiEvaluation: r.ai_evaluation_json
-      }));
-
-    // Extract structured answers
-    const structuredAnswers = test.test_responses
-      .filter(r => r.question.type === 'structured_response')
-      .map(r => ({
-        question: r.question.question_text,
-        studentAnswer: r.student_answer,
-        fields: (r.question.options_json as any)?.fields || [],
-        pointsEarned: r.points_earned,
-        maxPoints: r.question.points,
-      }));
-
-    // Extract structured plan answers
-    const structuredPlanAnswers = test.test_responses
-      .filter(r => r.question.type === 'structured_plan')
-      .map(r => ({
-        question: r.question.question_text,
-        studentAnswer: r.student_answer,
-        labels: (r.question.options_json as any)?.labels || [],
-        mode: (r.question.options_json as any)?.mode || 'day',
-        pointsEarned: r.points_earned,
-        maxPoints: r.question.points,
-      }));
-
-    // Extract ranking answers
-    const rankingAnswers = test.test_responses
-      .filter(r => r.question.type === 'ranking')
-      .map(r => ({
-        question: r.question.question_text,
-        studentAnswer: r.student_answer,
-        correctAnswer: r.question.correct_answer,
-        pointsEarned: r.points_earned,
-        maxPoints: r.question.points,
-      }));
+          return {
+            questionId: r.question.id,
+            question: r.question.question_text,
+            type: r.question.type,
+            section: r.question.section,
+            studentAnswer: r.student_answer,
+            pointsEarned: isEligibility ? null : (ai?.obtained_marks ?? r.points_earned ?? 0),
+            maxPoints: isEligibility ? null : (ai?.maximum_marks ?? r.question.points ?? 0),
+            isCorrect: r.is_correct,
+            status: isEligibility ? 'ELIGIBILITY_ONLY' : (ai?.evaluation_status || (r.points_earned !== null ? 'SCORED' : 'PENDING')),
+            feedback: ai?.feedback,
+            strengths: ai?.strengths,
+            improvements: ai?.improvements,
+            mistakes: (ai?.raw_response as any)?.mistakes || [],
+            suggestions: (ai?.raw_response as any)?.suggestions || [],
+            modelUsed: ai?.model_used,
+            rawResponse: ai?.raw_response,
+            evaluatedAt: ai?.evaluated_at
+          };
+        })
+      };
+    }).filter(sec => sec.evaluations.length > 0);
 
     return NextResponse.json({
       success: true,
@@ -149,10 +165,7 @@ export async function GET(
         totalDuration: test.total_duration,
         timeTaken: test.start_time && test.end_time ? Math.round((new Date(test.end_time).getTime() - new Date(test.start_time).getTime()) / 60000) : (test.analytics?.time_taken || null),
         scores,
-        codingAnswers,
-        structuredAnswers,
-        structuredPlanAnswers,
-        rankingAnswers
+        aiEvaluationsBySection
       }
     });
 
