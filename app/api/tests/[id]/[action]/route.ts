@@ -186,26 +186,25 @@ export async function POST(
         return NextResponse.json({ message: 'Question ID is required' }, { status: 400 });
       }
 
-      const testResponse = await prisma.testResponse.findFirst({
-        where: { test_id: test.id, question_id: questionId }
-      });
-
-      if (testResponse) {
-        await prisma.testResponse.update({
-          where: { id: testResponse.id },
-          data: { student_answer: answer, auto_saved_at: new Date() }
-        });
-      } else {
-        await prisma.testResponse.create({
-          data: {
+      await prisma.testResponse.upsert({
+        where: {
+          test_question_unique: {
             test_id: test.id,
-            question_id: questionId,
-            student_answer: answer,
-            auto_saved_at: new Date(),
-            started_at: new Date()
+            question_id: questionId
           }
-        });
-      }
+        },
+        update: {
+          student_answer: answer,
+          auto_saved_at: new Date()
+        },
+        create: {
+          test_id: test.id,
+          question_id: questionId,
+          student_answer: answer,
+          auto_saved_at: new Date(),
+          started_at: new Date()
+        }
+      });
 
       await prisma.test.update({
         where: { id: test.id },
@@ -221,7 +220,7 @@ export async function POST(
       }
 
       const data = await request.json().catch(() => ({}));
-      
+
       const validationResult = SubmitTestResponseSchema.safeParse(data);
       if (!validationResult.success) {
         const errorStr = validationResult.error.issues.map((e: any) => e.message).join('\n');
@@ -244,31 +243,26 @@ export async function POST(
       if (validatedData.responses && validatedData.responses.length > 0) {
         for (const response of validatedData.responses) {
           if (!response.questionId) continue;
-          
-          const existing = await prisma.testResponse.findFirst({
-            where: { test_id: test.id, question_id: response.questionId }
-          });
-          
-          if (existing) {
-            await prisma.testResponse.update({
-              where: { id: existing.id },
-              data: {
-                student_answer: response.answer || '',
-                submitted_at: new Date()
-              }
-            });
-          } else {
-            await prisma.testResponse.create({
-              data: {
-                test_id: test.id,
-                question_id: response.questionId,
-                student_answer: response.answer || '',
-                submitted_at: new Date(),
-                started_at: new Date()
-              }
-            });
 
-          }
+          await prisma.testResponse.upsert({
+            where: {
+              test_question_unique: {
+                test_id: test.id,
+                question_id: response.questionId
+              }
+            },
+            update: {
+              student_answer: response.answer || '',
+              submitted_at: new Date()
+            },
+            create: {
+              test_id: test.id,
+              question_id: response.questionId,
+              student_answer: response.answer || '',
+              submitted_at: new Date(),
+              started_at: new Date()
+            }
+          });
 
           const q = questionMap.get(response.questionId);
           const aiEvaluableTypes = ['coding', 'structured_response', 'open_text'];
@@ -284,11 +278,11 @@ export async function POST(
               const studentObj = JSON.parse(response.answer || '{}');
               const correctOrder = JSON.parse(q.correct_answer || '[]');
               const allowPartial = !!q.options_json?.allowPartialMarks;
-              
+
               // Convert studentObj mapping back to ordered array
               // e.g., {"Design": 2, "Req": 1} => ["Req", "Design"]
               const sortedKeys = Object.keys(studentObj).sort((a, b) => studentObj[a] - studentObj[b]);
-              
+
               let pointsEarned = 0;
               if (JSON.stringify(sortedKeys) === JSON.stringify(correctOrder)) {
                 pointsEarned = q.points;
@@ -319,7 +313,7 @@ export async function POST(
               const opt = optsArr[parsedIdx];
               correctText = typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
             }
-            
+
             const pointsEarned = (response.answer === correctText || response.answer === q.correct_answer) ? q.points : 0;
             await prisma.testResponse.updateMany({
               where: { test_id: test.id, question_id: response.questionId },
@@ -331,28 +325,28 @@ export async function POST(
           } else if (q && q.type === 'multi_select') {
             let pointsEarned = 0;
             try {
-               const studentArr = JSON.parse(response.answer || '[]');
-               const correctIndices = JSON.parse(q.correct_answer || '[]');
-               
-               const optsArr = Array.isArray(q.options_json) ? q.options_json : (q.options_json?.options || []);
-               const correctTexts = correctIndices.map((idxVal: any) => {
-                 const parsedIdx = parseInt(String(idxVal), 10);
-                 if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < optsArr.length) {
-                   const opt = optsArr[parsedIdx];
-                   return typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
-                 }
-                 return String(idxVal);
-               });
+              const studentArr = JSON.parse(response.answer || '[]');
+              const correctIndices = JSON.parse(q.correct_answer || '[]');
 
-               if (Array.isArray(studentArr)) {
-                   const isExactMatch = studentArr.length === correctTexts.length && 
-                                        studentArr.every((v: string) => correctTexts.includes(v));
-                   if (isExactMatch) {
-                       pointsEarned = q.points;
-                   }
-               }
+              const optsArr = Array.isArray(q.options_json) ? q.options_json : (q.options_json?.options || []);
+              const correctTexts = correctIndices.map((idxVal: any) => {
+                const parsedIdx = parseInt(String(idxVal), 10);
+                if (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx < optsArr.length) {
+                  const opt = optsArr[parsedIdx];
+                  return typeof opt === 'object' && opt !== null && 'text' in opt ? opt.text : String(opt);
+                }
+                return String(idxVal);
+              });
+
+              if (Array.isArray(studentArr)) {
+                const isExactMatch = studentArr.length === correctTexts.length &&
+                  studentArr.every((v: string) => correctTexts.includes(v));
+                if (isExactMatch) {
+                  pointsEarned = q.points;
+                }
+              }
             } catch (e) {
-                console.error('[Multi Select Eval Error]', e);
+              console.error('[Multi Select Eval Error]', e);
             }
             await prisma.testResponse.updateMany({
               where: { test_id: test.id, question_id: response.questionId },
@@ -364,7 +358,7 @@ export async function POST(
           }
         }
       }
-      
+
       await prisma.test.update({
         where: { id: test.id },
         data: {

@@ -30,7 +30,7 @@ export async function evaluateAnswer(request: EvaluationRequest): Promise<Evalua
     while (attempt <= maxAttempts && !apiSuccess) {
       try {
         console.log(`[AI Evaluation Engine] Calling model ${model} (Attempt ${attempt}/${maxAttempts}) for Question ${request.questionId}`);
-        
+
         const chatCompletion = await groq.chat.completions.create({
           messages: [{ role: 'user', content: prompt }],
           model: model,
@@ -39,7 +39,7 @@ export async function evaluateAnswer(request: EvaluationRequest): Promise<Evalua
         });
 
         textContent = chatCompletion.choices[0]?.message?.content || '';
-        
+
         if (textContent) {
           apiSuccess = true;
           modelUsed = model;
@@ -60,15 +60,27 @@ export async function evaluateAnswer(request: EvaluationRequest): Promise<Evalua
     return createFailedResponse(request, `API Error: ${lastErrorMsg}`);
   }
 
-  return parseLLMResponse(request, textContent, modelUsed);
+  const result = parseLLMResponse(request, textContent, modelUsed);
+
+  console.log(
+    "[AI RESULT]",
+    {
+      questionId: request.questionId,
+      success: result.success,
+      score: result.score,
+      status: result.evaluationStatus
+    }
+  );
+
+  return result;
 }
 
 function parseLLMResponse(request: EvaluationRequest, textContent: string, modelUsed: string): EvaluationResponse {
   let cleanedText = textContent.replace(/```json/gi, '').replace(/```/g, '').trim();
-  
+
   try {
     const aiResult = JSON.parse(cleanedText);
-    
+
     // Map backwards compatibility for older coding evaluations that might return "marksAwarded"
     const parsedScore = Number(aiResult.score ?? aiResult.marksAwarded ?? 0);
     const cappedScore = Math.min(Math.max(parsedScore, 0), request.maxMarks);

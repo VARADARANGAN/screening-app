@@ -156,6 +156,7 @@ model TestResponse {
   ai_evaluation  AIEvaluation?
 
   @@map("test_responses")
+  @@unique([test_id, question_id], name: "test_question_unique")
 }
 
 model Violation {
@@ -170,6 +171,7 @@ model Violation {
   test           Test      @relation(fields: [test_id], references: [id], onDelete: Cascade)
 
   @@map("violations")
+
 }
 
 model TestTemplate {
@@ -236,4 +238,7 @@ model AIEvaluation {
   test_response      TestResponse @relation(fields: [test_response_id], references: [id], onDelete: Cascade)
 
   @@map("ai_evaluations")
+ 
 }
+
+

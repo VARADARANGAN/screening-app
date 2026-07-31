@@ -8,26 +8,26 @@ async function runIntegrationTest() {
   try {
     // 1. Create Mock Data
     console.log('\n[1] Creating mock student, test, and questions...');
-    
+
     // Cleanup old mock data if exists safely handling foreign keys
     const oldAdmin = await prisma.user.findUnique({ where: { email: 'mock_admin@test.com' } });
     const oldStudentUser = await prisma.user.findUnique({ where: { email: 'mock_student@test.com' } });
-    
+
     if (oldStudentUser) {
       const oldStudentProfile = await prisma.student.findUnique({ where: { user_id: oldStudentUser.id } });
       if (oldStudentProfile) {
         await prisma.test.deleteMany({ where: { student_id: oldStudentProfile.id } });
       }
     }
-    
+
     if (oldAdmin) {
       await prisma.question.deleteMany({ where: { created_by: oldAdmin.id } });
     }
-    
-    await prisma.user.deleteMany({ 
-      where: { email: { in: ['mock_admin@test.com', 'mock_student@test.com'] } } 
+
+    await prisma.user.deleteMany({
+      where: { email: { in: ['mock_admin@test.com', 'mock_student@test.com'] } }
     });
-    
+
     const adminUser = await prisma.user.create({
       data: {
         email: 'mock_admin@test.com',
@@ -111,7 +111,7 @@ async function runIntegrationTest() {
 
     // 2. Trigger Evaluation Pipeline
     console.log('\n[2] Triggering Background Evaluation Pipeline...');
-    
+
     const payloads = [
       { testId: mockTest.id, questionId: openTextQuestion.id, studentAnswer: otResponse.student_answer || '' },
       { testId: mockTest.id, questionId: structuredQuestion.id, studentAnswer: srResponse.student_answer || '' }
@@ -127,7 +127,7 @@ async function runIntegrationTest() {
     });
 
     console.log(`\nFound ${aiEvals.length} AIEvaluation records in DB.`);
-    
+
     aiEvals.forEach(evalRecord => {
       console.log(`\n--- AIEvaluation Record for Question Type: ${evalRecord.question_type} ---`);
       console.log(`Status: ${evalRecord.evaluation_status}`);
@@ -136,7 +136,7 @@ async function runIntegrationTest() {
       console.log(`Strengths Saved: ${evalRecord.strengths?.length || 0} items`);
       console.log(`Improvements Saved: ${evalRecord.improvements?.length || 0} items`);
       console.log(`Raw Response Persisted: ${evalRecord.raw_response ? 'YES' : 'NO'}`);
-      
+
       const raw = evalRecord.raw_response as any;
       console.log(`Weaknesses (Raw): ${raw?.weaknesses?.length || 0} items`);
       console.log(`Deduction Reasons (Raw): ${raw?.deductionReasons?.length || 0} items`);
@@ -160,8 +160,8 @@ async function runIntegrationTest() {
     // Cleanup in dependency order to prevent FK violations
     await prisma.test.delete({ where: { id: mockTest.id } });
     await prisma.question.deleteMany({ where: { created_by: adminUser.id } });
-    await prisma.user.deleteMany({ 
-      where: { email: { in: ['mock_admin@test.com', 'mock_student@test.com'] } } 
+    await prisma.user.deleteMany({
+      where: { email: { in: ['mock_admin@test.com', 'mock_student@test.com'] } }
     });
 
     console.log('\n--- E2E INTEGRATION TEST COMPLETED SUCCESSFULLY ---');
