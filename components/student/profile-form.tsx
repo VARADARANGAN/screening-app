@@ -5,7 +5,7 @@ import { useAuth } from '@/context/auth-context';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, ArrowLeft, Save } from 'lucide-react';
 import { StudentProfileSchema, StudentProfileInput } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,11 +106,19 @@ export function ProfileForm() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 sm:p-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">My Profile</h2>
-        <p className="text-xs text-slate-500 font-medium">View and update your profile information.</p>
-      </div>
+    <div className="w-full max-w-xl mx-auto space-y-4">
+      <button 
+        onClick={() => router.push('/student/dashboard')}
+        className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Dashboard
+      </button>
+      <div className="p-6 sm:p-8 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">My Profile</h2>
+          <p className="text-xs text-slate-500 font-medium">View and update your profile information.</p>
+        </div>
 
       {apiError && (
         <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold rounded-xl">
@@ -195,13 +203,14 @@ export function ProfileForm() {
           <Button
             type="submit"
             disabled={!isDirty || isSubmitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
+            className="w-full h-10 px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-lg shadow-sm transition cursor-pointer flex items-center justify-center gap-2"
           >
-            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Save Changes
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
