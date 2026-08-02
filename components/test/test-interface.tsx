@@ -13,7 +13,8 @@ import { seededShuffle } from '@/lib/shuffle';
 import { 
   XCircle, AlertTriangle, Flag, CheckCircle, Clock, Bookmark, 
   Puzzle, Shield, Sparkles, Users, Briefcase, Code, BookOpen, 
-  UserCheck, LayoutGrid, Check, ArrowLeft, ArrowRight
+  UserCheck, LayoutGrid, Check, ArrowLeft, ArrowRight,
+  Award, Star, Code2, Terminal, ShieldCheck, Camera, Mic, Monitor, FileText, Send, CheckCircle2, AlertCircle, Circle, CircleDashed
 } from 'lucide-react';
 
 interface Question {
@@ -69,6 +70,7 @@ export function TestInterface({ testId }: { testId: string }) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
 
   // Security and execution state
   const submittingRef = useRef(false);
@@ -94,33 +96,35 @@ export function TestInterface({ testId }: { testId: string }) {
     const currentWordCount = calculateWordCount(type, answers[question.id] || '');
     
     let counterColor = "text-slate-500";
-    let counterText = `Words: ${currentWordCount}`;
+    let counterText = `${currentWordCount} words`;
     
     if (minWords && currentWordCount < minWords) {
-      counterText = `Words: ${currentWordCount} / ${minWords} minimum`;
-      counterColor = "text-orange-600 font-bold";
+      counterText = `${currentWordCount} / ${minWords} min`;
+      counterColor = "text-slate-500";
     } else if (minWords && currentWordCount >= minWords && (!maxWords || currentWordCount <= maxWords)) {
-      counterText = `Words: ${currentWordCount} ✓`;
-      counterColor = "text-emerald-600 font-bold";
+      counterText = `${currentWordCount} words ✓`;
+      counterColor = "text-slate-500";
     }
 
     if (maxWords) {
       if (currentWordCount > maxWords) {
-        counterText = `Words: ${currentWordCount} / ${maxWords} max (Exceeded)`;
-        counterColor = "text-rose-600 font-bold";
+        counterText = `${currentWordCount} / ${maxWords} max (Exceeded)`;
+        counterColor = "text-rose-600 font-medium";
       } else if (!minWords || currentWordCount >= minWords) {
-        counterText = `Words: ${currentWordCount} / ${maxWords} max`;
-        counterColor = "text-slate-600 font-bold";
+        counterText = `${currentWordCount} / ${maxWords} max`;
       }
     }
 
     return (
-      <div className="flex justify-between items-center text-xs mt-2 border-t border-slate-100 pt-2">
-        <div className={`transition-colors ${counterColor}`}>
-          {counterText}
+      <div className="flex justify-between items-center text-xs mt-1.5">
+        <div className={`font-medium ${counterColor}`}>
+          {minWords && currentWordCount < minWords ? `Minimum ${minWords} words required` : ''}
         </div>
-        <div className="text-slate-400 font-medium">
-          {answers[question.id] ? answers[question.id].length : 0} characters
+        <div className="flex items-center gap-3">
+          <span className={`transition-colors font-medium ${counterColor}`}>{counterText}</span>
+          <span className="text-slate-400 font-medium">
+            {answers[question.id] ? answers[question.id].length : 0} chars
+          </span>
         </div>
       </div>
     );
@@ -518,31 +522,77 @@ export function TestInterface({ testId }: { testId: string }) {
   if (showInstructions) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl border border-slate-200 space-y-6">
-          <h2 className="text-2xl font-extrabold text-slate-900">Mandatory Assessment Instructions</h2>
-          <div className="space-y-3.5 text-slate-650 text-sm leading-relaxed">
-            <p>Welcome to the <strong>Campus Recruitment Assessment – {studentBranch} 2027</strong>. Please read the instructions below carefully before starting your test:</p>
-            <ul className="list-disc pl-5 space-y-2">
-              <li><strong>Duration:</strong> You have a total of <strong>{test.total_duration} minutes</strong> to complete the entire test.</li>
-              <li><strong>Questions:</strong> There are <strong>{test.questions.length} questions</strong>. You can navigate between questions freely.</li>
-              <li><strong>Auto-Save:</strong> Your answers are saved automatically as you progress. You can resume in case of interruptions.</li>
-              <li><strong>Proctoring Rules:</strong> 
-                <ul className="list-circle pl-5 space-y-1.5 mt-1 text-xs text-rose-600 font-semibold">
-                  <li>• Switching tabs or minimizing the browser window is prohibited.</li>
-                  <li>• Copying, pasting, and right-clicking are disabled.</li>
-                  <li>• Multiple violations will result in automatic submission.</li>
-                </ul>
-              </li>
-              <li><strong>Permissions:</strong> Starting the test requires Camera and Microphone access for proctoring.</li>
-            </ul>
+        <div className="bg-white rounded-2xl max-w-2xl w-full p-8 shadow-sm border border-slate-200 space-y-6">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+            <ShieldCheck className="w-8 h-8 text-blue-600" />
+            <h2 className="text-2xl font-bold text-slate-900">Assessment Instructions</h2>
           </div>
+          
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-600">Welcome to the <strong>Campus Recruitment Assessment – {studentBranch} 2027</strong>.</p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex gap-3">
+                <Clock className="w-5 h-5 text-slate-400 shrink-0" />
+                <div>
+                  <div className="font-semibold text-slate-900">Duration</div>
+                  <div className="text-slate-500 mt-0.5">{(test as any).totalDuration || (test as any).total_duration || 60} minutes</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex gap-3">
+                <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                <div>
+                  <div className="font-semibold text-slate-900">Questions</div>
+                  <div className="text-slate-500 mt-0.5">{test.questions.length} total</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex gap-3">
+                <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                <div>
+                  <div className="font-semibold text-slate-900">Auto Save</div>
+                  <div className="text-slate-500 mt-0.5">Answers save automatically</div>
+                </div>
+              </div>
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex gap-3">
+                <ArrowRight className="w-5 h-5 text-slate-400 shrink-0" />
+                <div>
+                  <div className="font-semibold text-slate-900">Navigation</div>
+                  <div className="text-slate-500 mt-0.5">Freely switch questions</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 space-y-3">
+              <div className="font-semibold text-amber-900">Proctoring Rules</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-amber-700">
+                <div className="flex items-center gap-2"><Camera className="w-4 h-4" /> Camera required</div>
+                <div className="flex items-center gap-2"><Mic className="w-4 h-4" /> Mic required</div>
+                <div className="flex items-center gap-2"><Monitor className="w-4 h-4" /> No tab switching</div>
+              </div>
+            </div>
+            
+            <label className="flex items-center gap-3 p-2 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={acceptedDisclaimer}
+                onChange={(e) => setAcceptedDisclaimer(e.target.checked)}
+                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="font-medium text-slate-700 group-hover:text-slate-900 transition-colors">I have read and understood the instructions and rules</span>
+            </label>
+          </div>
+          
           <div className="pt-4 border-t border-slate-100 flex justify-end">
             <button
               onClick={handleStartTest}
-              disabled={isInitializing}
-              className={`font-bold py-3 px-8 rounded-xl shadow-sm transition ${isInitializing ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+              disabled={isInitializing || !acceptedDisclaimer}
+              className={`h-10 px-6 font-medium rounded-lg shadow-sm transition-colors flex items-center gap-2 ${
+                isInitializing || !acceptedDisclaimer 
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              {isInitializing ? 'Requesting Permissions...' : 'I Acknowledge & Start Test'}
+              {isInitializing ? 'Requesting Permissions...' : 'Start Assessment'}
             </button>
           </div>
         </div>
@@ -733,11 +783,12 @@ export function TestInterface({ testId }: { testId: string }) {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
               <div className="space-y-4 text-left">
                 <div className="flex gap-3">
-                  <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 tracking-tight">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                     {currentQuestion.points || 10} Points
                   </div>
                 </div>
-                <div className="text-[24px] font-bold text-slate-900 leading-[1.5] prose prose-slate max-w-none">
+                <div className="text-2xl font-semibold text-slate-900 leading-relaxed prose prose-slate max-w-none">
                   <MarkdownRenderer content={currentQuestion.questionText} />
                 </div>
               </div>
@@ -793,8 +844,8 @@ export function TestInterface({ testId }: { testId: string }) {
                           return (
                             <label 
                               key={idx} 
-                              className={`flex items-center p-4 border-2 rounded-2xl transition-all cursor-pointer ${
-                                isSelected ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'
+                              className={`flex items-center px-4 min-h-[48px] border rounded-xl transition-colors cursor-pointer ${
+                                isSelected ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-blue-500 hover:bg-slate-50'
                               }`}
                             >
                               <input
@@ -812,9 +863,9 @@ export function TestInterface({ testId }: { testId: string }) {
                                     handleAnswerChange(currentQuestion.id, optionVal);
                                   }
                                 }}
-                                className={`mr-4 w-5 h-5 text-blue-600 focus:ring-blue-500 border-slate-300 ${isMultiSelect ? 'rounded' : 'rounded-full'}`}
+                                className={`mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300 ${isMultiSelect ? 'rounded' : 'rounded-full'}`}
                               />
-                              <span className={`text-base font-semibold ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{optionVal}</span>
+                              <span className={`text-sm font-medium ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{optionVal}</span>
                             </label>
                           );
                         })}
@@ -855,7 +906,7 @@ export function TestInterface({ testId }: { testId: string }) {
                         onCut={handleClipboardEvent}
                         onPaste={handleClipboardEvent}
                         onDrop={handleClipboardEvent}
-                        className="w-full h-[220px] p-4 bg-slate-50 focus:bg-white resize-none text-base rounded-xl border-slate-200 shadow-sm transition-colors"
+                        className="w-full h-[160px] p-4 bg-slate-50 focus:bg-white resize-none text-base rounded-xl border-slate-300 focus:ring-blue-500 shadow-sm transition-colors"
                         placeholder="Type your response here..."
                       />
                       {renderWordLimitIndicator(type, currentQuestion)}
@@ -947,33 +998,39 @@ export function TestInterface({ testId }: { testId: string }) {
                   };
 
                   return (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       {fields.map((field: any, idx: number) => {
                         const isObj = typeof field === 'object' && field !== null;
                         const label = isObj ? field.label : String(field);
                         const isEmpty = showValidation && (!structuredAnswers[label] || !structuredAnswers[label].trim());
 
                         return (
-                          <div key={idx} className="space-y-2">
-                            <label className="text-sm font-bold text-slate-700">
-                              {label}
-                            </label>
-                            <Textarea
-                              value={structuredAnswers[label] || ''}
-                              onChange={(e) => {
-                                updateField(label, e.target.value);
-                                setShowValidation(false);
-                              }}
-                              onCopy={handleClipboardEvent}
-                              onCut={handleClipboardEvent}
-                              onPaste={handleClipboardEvent}
-                              onDrop={handleClipboardEvent}
-                              className={`w-full min-h-[100px] p-4 bg-slate-50 focus:bg-white resize-y text-sm ${isEmpty ? 'border-rose-500 border-2' : ''}`}
-                              placeholder={`Enter ${label}...`}
-                            />
-                            {isEmpty && (
-                              <p className="text-sm text-rose-500 font-semibold mt-1">This field is required.</p>
-                            )}
+                          <div key={idx} className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between">
+                              <label className="text-sm font-semibold text-slate-800">
+                                {label}
+                              </label>
+                              {isEmpty && (
+                                <span className="flex items-center gap-1.5 text-xs font-medium text-rose-500">
+                                  <AlertCircle className="w-3.5 h-3.5" /> Required
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <Textarea
+                                value={structuredAnswers[label] || ''}
+                                onChange={(e) => {
+                                  updateField(label, e.target.value);
+                                  setShowValidation(false);
+                                }}
+                                onCopy={handleClipboardEvent}
+                                onCut={handleClipboardEvent}
+                                onPaste={handleClipboardEvent}
+                                onDrop={handleClipboardEvent}
+                                className={`w-full h-[120px] p-3 bg-white focus:bg-white resize-none text-sm border-slate-200 focus:ring-blue-500 rounded-lg ${isEmpty ? 'border-rose-300' : ''}`}
+                                placeholder={`Enter ${label}...`}
+                              />
+                            </div>
                           </div>
                         );
                       })}
@@ -985,20 +1042,29 @@ export function TestInterface({ testId }: { testId: string }) {
                 // Coding
                 if (type === 'coding') {
                   return (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                        <span className="text-sm font-bold text-slate-700">Solution Editor</span>
-                        {answers[currentQuestion.id] && (
-                          <button
-                            onClick={() => handleClearAnswer(currentQuestion.id)}
-                            className="text-xs font-bold text-slate-400 hover:text-rose-600 transition underline underline-offset-4"
-                          >
-                            Clear Code
-                          </button>
-                        )}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                          <Code2 className="w-4 h-4 text-blue-600" />
+                          🧑‍💻 Code Editor
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600">Language: JavaScript</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600">Auto Save: On</span>
+                          </div>
+                          {answers[currentQuestion.id] && (
+                            <button
+                              onClick={() => handleClearAnswer(currentQuestion.id)}
+                              className="text-xs font-medium text-slate-400 hover:text-rose-600 transition"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="h-[400px] border border-slate-200 rounded-2xl overflow-hidden shadow-inner">
+                      <div className="h-[340px] border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-[#1e1e1e]">
                         <Editor
                           height="100%"
                           defaultLanguage="javascript"
@@ -1078,14 +1144,14 @@ export function TestInterface({ testId }: { testId: string }) {
                 setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1));
               }}
               disabled={currentQuestionIndex === 0}
-              className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
+              className="h-10 px-4 sm:px-5 inline-flex items-center justify-center gap-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Previous</span>
             </button>
             <button
               onClick={() => handleToggleFlag(currentQuestion.id)}
-              className={`h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg font-medium border transition-colors ${
+              className={`h-10 px-4 sm:px-5 inline-flex items-center justify-center gap-2 rounded-lg font-medium border transition-colors text-sm ${
                 flags[currentQuestion.id] 
                   ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1100,7 +1166,7 @@ export function TestInterface({ testId }: { testId: string }) {
             {currentQuestionIndex < test.questions.length - 1 ? (
               <button
                 onClick={handleNext}
-                className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm"
+                className="h-10 px-4 sm:px-5 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm text-sm"
               >
                 <span className="hidden sm:inline">Next</span>
                 <ArrowRight className="w-4 h-4" />
@@ -1109,9 +1175,9 @@ export function TestInterface({ testId }: { testId: string }) {
               <button
                 onClick={handleConfirmSubmit}
                 disabled={isSubmitting}
-                className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium transition-colors shadow-sm"
+                className="h-10 px-4 sm:px-5 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium transition-colors shadow-sm text-sm"
               >
-                <Check className="w-4 h-4" />
+                <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">{isSubmitting ? 'Submitting...' : 'Submit Assessment'}</span>
                 <span className="sm:hidden">{isSubmitting ? '...' : 'Submit'}</span>
               </button>
@@ -1123,21 +1189,67 @@ export function TestInterface({ testId }: { testId: string }) {
       {/* Confirm Submission Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 border-b pb-2">Confirm Submission</h3>
-            <div className="space-y-2 text-sm text-slate-650">
-              <p><strong>Test Name:</strong> Campus Recruitment Assessment – {studentBranch} 2027</p>
-              <p>Total Questions: <strong className="text-slate-900">{test.questions.length}</strong></p>
-              <p>Answered: <strong className="text-emerald-600">{Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
-              <p>Unanswered: <strong className="text-rose-600">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
-              <p>Remaining Time: <strong className="text-blue-600">{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</strong></p>
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+            <div className="p-6 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Confirm Submission</h3>
+                  <p className="text-xs text-slate-500 font-medium">Please review your progress before completing.</p>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-amber-600 font-semibold pt-1">Are you sure you want to submit your test? You cannot change your answers after submission.</p>
-            <div className="flex justify-end gap-3 pt-3 border-t">
-              <Button variant="outline" className="border-slate-200" onClick={() => setShowConfirmModal(false)}>Cancel</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => submitTest(false)} disabled={isSubmitting}>
-                {isSubmitting ? 'Submitting...' : 'Submit Test'}
-              </Button>
+            
+            <div className="p-6 space-y-4 bg-slate-50 flex-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Answered</div>
+                    <div className="font-bold text-slate-700">{Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length} / {test.questions.length}</div>
+                  </div>
+                </div>
+                
+                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                  <CircleDashed className="w-5 h-5 text-orange-400 shrink-0" />
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining</div>
+                    <div className="font-bold text-slate-700">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</div>
+                  </div>
+                </div>
+                
+                <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 col-span-2">
+                  <Clock className="w-5 h-5 text-blue-500 shrink-0" />
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Time Left</div>
+                    <div className="font-bold text-slate-700">{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-100 p-3.5 rounded-xl flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-800 font-medium leading-relaxed">After submission, your answers cannot be changed. Ensure you have reviewed all flagged questions.</p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-white border-t border-slate-100 flex justify-end gap-3">
+              <button 
+                className="h-10 px-5 text-sm font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors" 
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="h-10 px-5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-colors disabled:bg-blue-400" 
+                onClick={() => submitTest(false)} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Send className="w-4 h-4 animate-pulse" /> : <CheckCircle2 className="w-4 h-4" />}
+                {isSubmitting ? 'Submitting...' : 'Submit Assessment'}
+              </button>
             </div>
           </div>
         </div>
