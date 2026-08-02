@@ -10,7 +10,11 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import Editor from '@monaco-editor/react';
 import { toast } from 'react-hot-toast';
 import { seededShuffle } from '@/lib/shuffle';
-import { XCircle, AlertTriangle, Flag, CheckCircle } from 'lucide-react';
+import { 
+  XCircle, AlertTriangle, Flag, CheckCircle, Clock, Bookmark, 
+  Puzzle, Shield, Sparkles, Users, Briefcase, Code, BookOpen, 
+  UserCheck, LayoutGrid, Check, ArrowLeft, ArrowRight
+} from 'lucide-react';
 
 interface Question {
   id: string;
@@ -114,6 +118,9 @@ export function TestInterface({ testId }: { testId: string }) {
       <div className="flex justify-between items-center text-xs mt-2 border-t border-slate-100 pt-2">
         <div className={`transition-colors ${counterColor}`}>
           {counterText}
+        </div>
+        <div className="text-slate-400 font-medium">
+          {answers[question.id] ? answers[question.id].length : 0} characters
         </div>
       </div>
     );
@@ -577,78 +584,115 @@ export function TestInterface({ testId }: { testId: string }) {
       )}
 
       {/* Left Sidebar - Question Navigator */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 transform transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
-        <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center">
-          <h2 className="font-extrabold text-slate-900 text-base tracking-tight">Question Navigator</h2>
-          <button onClick={() => setIsMobileNavOpen(false)} className="md:hidden p-2 -mr-2 text-slate-400 hover:text-slate-900">
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 transform transition-transform duration-300 ${isMobileNavOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'} md:relative md:translate-x-0 md:shadow-none`}>
+        <div className="p-4 sm:p-6 pb-4 border-b-0 flex justify-between items-center mt-1">
+          <h2 className="font-bold text-slate-500 text-[11px] tracking-[0.15em] uppercase">Sections</h2>
+          <button onClick={() => setIsMobileNavOpen(false)} className="md:hidden p-2 -mr-2 text-slate-400 hover:text-slate-900 transition-colors">
             <XCircle className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {Object.entries(
-            test.questions.reduce((acc, q, idx) => {
-              const sectionName = q.section || 'general';
-              const upperSection = sectionName.toUpperCase();
-              if (!acc[upperSection]) acc[upperSection] = [];
-              acc[upperSection].push({ ...q, originalIndex: idx });
+        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+          {test.questions.reduce((acc, q, idx) => {
+              const sectionName = q.section || 'General';
+              let sectionObj = acc.find(s => s.name === sectionName);
+              if (!sectionObj) {
+                sectionObj = { name: sectionName, questions: [] };
+                acc.push(sectionObj);
+              }
+              sectionObj.questions.push({ ...q, originalIndex: idx });
               return acc;
-            }, {} as Record<string, any[]>)
-          ).sort(([sectionA], [sectionB]) => {
-            const order = ['ELIGIBILITY', 'APTITUDE', 'CODING', 'ATTITUDE_OWNERSHIP', 'LEARNING_APTITUDE', 'PROBLEM_SOLVING', 'EXECUTION_RELIABILITY', 'COMMUNICATION_TEAMWORK', 'INTEGRITY', 'AI_LITERACY', 'GENERAL'];
-            const indexA = order.indexOf(sectionA);
-            const indexB = order.indexOf(sectionB);
-            if (indexA === -1 && indexB === -1) return sectionA.localeCompare(sectionB);
-            if (indexA === -1) return 1;
-            if (indexB === -1) return -1;
-            return indexA - indexB;
-          }).map(([sectionName, sectionQuestions]) => (
-            <div key={sectionName} className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{sectionName.replace(/_/g, ' ')}</h3>
-              <div className="grid grid-cols-5 gap-3">
-                {sectionQuestions.map((q) => {
-                  const idx = q.originalIndex;
-                  const isSelected = currentQuestionIndex === idx;
-                  const isAnswered = answers[q.id] && answers[q.id].trim().length > 0 && answers[q.id] !== '[]';
-                  const isFlagged = flags[q.id];
-                  
-                  let bgClass = "bg-slate-100 text-slate-600 border-transparent";
-                  if (isSelected) {
-                    bgClass = "bg-slate-50 text-slate-900 border-blue-500 border-2";
-                  } else if (isAnswered && isFlagged) {
-                    bgClass = "bg-emerald-500 text-white border-yellow-400 border-[3px]";
-                  } else if (isAnswered) {
-                    bgClass = "bg-emerald-500 text-white border-transparent";
-                  } else if (isFlagged) {
-                    bgClass = "bg-yellow-400 text-yellow-900 border-transparent";
-                  }
+            }, [] as { name: string, questions: any[] }[]).map((section) => {
+            const sectionName = section.name;
+            const sectionQuestions = section.questions;
+            
+            const answeredCount = sectionQuestions.filter(q => answers[q.id] && answers[q.id].trim().length > 0 && answers[q.id] !== '[]').length;
+            const totalCount = sectionQuestions.length;
+            
+            let SectionIcon = LayoutGrid;
+            const sNameUpper = sectionName.toUpperCase();
+            if (sNameUpper.includes('PROBLEM')) SectionIcon = Puzzle;
+            else if (sNameUpper.includes('INTEGRITY')) SectionIcon = Shield;
+            else if (sNameUpper.includes('AI') || sNameUpper.includes('LITERACY')) SectionIcon = Sparkles;
+            else if (sNameUpper.includes('COMMUNICATION') || sNameUpper.includes('TEAMWORK')) SectionIcon = Users;
+            else if (sNameUpper.includes('EXECUTION')) SectionIcon = Briefcase;
+            else if (sNameUpper.includes('CODE') || sNameUpper.includes('CODING')) SectionIcon = Code;
+            else if (sNameUpper.includes('LEARNING')) SectionIcon = BookOpen;
+            else if (sNameUpper.includes('ATTITUDE') || sNameUpper.includes('OWNERSHIP')) SectionIcon = UserCheck;
 
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => {
-                        setShowValidation(false);
-                        setCurrentQuestionIndex(idx);
-                      }}
-                      className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center transition-all hover:-translate-y-0.5 hover:shadow-md ${bgClass}`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
+            return (
+              <div key={sectionName} className="mb-4 bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-b border-slate-50">
+                  <div className="flex items-center gap-2.5">
+                    <SectionIcon className="w-4 h-4 text-slate-500" />
+                    <span className="font-semibold text-[13px] text-slate-800 tracking-tight">{sectionName}</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-400">
+                    {answeredCount}/{totalCount}
+                  </div>
+                </div>
+                
+                <div className="p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {sectionQuestions.map((q) => {
+                      const idx = q.originalIndex;
+                      const isSelected = currentQuestionIndex === idx;
+                      const isAnswered = answers[q.id] && answers[q.id].trim().length > 0 && answers[q.id] !== '[]';
+                      const isFlagged = flags[q.id];
+                      
+                      let chipStyle = "bg-white border-slate-200 text-slate-600 hover:border-slate-300";
+                      if (isSelected) {
+                        chipStyle = "bg-white border-blue-600 border-[2px] text-blue-700 shadow-sm";
+                      } else if (isAnswered && isFlagged) {
+                        chipStyle = "bg-emerald-50 text-emerald-700 border-yellow-400 border-[2px]";
+                      } else if (isAnswered) {
+                        chipStyle = "bg-emerald-500 border-emerald-500 text-white shadow-sm";
+                      } else if (isFlagged) {
+                        chipStyle = "bg-yellow-50 border-yellow-400 border-[2px] text-yellow-700";
+                      }
+
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => {
+                            setShowValidation(false);
+                            setCurrentQuestionIndex(idx);
+                          }}
+                          className={`w-[32px] h-[32px] rounded-full font-bold text-[12px] flex items-center justify-center transition-all duration-150 border shadow-sm ${chipStyle}`}
+                        >
+                          {idx + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* Status Legend */}
-        <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
-          <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Legend</h4>
-          <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
-            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Answered</div>
-            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-slate-200"></span> Not Answered</div>
-            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-400"></span> Flagged</div>
-            <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full border-2 border-blue-500 bg-slate-50"></span> Current</div>
+        <div className="p-4 sm:p-5 border-t border-slate-100 bg-white shrink-0">
+          <div className="bg-slate-50 border border-slate-100 shadow-sm rounded-xl p-3.5">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Legend</h4>
+            <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 text-[11px] font-semibold text-slate-600">
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm"></div> 
+                Answered
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 rounded-full border border-slate-200 bg-white shadow-sm"></div> 
+                Not Answered
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 rounded-full border-[2px] border-yellow-400 bg-yellow-50 shadow-sm"></div> 
+                Flagged
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 rounded-full border-[2px] border-blue-600 bg-white shadow-sm"></div> 
+                Current
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -684,33 +728,22 @@ export function TestInterface({ testId }: { testId: string }) {
         </div>
 
         {/* Question */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="space-y-4 text-left">
-              <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-4">
-                <div className="text-lg sm:text-xl font-black text-slate-900 leading-relaxed flex-1 prose prose-slate w-full">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50">
+          <div className="max-w-5xl mx-auto space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+              <div className="space-y-4 text-left">
+                <div className="flex gap-3">
+                  <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 tracking-tight">
+                    {currentQuestion.points || 10} Points
+                  </div>
+                </div>
+                <div className="text-[24px] font-bold text-slate-900 leading-[1.5] prose prose-slate max-w-none">
                   <MarkdownRenderer content={currentQuestion.questionText} />
                 </div>
-                <button
-                  onClick={() => handleToggleFlag(currentQuestion.id)}
-                  className={`w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center justify-center gap-2 shadow-sm shrink-0 ${
-                    flags[currentQuestion.id] 
-                      ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100'
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  <Flag className="w-4 h-4" /> {flags[currentQuestion.id] ? 'Remove Flag' : 'Flag for Review'}
-                </button>
               </div>
-              <div className="flex gap-3 mt-2">
-                <div className="inline-flex text-xs bg-indigo-50 border border-indigo-100 text-indigo-700 font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
-                  Points: {currentQuestion.points || 10}
-                </div>
-              </div>
-            </div>
 
-            {/* Answer Input */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-8 space-y-4">
+              {/* Answer Input */}
+              <div className="pt-2 border-t border-slate-100">
               {validationError && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" /> {validationError}
@@ -822,11 +855,10 @@ export function TestInterface({ testId }: { testId: string }) {
                         onCut={handleClipboardEvent}
                         onPaste={handleClipboardEvent}
                         onDrop={handleClipboardEvent}
-                        className="w-full min-h-[250px] p-4 bg-slate-50 focus:bg-white resize-y text-base"
+                        className="w-full h-[220px] p-4 bg-slate-50 focus:bg-white resize-none text-base rounded-xl border-slate-200 shadow-sm transition-colors"
                         placeholder="Type your response here..."
                       />
                       {renderWordLimitIndicator(type, currentQuestion)}
-
                     </div>
                   );
                 }
@@ -1035,38 +1067,56 @@ export function TestInterface({ testId }: { testId: string }) {
             </div>
           </div>
         </div>
+      </div>
 
         {/* Navigation */}
-        <div className="bg-white border-t border-slate-200 p-4 sm:p-6 flex justify-between items-center gap-4 shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
-          <div className="flex gap-4">
+        <div className="bg-white border-t border-slate-200 p-4 flex justify-between items-center shrink-0 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)] sticky bottom-0 z-50">
+          <div className="flex gap-2 sm:gap-4">
             <button
               onClick={() => {
                 setShowValidation(false);
                 setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1));
               }}
               disabled={currentQuestionIndex === 0}
-              className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-bold py-2.5 sm:py-3 px-6 sm:px-8 rounded-xl transition-all shadow-sm"
+              className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50 text-slate-700 font-medium transition-colors"
             >
-              Previous
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+            <button
+              onClick={() => handleToggleFlag(currentQuestion.id)}
+              className={`h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg font-medium border transition-colors ${
+                flags[currentQuestion.id] 
+                  ? 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Flag className="w-4 h-4" /> 
+              <span className="hidden sm:inline">{flags[currentQuestion.id] ? 'Unflag' : 'Flag for Review'}</span>
             </button>
           </div>
 
-          {currentQuestionIndex < test.questions.length - 1 ? (
-            <button
-              onClick={handleNext}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-6 sm:px-10 rounded-xl shadow-md hover:shadow-lg transition-all"
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              onClick={handleConfirmSubmit}
-              disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2.5 sm:py-3 px-6 sm:px-10 rounded-xl shadow-sm hover:shadow transition-all"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Test'}
-            </button>
-          )}
+          <div className="flex items-center">
+            {currentQuestionIndex < test.questions.length - 1 ? (
+              <button
+                onClick={handleNext}
+                className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleConfirmSubmit}
+                disabled={isSubmitting}
+                className="h-10 px-4 sm:px-6 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium transition-colors shadow-sm"
+              >
+                <Check className="w-4 h-4" />
+                <span className="hidden sm:inline">{isSubmitting ? 'Submitting...' : 'Submit Assessment'}</span>
+                <span className="sm:hidden">{isSubmitting ? '...' : 'Submit'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
