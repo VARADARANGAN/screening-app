@@ -1,0 +1,229 @@
+C:\Users\R P Varada Rangan\Downloads\screening-app
+├── API_REFERENCE.md
+├── app
+|  ├── admin
+|  |  ├── dashboard
+|  |  |  └── page.tsx
+|  |  ├── layout.tsx
+|  |  ├── profile
+|  |  |  └── page.tsx
+|  |  ├── questions
+|  |  |  ├── create
+|  |  |  |  └── page.tsx
+|  |  |  ├── edit
+|  |  |  |  └── [id]
+|  |  |  |     └── page.tsx
+|  |  |  ├── import
+|  |  |  |  └── page.tsx
+|  |  |  └── page.tsx
+|  |  ├── results
+|  |  |  ├── page.tsx
+|  |  |  └── [testId]
+|  |  |     └── page.tsx
+|  |  ├── students
+|  |  |  └── page.tsx
+|  |  ├── test-settings
+|  |  |  └── page.tsx
+|  |  └── tests
+|  |     └── page.tsx
+|  ├── api
+|  |  ├── admin
+|  |  |  ├── analytics
+|  |  |  |  └── route.ts
+|  |  |  ├── create-admin
+|  |  |  |  └── route.ts
+|  |  |  ├── evaluation
+|  |  |  |  └── route.ts
+|  |  |  ├── profile
+|  |  |  |  └── route.ts
+|  |  |  ├── results
+|  |  |  |  ├── route.ts
+|  |  |  |  └── [testId]
+|  |  |  |     ├── override
+|  |  |  |     |  └── route.ts
+|  |  |  |     └── route.ts 
+|  |  |  ├── students
+|  |  |  |  └── route.ts
+|  |  |  ├── test-settings
+|  |  |  |  └── route.ts
+|  |  |  └── tests
+|  |  |     └── publish-round-2
+|  |  |        └── route.ts
+|  |  ├── auth
+|  |  |  ├── login
+|  |  |  |  └── route.ts
+|  |  |  ├── logout
+|  |  |  |  └── route.ts
+|  |  |  ├── otp
+|  |  |  |  └── route.ts
+|  |  |  ├── register
+|  |  |  |  └── route.ts
+|  |  |  ├── reset-password
+|  |  |  |  └── route.ts
+|  |  |  └── verify
+|  |  |     └── route.ts
+|  |  ├── branches
+|  |  |  ├── route.ts
+|  |  |  └── [id]
+|  |  |     └── route.ts
+|  |  ├── migrate-mcq
+|  |  |  └── route.ts
+|  |  ├── questions
+|  |  |  ├── bulk
+|  |  |  |  └── route.ts
+|  |  |  ├── bulk-delete
+|  |  |  |  └── route.ts
+|  |  |  ├── bulk-update-type
+|  |  |  |  └── route.ts
+|  |  |  ├── parse-pdf
+|  |  |  |  └── route.ts
+|  |  |  ├── publish
+|  |  |  |  └── route.ts
+|  |  |  ├── route.ts
+|  |  |  └── [id]
+|  |  |     └── route.ts
+|  |  ├── students
+|  |  |  └── profile
+|  |  |     └── route.ts
+|  |  └── tests
+|  |     ├── active
+|  |     |  └── route.ts
+|  |     ├── assign
+|  |     |  └── route.ts
+|  |     ├── route.ts
+|  |     └── [id]
+|  |        ├── auto-save
+|  |        |  └── route.ts
+|  |        ├── ping
+|  |        |  └── route.ts
+|  |        ├── reevaluate
+|  |        |  └── route.ts
+|  |        ├── route.ts
+|  |        ├── run-code
+|  |        |  └── route.ts
+|  |        ├── submit
+|  |        |  └── route.ts
+|  |        └── [action]
+|  |           └── route.ts
+|  ├── auth
+|  |  ├── layout.tsx
+|  |  ├── login
+|  |  |  └── page.tsx
+|  |  └── register
+|  |     └── page.tsx
+|  ├── globals.css
+|  ├── layout.tsx
+|  ├── page.tsx
+|  └── student
+|     ├── dashboard
+|     |  └── page.tsx
+|     ├── layout.tsx
+|     ├── profile
+|     |  └── page.tsx
+|     ├── success
+|     |  └── page.tsx
+|     └── test
+|        └── [id]
+|           └── page.tsx
+├── components
+|  ├── admin
+|  |  ├── dashboard.tsx
+|  |  ├── profile-form.tsx
+|  |  ├── question-importer.tsx
+|  |  ├── questions-manager.tsx
+|  |  ├── results
+|  |  |  ├── ai-evaluation-card.tsx
+|  |  |  └── student-report.tsx
+|  |  └── students-viewer.tsx
+|  ├── auth
+|  |  ├── login-form.tsx
+|  |  └── register-form.tsx
+|  ├── questions
+|  ├── student
+|  |  ├── dashboard.tsx
+|  |  └── profile-form.tsx
+|  ├── test
+|  |  └── test-interface.tsx
+|  └── ui
+|     ├── button.tsx
+|     ├── card.tsx
+|     ├── input.tsx
+|     ├── label.tsx
+|     ├── latex-editor.tsx
+|     ├── markdown-renderer.tsx
+|     ├── select.tsx
+|     ├── table.tsx
+|     └── textarea.tsx
+├── components.json
+├── context
+|  └── auth-context.tsx
+├── docs
+|  ├── API_DOCUMENTATION.md
+|  ├── ARCHITECTURE.md
+|  ├── DATABASE_SCHEMA.md
+|  ├── DEPLOYMENT.md
+|  ├── PROJECT_OVERVIEW.md
+|  ├── README.md
+|  └── sprints
+|     ├── SPRINT_01.md
+|     ├── SPRINT_02.md
+|     ├── SPRINT_03.md
+|     ├── SPRINT_04.md
+|     ├── SPRINT_05.md
+|     ├── SPRINT_06.md
+|     ├── SPRINT_07.md
+|     ├── SPRINT_08.md
+|     ├── SPRINT_09.md
+|     └── SPRINT_10.md
+├── lib
+|  ├── ai
+|  ├── ai-evaluation.ts
+|  ├── api-response.ts
+|  ├── auth.ts
+|  ├── evaluation-engine.ts
+|  ├── prisma.ts
+|  ├── prompts
+|  |  └── evaluation-templates.ts
+|  ├── questionMapper.ts
+|  ├── queue
+|  |  └── evaluation-queue.ts
+|  ├── services
+|  |  ├── evaluation-pipeline.ts
+|  |  └── score-calculation.ts
+|  ├── shuffle.ts
+|  ├── utils.ts
+|  └── validators.ts
+├── next-env.d.ts
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── prisma
+|  └── schema.prisma
+├── prisma.config.ts
+├── public
+|  ├── apple-icon.png
+|  ├── icon-dark-32x32.png
+|  ├── icon-light-32x32.png
+|  └── icon.svg
+├── README_PRODUCTION.md
+├── scratch
+|  ├── migrate-mcq-db.js
+|  ├── migrate-mcq.js
+|  ├── migrate-mcq.ts
+|  ├── migrate-structured-plan.js
+|  ├── remove-unsupported-questions.js
+|  ├── verify-db-integration.ts
+|  ├── verify-db.js
+|  └── verify-e2e-eval.ts
+├── seed.ts
+├── SETUP.md
+├── tsconfig.json
+├── tsconfig.tsbuildinfo
+├── types
+|  └── index.ts
+└── worker.ts
+
+directory: 4895 file: 46014
+
+ignored: directory (36)

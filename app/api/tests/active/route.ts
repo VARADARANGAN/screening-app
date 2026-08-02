@@ -35,7 +35,7 @@ function sortAndShuffleQuestions(questions: any[]) {
 
   // Flatten based on exact section order
   const finalQuestions: any[] = [];
-  
+
   // First add sections that exist in the predefined order
   SECTION_ORDER.forEach(orderedSection => {
     // Find matching key in grouped
@@ -97,8 +97,21 @@ export async function GET(request: NextRequest) {
 
     // 2. Fetch active questions
     const allQuestions = await prisma.question.findMany({
-      where: { is_published: true },
+      orderBy: [
+        { section_order: 'asc' },
+        { question_order: 'asc' },
+        { created_at: 'asc' }
+      ]
     });
+
+    if (allQuestions.length < totalQuestions) {
+      return NextResponse.json(
+        {
+          message: `Master Settings requires ${totalQuestions} questions, but only ${allQuestions.length} questions exist in the Question Bank.`
+        },
+        { status: 400 }
+      );
+    }
 
     // 3. Shuffle inside sections and enforce section order, then limit
     const orderedAndShuffled = sortAndShuffleQuestions(allQuestions);
