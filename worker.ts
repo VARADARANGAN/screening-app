@@ -10,22 +10,15 @@ dotenv.config();
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const QUEUE_NAME = 'AI_EVALUATION_QUEUE';
 
-console.log(`[Worker] Starting BullMQ Worker on ${QUEUE_NAME}...`);
-console.log(`[Worker] Connected to Redis at ${REDIS_URL}`);
-
 const worker = new Worker<EvaluationJobPayload>(
   QUEUE_NAME,
   async (job: Job<EvaluationJobPayload>) => {
     const { testId, evalPayloads } = job.data;
     
-    console.log(`[Worker] Processing Job ${job.id} for Test ${testId} with ${evalPayloads.length} payloads.`);
-    
     try {
       // The processBackgroundEvaluations handles the loop, DB updates, and score recalculation.
       // It sets status to PROCESSING internally.
       await processBackgroundEvaluations(evalPayloads);
-      
-      console.log(`[Worker] Job ${job.id} completed successfully.`);
     } catch (error) {
       console.error(`[Worker] Job ${job.id} failed:`, error);
       
@@ -79,7 +72,6 @@ worker.on('error', (err) => {
 
 // Handle graceful shutdown
 const gracefulShutdown = async () => {
-  console.log('[Worker] Shutting down worker gracefully...');
   await worker.close();
   await prisma.$disconnect();
   process.exit(0);

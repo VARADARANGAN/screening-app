@@ -1050,7 +1050,6 @@ export function TestInterface({ testId }: { testId: string }) {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex gap-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600">Language: JavaScript</span>
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600">Auto Save: On</span>
                           </div>
                           {answers[currentQuestion.id] && (
