@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Database, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function TestSettingsPage() {
   const [duration, setDuration] = useState(60);
   const [questions, setQuestions] = useState(30);
+  const [availableQuestions, setAvailableQuestions] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,12 +22,24 @@ export default function TestSettingsPage() {
   const loadConfig = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/admin/test-settings', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data.config) {
-        setDuration(res.data.config.total_duration);
-        setQuestions(res.data.config.total_questions);
+      
+      try {
+        const configRes = await axios.get('/api/admin/test-settings', { headers: { Authorization: `Bearer ${token}` } });
+        if (configRes.data.config) {
+          setDuration(configRes.data.config.total_duration);
+          setQuestions(configRes.data.config.total_questions);
+        }
+      } catch (err) {
+        console.error('Failed to load config', err);
+      }
+
+      try {
+        const statsRes = await axios.get('/api/questions/stats', { headers: { Authorization: `Bearer ${token}` } });
+        if (statsRes.data) {
+          setAvailableQuestions(statsRes.data.total || 0);
+        }
+      } catch (err) {
+        console.error('Failed to load stats', err);
       }
     } catch (err) {
       console.error('Failed to load config', err);
@@ -37,6 +50,10 @@ export default function TestSettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (questions > availableQuestions) {
+      setMessage('Cannot save: Requested questions exceed available questions in the bank.');
+      return;
+    }
     setIsSaving(true);
     setMessage('');
     try {
@@ -69,10 +86,20 @@ export default function TestSettingsPage() {
         </Link>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Master Test Settings</h1>
           <p className="text-xs text-slate-500 font-medium">Configure the global aptitude test duration and limits.</p>
+        </div>
+        
+        <div className="flex items-center gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm shrink-0">
+          <div className="bg-blue-50/80 p-2.5 rounded-xl text-blue-600 border border-blue-100/50">
+            <Database className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Available Questions</p>
+            <p className="text-2xl font-black text-slate-900 leading-none tracking-tight">{availableQuestions}</p>
+          </div>
         </div>
       </div>
 
@@ -117,9 +144,24 @@ export default function TestSettingsPage() {
                   required
                   value={questions}
                   onChange={(e) => setQuestions(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+                  className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:outline-none focus:ring-2 transition text-sm font-medium ${questions > availableQuestions ? 'border-rose-300 focus:ring-rose-600/20 focus:border-rose-600 text-rose-800' : 'border-slate-200 focus:ring-blue-600/20 focus:border-blue-600 text-slate-800'}`}
                 />
-                <p className="text-[10px] text-slate-400 font-medium">Limits the number of questions pulled from the active Question Bank.</p>
+                
+                {/* Validation Display */}
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-xs font-semibold px-1">
+                    <span className={questions > availableQuestions ? 'text-rose-600' : 'text-slate-600'}>
+                      {questions} / {availableQuestions} Questions Selected
+                    </span>
+                  </div>
+                  
+                  {questions > availableQuestions && (
+                    <div className="flex items-start gap-2 text-xs font-medium text-rose-600 bg-rose-50/50 p-2.5 rounded-lg border border-rose-100">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>Not enough questions in the Question Bank. Please reduce the number or add more questions.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

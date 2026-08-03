@@ -8,8 +8,9 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Library, BookOpen } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-hot-toast';
 
@@ -19,6 +20,8 @@ export function QuestionsManager() {
   
   // Data state
   const [questions, setQuestions] = useState<any[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [questionTypes, setQuestionTypes] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   // Selection State
@@ -40,10 +43,18 @@ export function QuestionsManager() {
   const loadQuestions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/questions?limit=100', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const fetchedQuestions = response.data.questions || [];
+      
+      const [statsRes, questionsRes] = await Promise.all([
+        axios.get('/api/questions/stats', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        axios.get('/api/questions?limit=100', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      if (statsRes && statsRes.data) {
+        setTotalQuestions(statsRes.data.total || 0);
+        setQuestionTypes(statsRes.data.types || {});
+      }
+      
+      const fetchedQuestions = questionsRes?.data?.questions || [];
       setQuestions(fetchedQuestions);
     } catch (error) {
       console.error('[Load Questions Error]', error);
@@ -237,6 +248,33 @@ export function QuestionsManager() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+        {/* Dynamic Stats Overview */}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center mb-2">
+          <div className="flex items-center gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm min-w-[200px]">
+            <div className="bg-blue-50/80 p-2.5 rounded-xl text-blue-600 border border-blue-100/50">
+              <Library className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Total Questions</p>
+              <p className="text-2xl font-black text-slate-900 leading-none tracking-tight">{totalQuestions}</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2.5 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex-1 md:flex-none">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Types:</div>
+            {Object.keys(questionTypes).length === 0 ? (
+              <span className="text-xs font-semibold text-slate-400">None</span>
+            ) : (
+              Object.entries(questionTypes).map(([type, count]) => (
+                <Badge key={type} variant="secondary" className="bg-slate-50 border-slate-200 text-slate-700 px-3 py-1 shadow-sm text-xs font-semibold flex items-center gap-2 hover:bg-slate-100 transition">
+                  <span className="uppercase text-[9px] text-slate-500 tracking-wider font-bold">{type}</span>
+                  <span className="text-slate-900 bg-white px-1.5 py-0.5 rounded-md border border-slate-200 shadow-sm">{count}</span>
+                </Badge>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Controls/Filters Bar */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex flex-1 flex-wrap items-center gap-3">
