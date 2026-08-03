@@ -183,7 +183,7 @@ export function AdminProfileForm() {
                   <input
                     {...register('email')}
                     type="email"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+                    className="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
                     placeholder="admin@example.com"
                   />
                   {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
@@ -197,7 +197,7 @@ export function AdminProfileForm() {
                     <input
                       {...register('fullName')}
                       type="text"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
                       placeholder="Jane Doe"
                     />
                     {errors.fullName && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.fullName.message}</p>}
@@ -209,7 +209,7 @@ export function AdminProfileForm() {
                     <input
                       {...register('department')}
                       type="text"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
                       placeholder="Human Resources"
                     />
                     {errors.department && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.department.message}</p>}
@@ -257,7 +257,7 @@ export function AdminProfileForm() {
                       type={showPassword ? 'text' : 'password'}
                       value={resetPassword}
                       onChange={(e) => setResetPassword(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition pr-10"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30 pr-10"
                       placeholder="••••••••"
                     />
                     <button
@@ -283,7 +283,7 @@ export function AdminProfileForm() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={resetConfirmPassword}
                       onChange={(e) => setResetConfirmPassword(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-medium text-slate-800 transition pr-10"
+                      className="w-full px-3.5 py-2.5 rounded-xl text-sm font-medium transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30 pr-10"
                       placeholder="••••••••"
                     />
                     <button

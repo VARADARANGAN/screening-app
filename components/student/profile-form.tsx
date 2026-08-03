@@ -132,7 +132,7 @@ export function ProfileForm() {
           <Input
             {...register('email')}
             type="email"
-            className="w-full bg-slate-50"
+            className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
             placeholder="Email Address"
           />
           {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
@@ -144,7 +144,7 @@ export function ProfileForm() {
             <Input
               {...register('fullName')}
               type="text"
-              className="w-full bg-slate-50"
+              className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
               placeholder="Full Name"
             />
             {errors.fullName && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.fullName.message}</p>}
@@ -157,7 +157,7 @@ export function ProfileForm() {
               type="tel"
               maxLength={10}
               onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }}
-              className="w-full bg-slate-50"
+              className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
               placeholder="Phone Number"
             />
             {errors.phone && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.phone.message}</p>}
@@ -170,7 +170,7 @@ export function ProfileForm() {
             <Input
               {...register('college')}
               type="text"
-              className="w-full bg-slate-50"
+              className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
               placeholder="College"
             />
             {errors.college && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.college.message}</p>}
@@ -181,7 +181,7 @@ export function ProfileForm() {
             <Input
               {...register('usn')}
               type="text"
-              className="w-full bg-slate-50"
+              className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
               placeholder="USN / Roll Number"
             />
             {errors.usn && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.usn.message}</p>}
@@ -193,7 +193,7 @@ export function ProfileForm() {
           <input
             {...register('branchName')}
             type="text"
-            className="w-full px-3.5 py-2.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm font-semibold transition"
+            className="w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold transition focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 caret-blue-600 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 dark:caret-blue-400 dark:focus:border-blue-500 dark:focus:ring-blue-500/30"
             placeholder="Branch"
           />
           {errors.branchName && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.branchName.message}</p>}
