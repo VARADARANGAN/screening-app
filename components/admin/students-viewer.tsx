@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'react-hot-toast';
 
@@ -70,6 +70,7 @@ export function StudentsViewer() {
   const [questionSearchQuery, setQuestionSearchQuery] = useState('');
   const [selectedQuestionSection, setSelectedQuestionSection] = useState('all');
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleViewCodingAnswers = (testId: string) => {
     router.push(`/admin/results/${testId}`);
@@ -222,6 +223,35 @@ export function StudentsViewer() {
     }
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const token = localStorage.getItem('token');
+      toast.loading('Preparing Excel...', { id: 'export-excel' });
+      
+      const response = await axios.get('/api/admin/export/excel', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      
+      toast.success('Downloading...', { id: 'export-excel' });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Student_Assessment_Results_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed', error);
+      toast.error('Failed to export data to Excel.', { id: 'export-excel' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Local filtering & search logic for students
   const filteredStudents = students.filter(s => {
     const searchLower = searchQuery.toLowerCase();
@@ -327,6 +357,15 @@ export function StudentsViewer() {
                 Configure Round 2 Test
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              className="border-slate-200 hover:bg-slate-50 flex items-center text-slate-700" 
+              onClick={handleExportExcel}
+              disabled={isExporting}
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              {isExporting ? 'Exporting...' : 'Export to Excel'}
+            </Button>
             <Button variant="outline" className="border-slate-200 hover:bg-slate-50" onClick={loadData}>
               Refresh Feed
             </Button>
