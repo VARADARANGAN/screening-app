@@ -782,7 +782,12 @@ export function TestInterface({ testId }: { testId: string }) {
           <div className="max-w-5xl mx-auto space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
               <div className="space-y-4 text-left">
-                
+                <div className="flex gap-3">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    {currentQuestion.points || 10} Points
+                  </div>
+                </div>
                 <div className="text-2xl font-semibold text-slate-900 leading-relaxed prose prose-slate max-w-none">
                   <MarkdownRenderer content={currentQuestion.questionText} />
                 </div>
