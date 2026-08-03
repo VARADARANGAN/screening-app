@@ -661,37 +661,6 @@ export default function CreateQuestionPage() {
                 )}
 
 
-                {/* Word Limits Section */}
-                {['open_text', 'structured_response'].includes(type) && (
-                  <div className="space-y-4 pt-4 border-t border-slate-100">
-                    <h3 className="font-bold text-slate-800 text-sm">Word Limits</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1">Minimum Words (Optional)</label>
-                        <Input 
-                          type="number"
-                          min="0"
-                          value={minWords} 
-                          onChange={(e) => setMinWords(e.target.value)} 
-                          className="bg-white border-slate-200" 
-                          placeholder="e.g. 100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-600 mb-1">Maximum Words (Optional)</label>
-                        <Input 
-                          type="number"
-                          min="0"
-                          value={maxWords} 
-                          onChange={(e) => setMaxWords(e.target.value)} 
-                          className="bg-white border-slate-200" 
-                          placeholder="e.g. 500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Coding Specific Fields */}
                 {type === 'coding' && (
                   <div className="space-y-6">
@@ -752,40 +721,61 @@ export default function CreateQuestionPage() {
                   </div>
                 )}
 
-                {/* Config Metadata (Duration/Length) */}
-                {['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'code_review', 'prompt_writing', 'ranking', 'date', 'open_response', 'essay'].includes(type) && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 p-5 bg-slate-50 border border-slate-100 rounded-xl">
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Duration (mins)</label>
-                      <Input type="number" min="1" value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))} className="bg-white border-slate-200" />
+                {/* Word Limits & Scoring Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
+                  
+                  {/* Word Limits */}
+                  {['open_text', 'structured_response'].includes(type) && (
+                    <div className="space-y-4">
+                      <h3 className="font-bold text-slate-800 text-sm">Word Limits</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Minimum Words (Optional)</label>
+                          <Input 
+                            type="number"
+                            min="0"
+                            value={minWords} 
+                            onChange={(e) => setMinWords(e.target.value)} 
+                            className="bg-white border-slate-200" 
+                            placeholder="e.g. 100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Maximum Words (Optional)</label>
+                          <Input 
+                            type="number"
+                            min="0"
+                            value={maxWords} 
+                            onChange={(e) => setMaxWords(e.target.value)} 
+                            className="bg-white border-slate-200" 
+                            placeholder="e.g. 500"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Min Characters</label>
-                      <Input type="number" min="0" value={minCharacters} onChange={(e) => setMinCharacters(Number(e.target.value))} className="bg-white border-slate-200" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Max Characters (0=No Limit)</label>
-                      <Input type="number" min="0" value={maxCharacters} onChange={(e) => setMaxCharacters(Number(e.target.value))} className="bg-white border-slate-200" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Suggested Words</label>
-                      <Input type="number" min="10" value={expectedAnswerLength} onChange={(e) => setExpectedAnswerLength(Number(e.target.value))} className="bg-white border-slate-200" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Weight</label>
-                      <Input type="number" min="1" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="bg-white border-slate-200" />
+                  )}
+
+                  {/* Marks & Weight Section */}
+                  <div className="space-y-4">
+                    {(showsMarks || ['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'code_review', 'prompt_writing', 'ranking', 'date', 'open_response', 'essay'].includes(type)) && (
+                      <h3 className="font-bold text-slate-800 text-sm">Scoring</h3>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      {showsMarks && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Marks</label>
+                          <Input type="number" min="1" value={points} onChange={(e) => setPoints(Number(e.target.value))} className="bg-slate-50 font-bold text-lg border-slate-200" />
+                        </div>
+                      )}
+                      {['scenario', 'case_study', 'ai_scenario', 'open_text', 'structured_response', 'code_review', 'prompt_writing', 'ranking', 'date', 'open_response', 'essay'].includes(type) && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-600 mb-1">Weight</label>
+                          <Input type="number" min="1" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className="bg-slate-50 font-bold text-lg border-slate-200" />
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {/* Marks Logic */}
-                {showsMarks && (
-                  <div className="w-48">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Marks</label>
-                    <Input type="number" min="1" value={points} onChange={(e) => setPoints(Number(e.target.value))} className="bg-slate-50 font-bold text-lg border-slate-200" />
-                  </div>
-                )}
-
+                </div>
               </CardContent>
             </Card>
 
