@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, ClipboardList, Target, AlertTriangle, Folder, Settings, Eye } from 'lucide-react';
+import { Users, ClipboardList, Target, FolderOpen, Settings2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function AdminDashboard() {
@@ -81,7 +81,7 @@ export function AdminDashboard() {
         </div>
 
         {/* Analytics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
             <CardContent className="p-6 flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-650 flex items-center justify-center text-xl font-bold">
@@ -118,66 +118,62 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden bg-white">
-            <CardContent className="p-6 flex items-center gap-4 text-left">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-xl font-bold">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Violations flagged</p>
-                <p className="text-2xl font-black text-slate-900 mt-0.5">{analytics?.totalViolations || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Console Nav Modules */}
         <div className="space-y-4">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-450 text-left">Management Workspaces</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Link href="/admin/questions">
-              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
-                <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
-                    <Folder className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <Link href="/admin/questions" className="group">
+              <Card className="h-full rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 cursor-pointer transition-all bg-white text-left flex flex-col">
+                <CardHeader className="p-6 pb-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-50 transition-colors">
+                    <FolderOpen className="w-5 h-5" />
                   </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">Question Bank</CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    central Question repository to create, edit, and import MCQ or coding questions.
+                  <CardTitle className="text-base font-bold text-slate-900">Question Bank</CardTitle>
+                  <CardDescription className="text-sm text-slate-500 mt-1 leading-relaxed">
+                    Create, edit, import and manage aptitude, coding and behavioral questions.
                   </CardDescription>
                 </CardHeader>
+                <div className="mt-auto p-6 pt-0 flex items-center gap-2 text-sm font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">
+                  <ArrowRight className="w-4 h-4" /> Open
+                </div>
               </Card>
             </Link>
 
-            <Link href="/admin/test-settings">
-              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
-                <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
-                    <Settings className="w-5 h-5" />
+            <Link href="/admin/test-settings" className="group">
+              <Card className="h-full rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 cursor-pointer transition-all bg-white text-left flex flex-col">
+                <CardHeader className="p-6 pb-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-50 transition-colors">
+                    <Settings2 className="w-5 h-5" />
                   </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">Test Settings</CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Configure the master aptitude test duration and limits.
+                  <CardTitle className="text-base font-bold text-slate-900">Test Settings</CardTitle>
+                  <CardDescription className="text-sm text-slate-500 mt-1 leading-relaxed">
+                    Configure master test settings, rounds and question distribution.
                   </CardDescription>
                 </CardHeader>
+                <div className="mt-auto p-6 pt-0 flex items-center gap-2 text-sm font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">
+                  <ArrowRight className="w-4 h-4" /> Open
+                </div>
               </Card>
             </Link>
 
-            <Link href="/admin/students">
-              <Card className="hover:shadow-md hover:border-slate-350 transition cursor-pointer h-full border border-slate-200/80 rounded-2xl bg-white text-left group">
-                <CardHeader className="p-6">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-2 group-hover:bg-blue-600 group-hover:text-white transition">
-                    <Eye className="w-5 h-5" />
+            <Link href="/admin/students" className="group">
+              <Card className="h-full rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 cursor-pointer transition-all bg-white text-left flex flex-col">
+                <CardHeader className="p-6 pb-4">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-50 transition-colors">
+                    <Users className="w-5 h-5" />
                   </div>
-                  <CardTitle className="text-base font-extrabold text-slate-900">Student Directory</CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Monitor candidate registrations, live test attempts, scorecard logs, and violations.
+                  <CardTitle className="text-base font-bold text-slate-900">Student Directory</CardTitle>
+                  <CardDescription className="text-sm text-slate-500 mt-1 leading-relaxed">
+                    View student records, assessment reports and exported results.
                   </CardDescription>
                 </CardHeader>
+                <div className="mt-auto p-6 pt-0 flex items-center gap-2 text-sm font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">
+                  <ArrowRight className="w-4 h-4" /> Open
+                </div>
               </Card>
             </Link>
-
-
           </div>
         </div>
       </main>
