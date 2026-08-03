@@ -156,8 +156,24 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    caret-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
+    cursor: default;
+  }
+  
+  input, textarea, [contenteditable="true"], .monaco-editor, .monaco-editor * {
+    cursor: text;
+    caret-color: #2563EB;
+  }
+
+  button, a, [role="button"], select {
+    cursor: pointer;
+    caret-color: transparent;
+  }
+
+  :disabled, [disabled] {
+    cursor: not-allowed;
   }
 }

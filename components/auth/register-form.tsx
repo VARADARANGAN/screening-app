@@ -65,8 +65,8 @@ export function RegisterForm() {
           <Input
             {...register('email')}
             type="email"
-            className="w-full bg-slate-50"
-            placeholder="you@example.com"
+            className="w-full text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium"
+            placeholder="Enter your email"
           />
           {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
         </div>
@@ -79,8 +79,8 @@ export function RegisterForm() {
             <Input
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
-              className="w-full bg-slate-50 pr-10"
-              placeholder="••••••••"
+              className="w-full pr-10 text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium"
+              placeholder="Enter your password"
             />
             <button
               type="button"
@@ -111,8 +111,8 @@ export function RegisterForm() {
             <Input
               {...register('confirmPassword')}
               type={showConfirmPassword ? 'text' : 'password'}
-              className="w-full bg-slate-50 pr-10"
-              placeholder="••••••••"
+              className="w-full pr-10 text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium"
+              placeholder="Confirm your password"
             />
             <button
               type="button"

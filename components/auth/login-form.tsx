@@ -130,19 +130,19 @@ export function LoginForm() {
           {resetStep === 1 && (
             <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</label>
-              <Input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full bg-slate-50" placeholder="you@example.com" required />
+              <Input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium" placeholder="Enter your email" required />
             </div>
           )}
           {resetStep === 2 && (
             <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Enter OTP</label>
-              <Input type="text" value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} className="w-full bg-slate-50" placeholder="123456" required />
+              <Input type="text" value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} className="w-full text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium" placeholder="123456" required />
             </div>
           )}
           {resetStep === 3 && (
             <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">New Password</label>
-              <Input type="password" value={resetNewPassword} onChange={(e) => setResetNewPassword(e.target.value)} className="w-full bg-slate-50" placeholder="••••••••" required />
+              <Input type="password" value={resetNewPassword} onChange={(e) => setResetNewPassword(e.target.value)} className="w-full text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium" placeholder="Enter your new password" required />
             </div>
           )}
 
@@ -172,8 +172,8 @@ export function LoginForm() {
               <Input
                 {...register('email')}
                 type="email"
-                className="w-full bg-slate-50"
-                placeholder="you@example.com"
+                className="w-full text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium"
+                placeholder="Enter your email"
               />
               {errors.email && <p className="text-rose-500 text-xs mt-1 font-semibold">{errors.email.message}</p>}
             </div>
@@ -191,8 +191,8 @@ export function LoginForm() {
                 <Input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
-                  className="w-full bg-slate-50 pr-10"
-                  placeholder="••••••••"
+                  className="w-full pr-10 text-slate-900 placeholder:text-slate-400 bg-white border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 caret-blue-600 h-11 rounded-lg text-sm font-medium"
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"
