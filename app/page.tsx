@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { BrandLogo } from '@/components/common/BrandLogo';
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
@@ -33,14 +34,7 @@ export default function HomePage() {
       {/* Top Navbar */}
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              C
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight text-lg">
-              Campus<span className="text-blue-600 font-semibold">Screen</span>
-            </span>
-          </div>
+          <BrandLogo size="md" className="items-start" />
           <div className="flex items-center gap-4">
             <Link
               href="/auth/login"
@@ -134,8 +128,11 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200/80 py-8 text-center text-xs text-slate-400 font-medium">
-        © 2027 CampusScreen Assessment Services. All rights reserved.
+      <footer className="border-t border-slate-200 py-12 text-center text-slate-500 text-sm">
+        <div className="flex items-center justify-center gap-2">
+          <BrandLogo size="sm" className="opacity-50 grayscale flex-row items-center" />
+          <span>© 2027 Assessment Services. All rights reserved.</span>
+        </div>
       </footer>
     </main>
   );

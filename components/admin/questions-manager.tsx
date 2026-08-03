@@ -8,12 +8,13 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Library, BookOpen, Download, FileSpreadsheet, FileCode2, FileText, LayoutTemplate } from 'lucide-react';
+import { ArrowLeft, Library, BookOpen, Download, FileSpreadsheet, FileCode2, FileText, LayoutTemplate, Settings, Plus, Search, Filter, ArrowUpDown, MoreVertical, Edit2, Trash2, Eye, Copy, CheckCircle, Clock, AlertTriangle, Upload, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx';
 import * as ExcelJS from 'exceljs';
 import { toast } from 'react-hot-toast';
+import { BrandLogo } from '@/components/common/BrandLogo';
 
 export function QuestionsManager() {
   const { logout } = useAuth();
@@ -427,15 +428,10 @@ export function QuestionsManager() {
       {/* Top Navbar */}
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              C
-            </div>
-            <Link href="/admin/dashboard" className="font-extrabold text-slate-900 tracking-tight text-lg hover:opacity-90 transition">
-              Campus<span className="text-blue-600 font-semibold">Screen</span>
-            </Link>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold ml-1 uppercase tracking-wider">
-              Question Bank
+          <div className="flex items-center gap-2">
+            <BrandLogo size="md" className="items-start flex-row items-center" />
+            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold ml-1 uppercase tracking-wider hidden sm:inline-block">
+              Console
             </span>
           </div>
           <div>

@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, BadgeCheck } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { LoginSchema, LoginInput } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/common/BrandLogo';
 
 export function LoginForm() {
   const router = useRouter();
@@ -106,12 +107,8 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto p-6 sm:p-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
-      <div className="space-y-2 text-center">
-        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl mx-auto shadow-sm">
-          C
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Welcome Back</h2>
-        <p className="text-xs text-slate-500">Enter your credentials to access the assessment portal</p>
+      <div className="text-center flex flex-col items-center pb-2">
+        <BrandLogo showTagline size="lg" />
       </div>
 
       {isForgotPassword ? (

@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { FileSpreadsheet, ArrowLeft } from 'lucide-react';
+import { BrandLogo } from '@/components/common/BrandLogo';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function TestManagementPage() {
@@ -150,17 +151,6 @@ export default function TestManagementPage() {
     }
   };
 
-  const moveSection = (index: number, direction: 'up' | 'down') => {
-    const newConfig = [...sectionsConfig];
-    if (direction === 'up' && index > 0) {
-      [newConfig[index - 1], newConfig[index]] = [newConfig[index], newConfig[index - 1]];
-    } else if (direction === 'down' && index < newConfig.length - 1) {
-      [newConfig[index + 1], newConfig[index]] = [newConfig[index], newConfig[index + 1]];
-    }
-    newConfig.forEach((c, i) => c.displayOrder = i + 1);
-    setSectionsConfig(newConfig);
-  };
-
   // Calculate estimated total duration
   const totalDurationMinutes = Array.from(selectedQuestionIds).reduce((acc, qId) => {
     const q = questions.find(item => item.id === qId);
@@ -172,15 +162,12 @@ export default function TestManagementPage() {
       {/* Top Navbar */}
       <nav className="bg-white border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              C
-            </div>
-            <Link href="/admin/dashboard" className="font-extrabold text-slate-900 tracking-tight text-lg hover:opacity-90 transition">
-              Campus<span className="text-blue-600 font-semibold">Screen</span>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/dashboard" className="hover:opacity-90 transition flex items-center">
+              <BrandLogo size="md" className="items-start flex-row items-center" />
             </Link>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold ml-1 uppercase tracking-wider">
-              Test Publisher
+            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold ml-1 uppercase tracking-wider hidden sm:inline-block">
+              Test Settings
             </span>
           </div>
           <div>

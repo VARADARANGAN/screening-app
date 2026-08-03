@@ -6,6 +6,7 @@ import { useAuth } from '@/context/auth-context';
 import { toast } from 'react-hot-toast';
 import { User, Clock, FileText, Layers, BadgeCheck, Play, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/common/BrandLogo';
 
 interface Test {
   id: string;
@@ -90,11 +91,9 @@ export function StudentDashboard() {
       {/* ATS Minimalist Navbar */}
       <nav className="bg-white border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
-              C
-            </div>
-            <span className="font-extrabold text-slate-900 tracking-tight">Candidate Portal</span>
+          <div className="flex items-center gap-2">
+            <BrandLogo size="md" className="items-start flex-row items-center" />
+            <span className="font-extrabold text-slate-400 tracking-tight ml-2">| Candidate Portal</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/student/profile" className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">

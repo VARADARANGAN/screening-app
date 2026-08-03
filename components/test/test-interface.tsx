@@ -529,7 +529,7 @@ export function TestInterface({ testId }: { testId: string }) {
           </div>
           
           <div className="space-y-4 text-sm">
-            <p className="text-slate-600">Welcome to the <strong>Campus Recruitment Assessment – {studentBranch} 2027</strong>.</p>
+            <p className="text-slate-600">Welcome to the <strong>EllipHire Assessment – {studentBranch} 2027</strong>.</p>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex gap-3">
@@ -1259,7 +1259,7 @@ export function TestInterface({ testId }: { testId: string }) {
             <h3 className="text-xl font-bold text-slate-900">Time Limit Reached</h3>
             <p className="text-sm text-slate-500">Your assessment has been automatically submitted because the allotted time has ended.</p>
             <div className="bg-slate-50 rounded-xl p-4 text-left text-xs space-y-2 text-slate-650">
-              <p><strong>Test Name:</strong> Campus Recruitment Assessment – {studentBranch} 2027</p>
+              <p><strong>Test Name:</strong> EllipHire Assessment – {studentBranch} 2027</p>
               <p>Total Questions: <strong className="text-slate-900">{test.questions.length}</strong></p>
               <p>Answered: <strong className="text-emerald-600">{Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>
               <p>Unanswered: <strong className="text-rose-600">{test.questions.length - Object.keys(answers).filter(qId => answers[qId]?.trim().length > 0).length}</strong></p>

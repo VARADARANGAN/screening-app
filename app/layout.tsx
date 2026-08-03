@@ -4,25 +4,20 @@ import './globals.css'
 import { AuthProvider } from '@/context/auth-context'
 
 export const metadata: Metadata = {
-  title: 'Aptitude Screening Portal',
-  description: 'Professional aptitude assessment platform for recruitment',
+  title: 'EllipHire',
+  description: 'Smart Assessment & Recruitment Platform',
   generator: 'v0.app',
   icons: {
     icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+      { url: '/logo.png', sizes: '16x16', type: 'image/png' },
+      { url: '/logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/logo.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/apple-icon.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: ['/logo.png'],
   },
 }
 

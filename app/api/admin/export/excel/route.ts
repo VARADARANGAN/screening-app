@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
     });
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'CampusScreen Admin';
+    workbook.creator = 'EllipHire Admin';
+    workbook.lastModifiedBy = 'EllipHire System';
     workbook.created = new Date();
 
     // Reusable styling function
