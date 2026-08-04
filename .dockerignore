@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+docs
+scratch
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.vscode
+.idea
+Dockerfile
+.dockerignore
