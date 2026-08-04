@@ -7,7 +7,7 @@ import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
-export type UserRole = 'student' | 'admin' | 'super_admin';
+type UserRole = 'student' | 'admin' | 'super_admin';
 
 export interface TokenPayload {
   userId: string;
@@ -62,39 +62,7 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
-/**
- * Extract token from Authorization header
- * @param authHeader Authorization header value
- */
-export function extractTokenFromHeader(authHeader?: string): string | null {
-  if (!authHeader) return null;
-  
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0].toLowerCase() !== 'bearer') {
-    return null;
-  }
-  
-  return parts[1];
-}
 
-/**
- * Get current user from cookies
- */
-export async function getCurrentUser(): Promise<TokenPayload | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-    
-    if (!token) {
-      return null;
-    }
-    
-    return verifyToken(token);
-  } catch (error) {
-    console.error('[Get Current User Error]', error);
-    return null;
-  }
-}
 
 /**
  * Set authentication cookie
@@ -120,41 +88,5 @@ export async function clearAuthCookie(): Promise<void> {
   cookieStore.delete('auth_token');
 }
 
-/**
- * Check if user has required role
- * @param userRole User's current role
- * @param requiredRoles Allowed roles
- */
-export function hasRole(userRole: UserRole, requiredRoles: UserRole[]): boolean {
-  return requiredRoles.includes(userRole);
-}
 
-/**
- * Check if user is admin
- * @param userRole User's current role
- */
-export function isAdmin(userRole: UserRole): boolean {
-  return hasRole(userRole, ['admin', 'super_admin']);
-}
 
-/**
- * Check if user is student
- * @param userRole User's current role
- */
-export function isStudent(userRole: UserRole): boolean {
-  return userRole === 'student';
-}
-
-export default {
-  hashPassword,
-  comparePassword,
-  generateToken,
-  verifyToken,
-  extractTokenFromHeader,
-  getCurrentUser,
-  setAuthCookie,
-  clearAuthCookie,
-  hasRole,
-  isAdmin,
-  isStudent,
-};

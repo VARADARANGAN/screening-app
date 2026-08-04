@@ -276,7 +276,7 @@ export default function EditQuestionPage() {
         }
       });
 
-      console.log('Outgoing payload:', payload);
+
 
       await axios.put(`/api/questions/${id}`, payload, {
         headers: { Authorization: `Bearer ${token}` }

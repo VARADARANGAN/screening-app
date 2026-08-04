@@ -47,7 +47,7 @@ function sortAndShuffleQuestions(questions: any[]) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[API] /api/admin/tests/publish-round-2 hit');
+
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {

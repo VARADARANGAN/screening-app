@@ -268,7 +268,7 @@ export default function CreateQuestionPage() {
         }
       });
 
-      console.log('Outgoing payload:', payload);
+
 
       await axios.post('/api/questions', payload, {
         headers: { Authorization: `Bearer ${token}` }

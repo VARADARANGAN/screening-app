@@ -267,7 +267,7 @@ export async function POST(
           const q = questionMap.get(response.questionId);
           const aiEvaluableTypes = ['coding', 'structured_response', 'open_text'];
           if (q && aiEvaluableTypes.includes(q.type)) {
-            console.log(`[Submission] Routing question ${response.questionId} (type: ${q.type}) to AI Evaluator`);
+
             evalPayloads.push({
               testId: test.id,
               questionId: response.questionId,
