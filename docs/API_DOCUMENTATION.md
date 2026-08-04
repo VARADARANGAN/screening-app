@@ -1,89 +1,102 @@
-# API Documentation Manual
+# EllipHire - API Documentation
 
-This manual provides details for the backend API endpoints exposed by the Aptitude Screening Portal.
+The EllipHire backend is built using Next.js App Router API Routes (`app/api/*`). All endpoints (except public ones like login/register) require a Bearer token in the `Authorization` header.
 
-## Authentication Endpoints
+## 1. Authentication APIs
 
-### 1. `POST /api/auth/register`
-Creates candidate Student accounts.
-* **Payload**:
-  ```json
-  {
-    "email": "student@college.edu",
-    "password": "mypassword123",
-    "confirmPassword": "mypassword123"
-  }
-  ```
-* **Response**: `201 Created`
-* *Note: Server enforces the `student` role on all registrations.*
+### `POST /api/auth/register`
+- **Description**: Registers a new Student user.
+- **Request Body**: `email`, `password`, `fullName`, `usn`, `college`, `branch`
+- **Response**: `{ user, token }`
 
-### 2. `POST /api/auth/login`
-Authenticates users and returns a JWT access token.
-* **Payload**:
-  ```json
-  {
-    "email": "user@portal.com",
-    "password": "mypassword123"
-  }
-  ```
-* **Response**: `200 OK` (token returned in cookies & data payload).
+### `POST /api/auth/login`
+- **Description**: Authenticates a User (Student or Admin).
+- **Request Body**: `email`, `password`
+- **Response**: `{ user, token }`
 
-### 3. `GET /api/auth/verify`
-Checks token validity and returns role context.
-* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
-* **Response**: `200 OK`
+### `GET /api/auth/me`
+- **Description**: Fetches the currently authenticated user's profile.
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `{ id, email, role, ...profileDetails }`
 
 ---
 
-## Student Profile Endpoints
+## 2. Student APIs
 
-### 1. `GET /api/students/profile`
-Fetches candidate profiles.
-* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
+### `GET /api/students/[id]`
+- **Description**: Fetch specific student details and their test history.
+- **Access**: Admin / Super Admin (or the student themselves).
+- **Response**: Student Object + `tests` array.
 
-### 2. `POST /api/students/profile`
-Updates profile properties.
-* **Payload**: Full name, USN, college, branchId.
-
----
-
-## Test Management Endpoints
-
-### 1. `GET /api/tests`
-Retrieves tests assigned to the logged-in student.
-* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
-* *Note: Masked scores if `results_published` is false.*
-
-### 2. `GET /api/tests/[id]`
-Gets test details.
-* **Headers**: `Authorization: Bearer <JWT_TOKEN>`
-* *Note: Masked correct answers and score for student requests if not published.*
-
-### 3. `POST /api/tests/[id]/auto-save`
-Auto-saves an answer during test-taking.
-* **Payload**: `questionId`, `answer`.
-
-### 4. `POST /api/tests/[id]/submit`
-Submits completed test, calculates scores, and logs violations.
+### `PUT /api/students/[id]`
+- **Description**: Updates student profile (e.g., agreeing to camera/mic permissions).
+- **Request Body**: `camera_permission`, `microphone_permission`, `phone`
+- **Response**: Updated Student Object.
 
 ---
 
-## Administrative Endpoints
+## 3. Question Bank APIs
 
-### 1. `POST /api/admin/create-admin` (Super Admin Only)
-Allows creation of new admin or super_admin accounts.
-* **Headers**: `Authorization: Bearer <SUPER_ADMIN_JWT_TOKEN>`
-* **Payload**: `email`, `password`, `role`, `fullName`, `department`.
+### `GET /api/questions`
+- **Description**: Fetches paginated questions. Supports filtering by difficulty, type, and branch.
+- **Access**: Admin.
+- **Response**: `{ data: [...], total, page, limit }`
 
-### 2. `GET /api/admin/evaluation` (Admin Only)
-Returns lists of student tests, leaderboards, and branch average metrics.
+### `POST /api/questions`
+- **Description**: Creates a single new question (MCQ, Coding, Open Text, etc.).
+- **Access**: Admin.
+- **Request Body**: Question Object.
+- **Response**: Created Question Object.
 
-### 3. `POST /api/admin/evaluation` (Admin Only)
-Publishes/unpublishes test results globally, by branch, or by specific test IDs.
-* **Payload**:
-  ```json
-  {
-    "testIds": ["uuid-1", "uuid-2"],
-    "publish": true
-  }
-  ```
+### `POST /api/questions/import`
+- **Description**: Bulk imports questions from an Excel (`.xlsx` / `.csv`) file.
+- **Access**: Admin.
+- **Request Body**: `FormData` containing the file.
+- **Response**: `{ successCount, duplicateCount, errorCount, errors: [...] }`
+
+---
+
+## 4. Test APIs
+
+### `GET /api/tests`
+- **Description**: Fetch assigned or pending tests for a student.
+- **Access**: Student.
+- **Response**: Array of Tests.
+
+### `POST /api/tests`
+- **Description**: Admin creates a new Test for a student or generates a Template.
+- **Access**: Admin.
+- **Request Body**: `studentId`, `templateId`, `duration`
+- **Response**: Created Test Object.
+
+### `POST /api/tests/[id]/submit`
+- **Description**: Submits the completed test.
+- **Access**: Student.
+- **Request Body**: Array of `responses` and `violations`.
+- **Response**: `{ message: 'Test submitted successfully', evalJobId }`
+
+---
+
+## 5. AI Evaluation APIs
+
+### `POST /api/tests/[id]/eval`
+- **Description**: Triggers the AI Evaluation pipeline for unstructured questions (Coding, Open Text).
+- **Access**: Internal / Worker.
+- **Process**: 
+  1. Compiles/Runs code via **Piston API**.
+  2. Sends text to **OpenAI API** with grading rubrics.
+  3. Updates `TestResponse` with detailed JSON feedback.
+
+---
+
+## 6. Admin Analytics APIs
+
+### `GET /api/admin/dashboard`
+- **Description**: Aggregated statistics for the admin overview.
+- **Access**: Admin.
+- **Response**: `{ totalStudents, totalTests, averageScore, ... }`
+
+### `GET /api/admin/export`
+- **Description**: Exports a consolidated CSV/Excel file of student rankings and scores.
+- **Access**: Admin.
+- **Response**: Downloadable `.xlsx` binary stream.

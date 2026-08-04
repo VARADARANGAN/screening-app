@@ -1,105 +1,132 @@
-# Database Schema Documentation
+# EllipHire - Database Schema
 
-The database schema is defined inside [schema.prisma](file:///c:/Users/R%20P%20Varada%20Rangan/Downloads/screening-app/prisma/schema.prisma). It maps to 10 PostgreSQL tables.
+The database for EllipHire is managed via Prisma ORM and hosted on PostgreSQL (Supabase). This document outlines the core entities, their fields, and relationships.
 
-## Entity Relationship Diagram
+## Entity-Relationship Overview
 
 ```mermaid
 erDiagram
-  users ||--o| students : "user_id references users.id"
-  users ||--o| admins : "user_id references users.id"
-  branches ||--o{ students : "branch_id references branches.id"
-  branches ||--o{ questions : "branch_id references branches.id"
-  students ||--o{ tests : "student_id references students.id"
-  tests ||--o{ test_questions : "test_id references tests.id"
-  tests ||--o{ test_responses : "test_id references tests.id"
-  tests ||--o{ violations : "test_id references tests.id"
-  questions ||--o{ test_questions : "question_id references questions.id"
-  questions ||--o{ test_responses : "question_id references questions.id"
+    User ||--o| Student : has
+    User ||--o| Admin : has
+    User ||--o{ Question : creates
+    User ||--o{ TestTemplate : creates
+
+    Student ||--o{ Test : takes
+    Student ||--o{ AIEvaluation : has
+    
+    TestTemplate ||--o{ Test : generates
+    
+    Test ||--o{ TestResponse : contains
+    Test ||--o{ Violation : logs
+    Test ||--o| TestAnalytics : produces
+    
+    Question ||--o{ TestQuestion : included_in
+    TestTemplate ||--o{ TestQuestion : contains
+    Question ||--o{ TestResponse : answered_in
 ```
 
-## Schema Reference
+## Tables
 
-### 1. `users` Table
-Stores base credentials for authentication and RBAC.
-* `id` (UUID, Primary Key)
-* `email` (VARCHAR, Unique) - Candidate or administrator email.
-* `password_hash` (VARCHAR) - Bcrypt hashed password.
-* `role` (VARCHAR) - Roles: `student`, `admin`, `super_admin`.
-* `created_at` / `updated_at` (TIMESTAMP)
+### 1. `users`
+Core authentication and authorization entity.
+- **`id`**: UUID (Primary Key)
+- **`email`**: String (Unique)
+- **`password_hash`**: String
+- **`role`**: String (`student`, `admin`, `super_admin`)
+- **`is_active`**: Boolean
+- **`created_at`** / **`updated_at`**: Timestamp
 
-### 2. `students` Table
-Stores student candidate profiles.
-* `id` (UUID, Primary Key)
-* `user_id` (UUID, Foreign Key referencing `users.id`)
-* `full_name` (VARCHAR)
-* `phone` (VARCHAR)
-* `college` (VARCHAR)
-* `usn` (VARCHAR, Unique)
-* `branch_id` (UUID, Foreign Key referencing `branches.id`)
-* `profile_completed` (BOOLEAN, default: false)
+### 2. `students`
+Profile data for candidate users.
+- **`id`**: UUID (Primary Key)
+- **`user_id`**: UUID (Foreign Key to `users.id`, Unique)
+- **`full_name`**: String
+- **`phone`**: String
+- **`college`**: String
+- **`usn`**: String (Unique)
+- **`branch_name`**: String
+- **`profile_completed`**: Boolean
+- **`camera_permission`** / **`microphone_permission`**: Boolean
 
-### 3. `admins` Table
-Stores profile information for administrative users.
-* `id` (UUID, Primary Key)
-* `user_id` (UUID, Foreign Key referencing `users.id`)
-* `full_name` (VARCHAR)
-* `department` (VARCHAR)
+### 3. `admins`
+Profile data for administrative users.
+- **`id`**: UUID (Primary Key)
+- **`user_id`**: UUID (Foreign Key to `users.id`, Unique)
+- **`full_name`**: String
+- **`department`**: String
 
-### 4. `branches` Table
-College departments/branches (e.g. CSE, ECE).
-* `id` (UUID, Primary Key)
-* `name` (VARCHAR, Unique)
+### 4. `questions`
+The global question bank.
+- **`id`**: UUID (Primary Key)
+- **`question_text`**: String
+- **`type`**: String (`mcq`, `coding`, `open_text`, `structured_response`)
+- **`difficulty`**: String (`easy`, `medium`, `hard`)
+- **`branch`**: String
+- **`options_json`**: JSONB (Stores MCQ options)
+- **`correct_answer`**: String
+- **`explanation`**: String
+- **`time_limit_seconds`**: Int
+- **`points`**: Int
+- **`created_by`**: UUID (Foreign Key to `users.id`)
 
-### 5. `questions` Table
-Houses all aptitude questions.
-* `id` (UUID, Primary Key)
-* `question_text` (TEXT)
-* `type` (VARCHAR) - `mcq`, `coding`, `essay`, `true_false`.
-* `category` (VARCHAR) - e.g. Quantitative, Logical.
-* `branch_id` (UUID, Foreign Key referencing `branches.id`)
-* `options_json` (JSONB) - Option details.
-* `correct_answer` (VARCHAR) - Index or exact correct choice.
-* `explanation` (TEXT)
-* `time_limit_seconds` (INT)
-* `points` (INT) - Question Marks worth.
-* `is_published` (BOOLEAN, default: false)
+### 5. `test_templates`
+Definitions for assessments (rounds).
+- **`id`**: UUID (Primary Key)
+- **`name`**: String
+- **`description`**: String
+- **`total_questions`**: Int
+- **`total_duration`**: Int (Seconds)
+- **`branch`**: String
+- **`is_active`**: Boolean
+- **`created_by`**: UUID (Foreign Key to `users.id`)
 
-### 6. `tests` Table
-Individual test sessions allocated to students.
-* `id` (UUID, Primary Key)
-* `student_id` (UUID, Foreign Key referencing `students.id`)
-* `start_time` / `end_time` (TIMESTAMP)
-* `status` (VARCHAR) - `not_started`, `in_progress`, `submitted`, `evaluated`.
-* `total_duration` (INT) - Total test length in minutes.
-* `current_duration` (INT) - Current time elapsed in seconds.
-* `violations_count` (INT) - Amount of anti-cheat violations caught.
-* `score` (DECIMAL) - MCQ score percentage.
-* `results_published` (BOOLEAN, default: false) - Controls score visibility.
+### 6. `test_questions`
+Mapping table between TestTemplates and Questions.
+- **`id`**: UUID (Primary Key)
+- **`template_id`**: UUID (Foreign Key to `test_templates.id`)
+- **`question_id`**: UUID (Foreign Key to `questions.id`)
 
-### 7. `test_questions` Table
-Links questions to test instances (Many-to-Many).
-* `id` (UUID, Primary Key)
-* `test_id` (UUID, Foreign Key referencing `tests.id`)
-* `question_id` (UUID, Foreign Key referencing `questions.id`)
-* `sequence_number` (INT)
+### 7. `tests`
+Individual student attempt instances.
+- **`id`**: UUID (Primary Key)
+- **`student_id`**: UUID (Foreign Key to `students.id`)
+- **`template_id`**: UUID (Foreign Key to `test_templates.id`, Nullable)
+- **`start_time`** / **`end_time`**: Timestamp
+- **`status`**: String (`not_started`, `in_progress`, `submitted`, `evaluated`)
+- **`total_duration`**: Int
+- **`current_duration`**: Int
+- **`score`**: Int
 
-### 8. `test_responses` Table
-Saves applicant answers (auto-saves and submissions).
-* `id` (UUID, Primary Key)
-* `test_id` (UUID, Foreign Key referencing `tests.id`)
-* `question_id` (UUID, Foreign Key referencing `questions.id`)
-* `student_answer` (TEXT)
-* `is_correct` (BOOLEAN)
-* `points_earned` (DECIMAL)
-* `auto_saved_at` / `submitted_at` (TIMESTAMP)
+### 8. `test_responses`
+Answers submitted for individual questions during a test.
+- **`id`**: UUID (Primary Key)
+- **`test_id`**: UUID (Foreign Key to `tests.id`)
+- **`question_id`**: UUID (Foreign Key to `questions.id`)
+- **`student_answer`**: String
+- **`is_correct`**: Boolean
+- **`points_earned`**: Int
+- **`ai_evaluation_json`**: JSONB (Stores detailed rubric scores, feedback, strengths, and AI execution status)
 
-### 9. `violations` Table
-Logs student cheating activities during tests.
-* `id` (UUID, Primary Key)
-* `test_id` (UUID, Foreign Key referencing `tests.id`)
-* `violation_type` (VARCHAR) - e.g. `suspicious_activity` for tab switching.
-* `description` (TEXT)
+### 9. `violations`
+Logs of proctoring events during a test.
+- **`id`**: UUID (Primary Key)
+- **`test_id`**: UUID (Foreign Key to `tests.id`)
+- **`violation_type`**: String (`tab_switch`, `window_blur`, etc.)
+- **`severity`**: String (`warning`, `critical`)
+- **`timestamp`**: Timestamp
 
-### 10. `test_templates` / `test_analytics` Tables
-Manages test presets and aggregates dashboard metrics.
+### 10. `test_analytics`
+Aggregated data for completed tests.
+- **`id`**: UUID (Primary Key)
+- **`test_id`**: UUID (Foreign Key to `tests.id`, Unique)
+- **`total_questions`**: Int
+- **`correct_answers`** / **`incorrect_answers`** / **`unanswered`**: Int
+- **`total_score`**: Int
+- **`time_taken`**: Int
+- **`violations_count`**: Int
+- **`percentile`**: Float
+
+### 11. `branches`
+Reference table for college branches/departments.
+- **`id`**: UUID (Primary Key)
+- **`name`**: String (Unique)

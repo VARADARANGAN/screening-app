@@ -1,60 +1,88 @@
-# Setup & Deployment Guide
+# EllipHire - Deployment Documentation
 
-This guide details steps to configure, reset, and deploy the Aptitude Screening Portal.
+EllipHire supports two primary deployment methods: **Local Bare-Metal** (via Node.js) and **Containerized** (via Docker). Both environments depend on an external PostgreSQL instance hosted on Supabase.
 
-## Getting Started
-
-### 1. Configure Environment variables
-Create a `.env` or `.env.local` file in the root of the project:
-```properties
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/aptitude_portal"
-JWT_SECRET="generate-a-safe-minimum-32-char-jwt-secret-string"
-JWT_EXPIRE="7d"
-BCRYPT_ROUNDS="10"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NODE_ENV="development"
-```
-
-### 2. Reset Database & Seed Super Admin
-Clear all test tables and seed the base branch structures along with the initial Super Admin:
-```bash
-npx tsx seed.ts
-```
-*(If `tsx` is not installed, you can use `npx ts-node seed.ts` or set up the seed script inside `package.json` and run `npx prisma db seed`).*
-
-Default Seed Credentials:
-- **Email**: `superadmin@portal.com`
-- **Password**: `superadminpassword`
-- **Role**: `super_admin`
+## Prerequisites
+- Node.js v22+
+- npm (Node Package Manager)
+- Docker & Docker Compose (if deploying via containers)
+- Active Supabase Project
 
 ---
 
-## Local Development Server
+## 1. Local Bare-Metal Deployment
 
-Run the development server:
+This is the standard approach for running EllipHire directly on a server (e.g., EC2, VPS) or locally for development.
+
+### Step 1: Install Dependencies
 ```bash
-npm run dev
+npm install
 ```
-Navigate to `http://localhost:3000` to start testing.
 
----
+### Step 2: Environment Variables
+Create a `.env` file in the root directory. Ensure all required keys (Database URLs, JWT Secrets, OpenAI keys) are populated.
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+```
 
-## Production Deployment
-
-### 1. Database Migrations
-Run schema migration on production databases:
+### Step 3: Database Synchronization
+Since we use Prisma (v7.8.0), generate the client and push the schema directly to Supabase:
 ```bash
+npx prisma generate
 npx prisma db push
 ```
 
-### 2. Build Bundle
-Compile the Next.js production builds:
+### Step 4: Build and Start
 ```bash
 npm run build
+npm start
+```
+The application will run on `http://localhost:3000`.
+
+---
+
+## 2. Docker Deployment
+
+EllipHire includes production-ready Docker configuration. The container packages the Next.js app, handles Prisma generation at build time, and runs the server.
+
+> [!NOTE]
+> PostgreSQL is intentionally omitted from the `docker-compose.yml` because the architecture relies on the external Supabase instance for database management, edge functions, and scalability.
+
+### Docker Files Overview
+- **`Dockerfile`**: A multi-stage build (deps -> builder -> runner) using `node:22-alpine` for an optimized, small footprint. It runs under a non-root `nextjs` user.
+- **`docker-compose.yml`**: Configures the Next.js app service, maps port `3000:3000`, and dynamically loads environment variables via `env_file: .env`.
+- **`.dockerignore`**: Excludes `node_modules`, `.next`, `.git`, and local env files to keep the Docker context minimal.
+
+### Step 1: Build the Image
+```bash
+docker-compose build
+```
+This step will compile Next.js and generate the Prisma Client for the Linux Alpine architecture.
+
+### Step 2: Run the Container
+Start the application in detached mode:
+```bash
+docker-compose up -d
 ```
 
-### 3. Start Production Server
-Launch compiled bundles:
+### Step 3: Stop the Container
+To gracefully shut down the application:
 ```bash
-npm run start
+docker-compose down
 ```
+
+### Step 4: Rebuild After Changes
+If you modify `package.json`, environment variables, or application code:
+```bash
+docker-compose up --build -d
+```
+
+---
+
+## 3. Deployment via Vercel (Alternative)
+
+Because EllipHire is a Next.js application, it can be deployed directly to Vercel with zero configuration.
+1. Connect your GitHub repository to Vercel.
+2. Add your Environment Variables in the Vercel Dashboard.
+3. Vercel will automatically run `npm run build`. (Ensure your build script in `package.json` includes `prisma generate && next build`).
